@@ -26,6 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/consensus/beacon"
 	"github.com/ethereum/go-ethereum/consensus/clique"
 	"github.com/ethereum/go-ethereum/consensus/ethash"
+	"github.com/ethereum/go-ethereum/consensus/posa"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/txpool/blobpool"
 	"github.com/ethereum/go-ethereum/core/txpool/legacypool"
@@ -168,6 +169,9 @@ func CreateConsensusEngine(config *params.ChainConfig, db ethdb.Database) (conse
 	// If proof-of-authority is requested, set it up
 	if config.Clique != nil {
 		return beacon.New(clique.New(config.Clique, db)), nil
+	}
+	if config.PoSA != nil {
+		return beacon.New(posa.New(config.PoSA, db)), nil
 	}
 	// If defaulting to proof-of-work, enforce an already merged network since
 	// we cannot run PoW algorithms anymore, so we cannot even follow a chain

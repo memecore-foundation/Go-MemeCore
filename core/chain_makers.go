@@ -321,7 +321,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 		// correct value.
 		if b.header.Difficulty == nil {
 			if config.TerminalTotalDifficulty == nil {
-				// Clique chain
+				// Clique and PoSA chain
 				b.header.Difficulty = big.NewInt(2)
 			} else {
 				// Post-merge chain

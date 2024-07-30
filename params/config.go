@@ -165,6 +165,7 @@ var (
 		TerminalTotalDifficultyPassed: true,
 		Ethash:                        new(EthashConfig),
 		Clique:                        nil,
+		PoSA:                          nil,
 	}
 
 	AllDevChainProtocolChanges = &ChainConfig{
@@ -215,6 +216,38 @@ var (
 		TerminalTotalDifficultyPassed: false,
 		Ethash:                        nil,
 		Clique:                        &CliqueConfig{Period: 0, Epoch: 30000},
+		PoSA:                          nil,
+	}
+
+	// AllPoSAProtocolChanges contains every protocol change (EIPs) introduced
+	// and accepted by the Ethereum core developers into the PoSA consensus.
+	AllPoSAProtocolChanges = &ChainConfig{
+		ChainID:                       big.NewInt(1337),
+		HomesteadBlock:                big.NewInt(0),
+		DAOForkBlock:                  nil,
+		DAOForkSupport:                false,
+		EIP150Block:                   big.NewInt(0),
+		EIP155Block:                   big.NewInt(0),
+		EIP158Block:                   big.NewInt(0),
+		ByzantiumBlock:                big.NewInt(0),
+		ConstantinopleBlock:           big.NewInt(0),
+		PetersburgBlock:               big.NewInt(0),
+		IstanbulBlock:                 big.NewInt(0),
+		MuirGlacierBlock:              big.NewInt(0),
+		BerlinBlock:                   big.NewInt(0),
+		LondonBlock:                   big.NewInt(0),
+		ArrowGlacierBlock:             nil,
+		GrayGlacierBlock:              nil,
+		MergeNetsplitBlock:            nil,
+		ShanghaiTime:                  nil,
+		CancunTime:                    nil,
+		PragueTime:                    nil,
+		VerkleTime:                    nil,
+		TerminalTotalDifficulty:       nil,
+		TerminalTotalDifficultyPassed: false,
+		Ethash:                        nil,
+		Clique:                        nil,
+		PoSA:                          &PoSAConfig{Period: 0, Epoch: 30000},
 	}
 
 	// TestChainConfig contains every protocol change (EIPs) introduced
@@ -245,6 +278,7 @@ var (
 		TerminalTotalDifficultyPassed: false,
 		Ethash:                        new(EthashConfig),
 		Clique:                        nil,
+		PoSA:                          nil,
 	}
 
 	// MergedTestChainConfig contains every protocol change (EIPs) introduced
@@ -365,6 +399,7 @@ type ChainConfig struct {
 	// Various consensus engines
 	Ethash *EthashConfig `json:"ethash,omitempty"`
 	Clique *CliqueConfig `json:"clique,omitempty"`
+	PoSA   *PoSAConfig   `json:"posa,omitempty"`
 }
 
 // EthashConfig is the consensus engine configs for proof-of-work based sealing.
@@ -384,6 +419,17 @@ type CliqueConfig struct {
 // String implements the stringer interface, returning the consensus engine details.
 func (c *CliqueConfig) String() string {
 	return "clique"
+}
+
+// PoSAConfig is the consensus engine configs for proof-of-authority based sealing.
+type PoSAConfig struct {
+	Period uint64 `json:"period"` // Number of seconds between blocks to enforce
+	Epoch  uint64 `json:"epoch"`  // Epoch length to reset signers and checkpoint
+}
+
+// String implements the stringer interface, returning the consensus engine details.
+func (c *PoSAConfig) String() string {
+	return "posa"
 }
 
 // Description returns a human-readable description of ChainConfig.
@@ -412,6 +458,14 @@ func (c *ChainConfig) Description() string {
 			banner += "Consensus: Beacon (proof-of-stake), merging from Clique (proof-of-authority)\n"
 		} else {
 			banner += "Consensus: Beacon (proof-of-stake), merged from Clique (proof-of-authority)\n"
+		}
+	case c.PoSA != nil:
+		if c.TerminalTotalDifficulty == nil {
+			banner += "Consensus: PoSA (proof-of-authority)\n"
+		} else if !c.TerminalTotalDifficultyPassed {
+			banner += "Consensus: Beacon (proof-of-stake), merging from PoSA (proof-of-authority)\n"
+		} else {
+			banner += "Consensus: Beacon (proof-of-stake), merged from PoSA (proof-of-authority)\n"
 		}
 	default:
 		banner += "Consensus: unknown\n"
