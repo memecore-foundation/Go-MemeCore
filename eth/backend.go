@@ -437,11 +437,16 @@ func (s *Ethereum) StartMining() error {
 			return fmt.Errorf("etherbase missing: %v", err)
 		}
 		var cli *clique.Clique
+		var pa *posa.PoSA
 		if c, ok := s.engine.(*clique.Clique); ok {
 			cli = c
-		} else if cl, ok := s.engine.(*beacon.Beacon); ok {
-			if c, ok := cl.InnerEngine().(*clique.Clique); ok {
+		} else if p, ok := s.engine.(*posa.PoSA); ok {
+			pa = p
+		} else if b, ok := s.engine.(*beacon.Beacon); ok {
+			if c, ok := b.InnerEngine().(*clique.Clique); ok {
 				cli = c
+			} else if p, ok := b.InnerEngine().(*posa.PoSA); ok {
+				pa = p
 			}
 		}
 		if cli != nil {
@@ -452,13 +457,13 @@ func (s *Ethereum) StartMining() error {
 			}
 			cli.Authorize(eb, wallet.SignData)
 		}
-		if p, ok := s.engine.(*posa.PoSA); ok {
+		if pa != nil {
 			wallet, err := s.accountManager.Find(accounts.Account{Address: eb})
 			if wallet == nil || err != nil {
 				log.Error("Etherbase account unavailable locally", "err", err)
 				return fmt.Errorf("signer missing: %v", err)
 			}
-			p.Authorize(eb, wallet.SignData)
+			pa.Authorize(eb, wallet.SignData)
 		}
 		// If mining is started, we can disable the transaction rejection mechanism
 		// introduced to speed sync times.
