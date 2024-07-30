@@ -27,6 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/consensus/clique"
+	"github.com/ethereum/go-ethereum/consensus/posa"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -164,6 +165,35 @@ func (api *SignerAPI) determineSignatureFormat(ctx context.Context, contentType 
 		// Clique uses V on the form 0 or 1
 		useEthereumV = false
 		req = &SignDataRequest{ContentType: mediaType, Rawdata: cliqueRlp, Messages: messages, Hash: sighash}
+	case apitypes.ApplicationPoSA.Mime:
+		posaData, err := fromHex(data)
+		if err != nil {
+			return nil, useEthereumV, err
+		}
+		header := &types.Header{}
+		if err := rlp.DecodeBytes(posaData, header); err != nil {
+			return nil, useEthereumV, err
+		}
+		// Add space in the extradata to put the signature
+		newExtra := make([]byte, len(header.Extra)+65)
+		copy(newExtra, header.Extra)
+		header.Extra = newExtra
+
+		// Get back the rlp data, encoded by us
+		sighash, posaRlp, err := posaHeaderHashAndRlp(header)
+		if err != nil {
+			return nil, useEthereumV, err
+		}
+		messages := []*apitypes.NameValueType{
+			{
+				Name:  "PoSA header",
+				Typ:   "posa",
+				Value: fmt.Sprintf("posa header %d [%#x]", header.Number, header.Hash()),
+			},
+		}
+		// PoSA uses V on the form 0 or 1
+		useEthereumV = false
+		req = &SignDataRequest{ContentType: mediaType, Rawdata: posaRlp, Messages: messages, Hash: sighash}
 	case apitypes.DataTyped.Mime:
 		// EIP-712 conformant typed data
 		var err error
@@ -216,6 +246,16 @@ func cliqueHeaderHashAndRlp(header *types.Header) (hash, rlp []byte, err error) 
 	}
 	rlp = clique.CliqueRLP(header)
 	hash = clique.SealHash(header).Bytes()
+	return hash, rlp, err
+}
+
+func posaHeaderHashAndRlp(header *types.Header) (hash, rlp []byte, err error) {
+	if len(header.Extra) < 65 {
+		err = fmt.Errorf("posa header extradata too short, %d < 65", len(header.Extra))
+		return
+	}
+	rlp = posa.PoSARLP(header)
+	hash = posa.SealHash(header).Bytes()
 	return hash, rlp, err
 }
 

@@ -184,6 +184,10 @@ var (
 		accounts.MimetypeClique,
 		0x02,
 	}
+	ApplicationPoSA = SigFormat{
+		accounts.MimetypePoSA,
+		0x03,
+	}
 	TextPlain = SigFormat{
 		accounts.MimetypeTextPlain,
 		0x45,
