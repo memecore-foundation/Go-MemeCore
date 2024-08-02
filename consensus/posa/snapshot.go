@@ -1,6 +1,7 @@
 package posa
 
 import (
+	"bytes"
 	"encoding/json"
 	"time"
 
@@ -44,6 +45,13 @@ func newSnapshot(config *params.PoSAConfig, sigcache *sigLRU, number uint64, has
 	}
 	return snap
 }
+
+// validatorsAscending implements the sort interface to allow sorting a list of addresses
+type validatorsAscending []common.Address
+
+func (s validatorsAscending) Len() int           { return len(s) }
+func (s validatorsAscending) Less(i, j int) bool { return bytes.Compare(s[i][:], s[j][:]) < 0 }
+func (s validatorsAscending) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
 // loadSnapshot loads an existing snapshot from the database.
 func loadSnapshot(config *params.PoSAConfig, sigcache *sigLRU, db ethdb.Database, hash common.Hash) (*Snapshot, error) {
@@ -133,6 +141,16 @@ func (s *Snapshot) apply(headers []*types.Header) (*Snapshot, error) {
 			}
 		}
 		snap.Recents[number] = signer
+
+		// Update signer list in snapshot
+		if number > 0 && number%s.config.Epoch == 0 {
+			s.Signers = make(map[common.Address]struct{})
+			extraSuffix := len(header.Extra) - extraSeal
+			for i := 0; i < (extraSuffix-extraVanity)/common.AddressLength; i++ {
+				validator := common.BytesToAddress(header.Extra[extraVanity+i*common.AddressLength : extraVanity+(i+1)*common.AddressLength])
+				s.Signers[validator] = struct{}{}
+			}
+		}
 
 		// If we're taking too much time (ecrecover), notify the user once a while
 		if time.Since(logged) > 8*time.Second {

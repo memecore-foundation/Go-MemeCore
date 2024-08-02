@@ -7,6 +7,7 @@ import (
 	"io"
 	"math/big"
 	"math/rand"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -359,18 +360,33 @@ func (p *PoSA) verifyCascadingFields(chain consensus.ChainHeaderReader, header *
 		return err
 	}
 	// If the block is a checkpoint block, verify the signer list
-	if number%p.config.Epoch == 0 {
-		signers := make([]byte, len(snap.Signers)*common.AddressLength)
-		for i, signer := range snap.signers() {
-			copy(signers[i*common.AddressLength:], signer[:])
-		}
-		extraSuffix := len(header.Extra) - extraSeal
-		if !bytes.Equal(header.Extra[extraVanity:extraSuffix], signers) {
-			return errMismatchingCheckpointSigners
-		}
+	err = p.verifyValidators(header)
+	if err != nil {
+		return err
 	}
 	// All basic checks passed, verify the seal and return
 	return p.verifySeal(snap, header, parents)
+}
+
+// verifyValidators gets and verifies the current validator list in a header
+func (p *PoSA) verifyValidators(header *types.Header) error {
+	if header.Number.Uint64()%p.config.Epoch != 0 {
+		return nil
+	}
+
+	validators, err := p.getCurrentValidators(header.ParentHash)
+	if err != nil {
+		return err
+	}
+	signers := make([]byte, len(validators)*common.AddressLength)
+	for i, validator := range validators {
+		copy(signers[i*common.AddressLength:], validator[:])
+	}
+	extraSuffix := len(header.Extra) - extraSeal
+	if !bytes.Equal(header.Extra[extraVanity:extraSuffix], signers) {
+		return errMismatchingCheckpointSigners
+	}
+	return nil
 }
 
 // snapshot retrieves the authorization snapshot at a given point in time.
@@ -531,10 +547,9 @@ func (p *PoSA) Prepare(chain consensus.ChainHeaderReader, header *types.Header) 
 	}
 	header.Extra = header.Extra[:extraVanity]
 
-	if number%p.config.Epoch == 0 {
-		for _, signer := range snap.signers() {
-			header.Extra = append(header.Extra, signer[:]...)
-		}
+	// Update signer list manually in checkpoint blocks
+	if err := p.prepareValidators(header); err != nil {
+		return err
 	}
 	header.Extra = append(header.Extra, make([]byte, extraSeal)...)
 
@@ -549,6 +564,23 @@ func (p *PoSA) Prepare(chain consensus.ChainHeaderReader, header *types.Header) 
 	header.Time = parent.Time + p.config.Period
 	if header.Time < uint64(time.Now().Unix()) {
 		header.Time = uint64(time.Now().Unix())
+	}
+	return nil
+}
+
+// prepareValidators gets and appends current validator list to a block header
+func (p *PoSA) prepareValidators(header *types.Header) error {
+	if header.Number.Uint64()%p.config.Epoch != 0 {
+		return nil
+	}
+
+	validators, err := p.getCurrentValidators(header.ParentHash)
+	if err != nil {
+		return err
+	}
+	sort.Sort(validatorsAscending(validators))
+	for _, validator := range validators {
+		header.Extra = append(header.Extra, validator.Bytes()...)
 	}
 	return nil
 }
