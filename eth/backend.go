@@ -263,6 +263,19 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	}
 	eth.APIBackend.gpo = gasprice.NewOracle(eth.APIBackend, gpoParams)
 
+	// Set back things to consensus engine
+	var pa *posa.PoSA
+	if p, ok := eth.engine.(*posa.PoSA); ok {
+		pa = p
+	} else if b, ok := eth.engine.(*beacon.Beacon); ok {
+		if p, ok := b.InnerEngine().(*posa.PoSA); ok {
+			pa = p
+		}
+	}
+	if pa != nil {
+		pa.WithEthAPI(ethapi.NewBlockChainAPI(eth.APIBackend))
+	}
+
 	// Setup DNS discovery iterators.
 	dnsclient := dnsdisc.NewClient(dnsdisc.Config{})
 	eth.ethDialCandidates, err = dnsclient.NewIterator(eth.config.EthDiscoveryURLs...)

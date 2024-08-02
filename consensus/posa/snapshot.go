@@ -39,7 +39,6 @@ func newSnapshot(config *params.PoSAConfig, sigcache *sigLRU, number uint64, has
 		Signers:  make(map[common.Address]struct{}),
 		Recents:  make(map[uint64]common.Address),
 	}
-	// TODO: Fetch these list from contract
 	for _, signer := range signers {
 		snap.Signers[signer] = struct{}{}
 	}
