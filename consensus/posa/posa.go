@@ -7,10 +7,12 @@ import (
 	"io"
 	"math/big"
 	"math/rand"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	lru "github.com/ethereum/go-ethereum/common/lru"
@@ -21,11 +23,13 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ethereum/go-ethereum/internal/ethapi"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ethereum/go-ethereum/trie"
+	"github.com/holiman/uint256"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -160,6 +164,9 @@ type PoSA struct {
 	signFn SignerFn       // Signer function to authorize hashes with
 	lock   sync.RWMutex   // Protects the signer fields
 
+	ethAPI          *ethapi.BlockChainAPI // Blockchain API for contract calling
+	validatorSetABI abi.ABI               // System contract that maintains validator list
+
 	// The fields below are for testing only
 	fakeDiff bool // Skip difficulty verifications
 }
@@ -175,13 +182,24 @@ func New(config *params.PoSAConfig, db ethdb.Database) *PoSA {
 	// Allocate the snapshot caches and create the engine
 	recents := lru.NewCache[common.Hash, *Snapshot](inmemorySnapshots)
 	signatures := lru.NewCache[common.Hash, common.Address](inmemorySignatures)
+	// Load system contract ABI
+	vABI, err := abi.JSON(strings.NewReader(validatorSetABI))
+	if err != nil {
+		panic(err)
+	}
 
 	return &PoSA{
-		config:     &conf,
-		db:         db,
-		recents:    recents,
-		signatures: signatures,
+		config:          &conf,
+		db:              db,
+		recents:         recents,
+		signatures:      signatures,
+		validatorSetABI: vABI,
 	}
+}
+
+// WithEthAPI initializes Eth blockchain API for proper consensus module work.
+func (p *PoSA) WithEthAPI(api *ethapi.BlockChainAPI) {
+	p.ethAPI = api
 }
 
 // Author implements consensus.Engine, returning the Ethereum address recovered
@@ -272,11 +290,12 @@ func (p *PoSA) verifyHeader(chain consensus.ChainHeaderReader, header *types.Hea
 	if header.GasLimit > params.MaxGasLimit {
 		return fmt.Errorf("invalid gasLimit: have %v, max %v", header.GasLimit, params.MaxGasLimit)
 	}
-	if chain.Config().IsShanghai(header.Number, header.Time) {
-		return errors.New("posa does not support shanghai fork")
+	// Verify existence / non-existence of withdrawalsHash.
+	shanghai := chain.Config().IsShanghai(header.Number, header.Time)
+	if shanghai && header.WithdrawalsHash == nil {
+		return errors.New("missing withdrawalsHash")
 	}
-	// Verify the non-existence of withdrawalsHash.
-	if header.WithdrawalsHash != nil {
+	if !shanghai && header.WithdrawalsHash != nil {
 		return fmt.Errorf("invalid withdrawalsHash: have %x, expected nil", header.WithdrawalsHash)
 	}
 	if chain.Config().IsCancun(header.Number, header.Time) {
@@ -537,23 +556,39 @@ func (p *PoSA) Prepare(chain consensus.ChainHeaderReader, header *types.Header) 
 // Finalize implements consensus.Engine. There is no post-transaction
 // consensus rules in posa, do nothing here.
 func (p *PoSA) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, withdrawals []*types.Withdrawal) {
+	// Withdrawals processing.
+	for _, w := range withdrawals {
+		// Convert amount from gwei to wei.
+		amount := new(uint256.Int).SetUint64(w.Amount)
+		amount = amount.Mul(amount, uint256.NewInt(params.GWei))
+		state.AddBalance(w.Address, amount)
+	}
 	// No block rewards in PoA, so the state remains as is
 }
 
 // FinalizeAndAssemble implements consensus.Engine, ensuring no uncles are set,
 // nor block rewards given, and returns the final block.
 func (p *PoSA) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt, withdrawals []*types.Withdrawal) (*types.Block, error) {
-	if len(withdrawals) > 0 {
-		return nil, errors.New("posa does not support withdrawals")
+	shanghai := chain.Config().IsShanghai(header.Number, header.Time)
+	if shanghai {
+		// All blocks after Shanghai must include a withdrawals root.
+		if withdrawals == nil {
+			withdrawals = make([]*types.Withdrawal, 0)
+		}
+	} else {
+		if len(withdrawals) > 0 {
+			return nil, errors.New("withdrawals set before Shanghai activation")
+		}
 	}
+
 	// Finalize block
-	p.Finalize(chain, header, state, txs, uncles, nil)
+	p.Finalize(chain, header, state, txs, uncles, withdrawals)
 
 	// Assign the final state root to header.
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 
 	// Assemble and return the final block for sealing.
-	return types.NewBlock(header, txs, nil, receipts, trie.NewStackTrie(nil)), nil
+	return types.NewBlockWithWithdrawals(header, txs, nil, receipts, withdrawals, trie.NewStackTrie(nil)), nil
 }
 
 // Authorize injects a private key into the consensus engine to mint new blocks
@@ -720,7 +755,7 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 		enc = append(enc, header.BaseFee)
 	}
 	if header.WithdrawalsHash != nil {
-		panic("unexpected withdrawal hash value in posa")
+		enc = append(enc, header.WithdrawalsHash)
 	}
 	if header.ExcessBlobGas != nil {
 		panic("unexpected excess blob gas value in posa")
