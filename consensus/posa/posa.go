@@ -378,6 +378,7 @@ func (p *PoSA) verifyValidators(header *types.Header) error {
 	if err != nil {
 		return err
 	}
+	sort.Sort(validatorsAscending(validators))
 	signers := make([]byte, len(validators)*common.AddressLength)
 	for i, validator := range validators {
 		copy(signers[i*common.AddressLength:], validator[:])
