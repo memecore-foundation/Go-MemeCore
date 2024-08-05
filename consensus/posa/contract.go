@@ -6,6 +6,11 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/consensus"
+	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/internal/ethapi"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -14,6 +19,12 @@ import (
 const validatorSetABI = `[ { "inputs": [], "name": "getCurrentValidators", "outputs": [ { "internalType": "address[]", "name": "", "type": "address[]" } ], "stateMutability": "view", "type": "function" }, { "inputs": [ { "internalType": "uint256", "name": "", "type": "uint256" } ], "name": "validators", "outputs": [ { "internalType": "address", "name": "", "type": "address" } ], "stateMutability": "view", "type": "function" } ]`
 const validatorSetAddr = `0x1234000000000000000000000000000000000001`
 const validatorSetMethodGet = `getCurrentValidators`
+
+const rewardABI = ``
+const rewardAddr = ``
+const rewardMethodSet = ``
+
+var sysCallAddr = common.HexToAddress("0xfffffffffffffffffffffffffffffffffffffffe")
 
 func (p *PoSA) getCurrentValidators(blockHash common.Hash) ([]common.Address, error) {
 	if p.ethAPI == nil {
@@ -45,4 +56,49 @@ func (p *PoSA) getCurrentValidators(blockHash common.Hash) ([]common.Address, er
 	var valSet []common.Address
 	err = p.validatorSetABI.UnpackIntoInterface(&valSet, validatorSetMethodGet, result)
 	return valSet, err
+}
+
+type chainContext struct {
+	chain consensus.ChainHeaderReader
+	posa  consensus.Engine
+}
+
+func (c chainContext) Engine() consensus.Engine {
+	return c.posa
+}
+
+func (c chainContext) GetHeader(hash common.Hash, number uint64) *types.Header {
+	return c.chain.GetHeader(hash, number)
+}
+
+func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB) error {
+	chainContext := chainContext{
+		chain: chain,
+		posa:  p,
+	}
+	context := core.NewEVMBlockContext(header, chainContext, &sysCallAddr)
+	vmenv := vm.NewEVM(context, vm.TxContext{}, state, p.chainConfig, p.vmConfig)
+
+	data, err := p.validatorSetABI.Pack(rewardMethodSet)
+	if err != nil {
+		return err
+	}
+	toAddress := common.HexToAddress(rewardAddr)
+	msg := &core.Message{
+		From:      sysCallAddr,
+		GasLimit:  50_000_000,
+		GasPrice:  common.Big0,
+		GasFeeCap: common.Big0,
+		GasTipCap: common.Big0,
+		To:        &toAddress,
+		Data:      data,
+	}
+	vmenv.Reset(core.NewEVMTxContext(msg), state)
+	state.AddAddressToAccessList(toAddress)
+	_, _, err = vmenv.Call(vm.AccountRef(msg.From), *msg.To, msg.Data, 50_000_000, common.U2560)
+	if err != nil {
+		return err
+	}
+	state.Finalise(true)
+	return nil
 }

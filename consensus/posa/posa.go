@@ -22,6 +22,7 @@ import (
 	"github.com/ethereum/go-ethereum/consensus/misc/eip1559"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/internal/ethapi"
@@ -168,6 +169,8 @@ type PoSA struct {
 	lock   sync.RWMutex   // Protects the signer fields
 
 	ethAPI          *ethapi.BlockChainAPI // Blockchain API for contract calling
+	chainConfig     *params.ChainConfig   // Blockchain config for EVM initialization
+	vmConfig        vm.Config             // EVM config for EVM initialization
 	validatorSetABI abi.ABI               // System contract that maintains validator list
 
 	// The fields below are for testing only
@@ -203,6 +206,14 @@ func New(config *params.PoSAConfig, db ethdb.Database) *PoSA {
 // WithEthAPI initializes Eth blockchain API for proper consensus module work.
 func (p *PoSA) WithEthAPI(api *ethapi.BlockChainAPI) {
 	p.ethAPI = api
+}
+
+func (p *PoSA) WithBlockchainConfig(config *params.ChainConfig) {
+	p.chainConfig = config
+}
+
+func (p *PoSA) WithVMConfig(config vm.Config) {
+	p.vmConfig = config
 }
 
 // Author implements consensus.Engine, returning the Ethereum address recovered
