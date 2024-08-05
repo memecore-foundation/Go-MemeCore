@@ -599,10 +599,13 @@ func (f *BlockFetcher) loop() {
 						announce.time = task.time
 
 						// If the block is empty (header only), short circuit into the final import queue
-						if header.TxHash == types.EmptyTxsHash && header.UncleHash == types.EmptyUncleHash {
+						if header.TxHash == types.EmptyTxsHash && header.UncleHash == types.EmptyUncleHash && (header.WithdrawalsHash == nil || *header.WithdrawalsHash == types.EmptyWithdrawalsHash) {
 							log.Trace("Block empty, skipping body retrieval", "peer", announce.origin, "number", header.Number, "hash", header.Hash())
 
 							block := types.NewBlockWithHeader(header)
+							if header.WithdrawalsHash != nil {
+								block = block.WithWithdrawals([]*types.Withdrawal{})
+							}
 							block.ReceivedAt = task.time
 
 							complete = append(complete, block)
@@ -687,6 +690,10 @@ func (f *BlockFetcher) loop() {
 						matched = true
 						if f.getBlock(hash) == nil {
 							block := types.NewBlockWithHeader(announce.header).WithBody(task.transactions[i], task.uncles[i])
+							if announce.header.WithdrawalsHash != nil && *announce.header.WithdrawalsHash == types.EmptyWithdrawalsHash {
+								// Only empty withdrawals are supported in case of pre-merge PoSA with Shanghai enabled.
+								block = block.WithWithdrawals([]*types.Withdrawal{})
+							}
 							block.ReceivedAt = task.time
 							blocks = append(blocks, block)
 						} else {
