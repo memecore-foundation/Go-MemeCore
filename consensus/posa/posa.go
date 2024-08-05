@@ -56,6 +56,8 @@ var (
 
 	diffInTurn = big.NewInt(2) // Block difficulty for in-turn signatures
 	diffNoTurn = big.NewInt(1) // Block difficulty for out-of-turn signatures
+
+	Phase1BlockReward = new(uint256.Int).Mul(uint256.NewInt(1e+18), uint256.NewInt(6660)) // Block reward in wei for successfully mining a block
 )
 
 // Various error messages to mark blocks invalid. These should be private to
@@ -586,21 +588,22 @@ func (p *PoSA) prepareValidators(header *types.Header) error {
 	return nil
 }
 
-// Finalize implements consensus.Engine. There is no post-transaction
-// consensus rules in posa, do nothing here.
+// Finalize implements consensus.Engine, accumulating the block rewards and
+// beacon withdraws.
 func (p *PoSA) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, withdrawals []*types.Withdrawal) {
-	// Withdrawals processing.
+	// Withdrawals processing, currently empty.
 	for _, w := range withdrawals {
 		// Convert amount from gwei to wei.
 		amount := new(uint256.Int).SetUint64(w.Amount)
 		amount = amount.Mul(amount, uint256.NewInt(params.GWei))
 		state.AddBalance(w.Address, amount)
 	}
-	// No block rewards in PoA, so the state remains as is
+	// Accumulate any block rewards
+	accumulateRewards(chain.Config(), state, header, uncles)
 }
 
 // FinalizeAndAssemble implements consensus.Engine, ensuring no uncles are set,
-// nor block rewards given, and returns the final block.
+// but block rewards are given, and returns the final block.
 func (p *PoSA) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt, withdrawals []*types.Withdrawal) (*types.Block, error) {
 	shanghai := chain.Config().IsShanghai(header.Number, header.Time)
 	if shanghai {
@@ -802,4 +805,12 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 	if err := rlp.Encode(w, enc); err != nil {
 		panic("can't encode: " + err.Error())
 	}
+}
+
+// AccumulateRewards credits the coinbase of the given block with the mining
+// reward. The total reward only consists of the static block reward.
+func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header, uncles []*types.Header) {
+	// Select the correct block reward based on chain progression
+	blockReward := Phase1BlockReward
+	state.AddBalance(header.Coinbase, blockReward)
 }
