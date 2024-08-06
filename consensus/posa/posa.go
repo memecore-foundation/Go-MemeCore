@@ -78,6 +78,10 @@ var (
 	// has a vote nonce set to non-zeroes.
 	errInvalidCheckpointNonce = errors.New("vote nonce in checkpoint block non-zero")
 
+	// errMismatchingCoinbase is returned if a block's coinbase address is not the
+	// reward contract.
+	errMismatchingCoinbase = errors.New("coinbase address not reward contract")
+
 	// errMissingVanity is returned if a block's extra-data section is shorter than
 	// 32 bytes, which is required to store the signer vanity.
 	errMissingVanity = errors.New("extra-data 32 byte vanity prefix missing")
@@ -373,6 +377,10 @@ func (p *PoSA) verifyCascadingFields(chain consensus.ChainHeaderReader, header *
 		// Verify the header's EIP-1559 attributes.
 		return err
 	}
+	// Check the coinbase address
+	if header.Coinbase.Cmp(common.HexToAddress(rewardAddr)) != 0 {
+		return errMismatchingCoinbase
+	}
 	// Retrieve the snapshot needed to verify this header and cache it
 	snap, err := p.snapshot(chain, number-1, header.ParentHash, parents)
 	if err != nil {
@@ -543,6 +551,8 @@ func (p *PoSA) verifySeal(snap *Snapshot, header *types.Header, parents []*types
 func (p *PoSA) Prepare(chain consensus.ChainHeaderReader, header *types.Header) error {
 	// If the block isn't a checkpoint, cast a random vote (good enough for now)
 	header.Nonce = types.BlockNonce{}
+	// Set the coinbase address to reward contract
+	header.Coinbase = common.HexToAddress(rewardAddr)
 
 	number := header.Number.Uint64()
 	// Assemble the voting snapshot to check which votes make sense
