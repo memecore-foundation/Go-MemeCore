@@ -172,6 +172,7 @@ type PoSA struct {
 	chainConfig     *params.ChainConfig   // Blockchain config for EVM initialization
 	vmConfig        vm.Config             // EVM config for EVM initialization
 	validatorSetABI abi.ABI               // System contract that maintains validator list
+	rewardABI       abi.ABI               // System contract that distribute rewards
 
 	// The fields below are for testing only
 	fakeDiff bool // Skip difficulty verifications
@@ -193,6 +194,10 @@ func New(config *params.PoSAConfig, db ethdb.Database) *PoSA {
 	if err != nil {
 		panic(err)
 	}
+	rABI, err := abi.JSON(strings.NewReader(rewardABI))
+	if err != nil {
+		panic(err)
+	}
 
 	return &PoSA{
 		config:          &conf,
@@ -200,6 +205,7 @@ func New(config *params.PoSAConfig, db ethdb.Database) *PoSA {
 		recents:         recents,
 		signatures:      signatures,
 		validatorSetABI: vABI,
+		rewardABI:       rABI,
 	}
 }
 
@@ -611,6 +617,7 @@ func (p *PoSA) Finalize(chain consensus.ChainHeaderReader, header *types.Header,
 	}
 	// Accumulate any block rewards
 	accumulateRewards(chain.Config(), state, header, uncles)
+	p.settleRewardsAndUpdateValidators(chain, header, state)
 }
 
 // FinalizeAndAssemble implements consensus.Engine, ensuring no uncles are set,

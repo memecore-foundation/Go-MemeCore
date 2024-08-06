@@ -16,13 +16,13 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
-const validatorSetABI = `[ { "inputs": [], "name": "getCurrentValidators", "outputs": [ { "internalType": "address[]", "name": "", "type": "address[]" } ], "stateMutability": "view", "type": "function" }, { "inputs": [ { "internalType": "uint256", "name": "", "type": "uint256" } ], "name": "validators", "outputs": [ { "internalType": "address", "name": "", "type": "address" } ], "stateMutability": "view", "type": "function" } ]`
+const validatorSetABI = `[ { "inputs": [], "name": "getCurrentValidators", "outputs": [ { "internalType": "address[]", "name": "", "type": "address[]" } ], "stateMutability": "view", "type": "function" } ]`
 const validatorSetAddr = `0x1234000000000000000000000000000000000001`
 const validatorSetMethodGet = `getCurrentValidators`
 
-const rewardABI = ``
-const rewardAddr = ``
-const rewardMethodSet = ``
+const rewardABI = `[ { "inputs": [], "name": "settleReward", "outputs": [], "stateMutability": "nonpayable", "type": "function" } ]`
+const rewardAddr = `0x1234000000000000000000000000000000000002`
+const rewardMethodSet = `settleReward`
 
 var sysCallAddr = common.HexToAddress("0xfffffffffffffffffffffffffffffffffffffffe")
 
@@ -71,7 +71,7 @@ func (c chainContext) GetHeader(hash common.Hash, number uint64) *types.Header {
 	return c.chain.GetHeader(hash, number)
 }
 
-func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB) error {
+func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB) {
 	chainContext := chainContext{
 		chain: chain,
 		posa:  p,
@@ -79,9 +79,9 @@ func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReade
 	context := core.NewEVMBlockContext(header, chainContext, &sysCallAddr)
 	vmenv := vm.NewEVM(context, vm.TxContext{}, state, p.chainConfig, p.vmConfig)
 
-	data, err := p.validatorSetABI.Pack(rewardMethodSet)
+	data, err := p.rewardABI.Pack(rewardMethodSet)
 	if err != nil {
-		return err
+		panic(err)
 	}
 	toAddress := common.HexToAddress(rewardAddr)
 	msg := &core.Message{
@@ -97,8 +97,7 @@ func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReade
 	state.AddAddressToAccessList(toAddress)
 	_, _, err = vmenv.Call(vm.AccountRef(msg.From), *msg.To, msg.Data, 50_000_000, common.U2560)
 	if err != nil {
-		return err
+		panic(err)
 	}
 	state.Finalise(true)
-	return nil
 }
