@@ -90,6 +90,6 @@ func CalcBaseFee(config *params.ChainConfig, parent *types.Header) *big.Int {
 		num.Div(num, denom.SetUint64(config.BaseFeeChangeDenominator()))
 		baseFee := num.Sub(parent.BaseFee, num)
 
-		return math.BigMax(baseFee, common.Big0)
+		return math.BigMax(baseFee, new(big.Int).SetUint64(params.InitialBaseFee))
 	}
 }
