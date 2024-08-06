@@ -17,7 +17,7 @@
     "shanghaiTime": 0,
     "posa": {
       "period": 7,
-      "epoch": 30000
+      "epoch": 1
     }
   },
   "difficulty": "1",
