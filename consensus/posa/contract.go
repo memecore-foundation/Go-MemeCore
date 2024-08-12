@@ -20,7 +20,7 @@ const validatorSetABI = `[ { "inputs": [], "name": "getCurrentValidators", "outp
 const validatorSetAddr = `0x1234000000000000000000000000000000000001`
 const validatorSetMethodGet = `getCurrentValidators`
 
-const rewardABI = `[ { "inputs": [], "name": "settleReward", "outputs": [], "stateMutability": "nonpayable", "type": "function" } ]`
+const rewardABI = `[ { "inputs": [ { "internalType": "address", "name": "validator", "type": "address" } ], "name": "settleReward", "outputs": [], "stateMutability": "nonpayable", "type": "function" } ]`
 const rewardAddr = `0x1234000000000000000000000000000000000002`
 const rewardMethodSet = `settleReward`
 
@@ -72,14 +72,20 @@ func (c chainContext) GetHeader(hash common.Hash, number uint64) *types.Header {
 }
 
 func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB) {
+	// Get the block signer as validator
+	signer, err := ecrecover(header, p.signatures)
+	// If there is no signature, then the block is preparing
+	if err != nil {
+		signer = p.signer
+	}
 	chainContext := chainContext{
 		chain: chain,
 		posa:  p,
 	}
 	context := core.NewEVMBlockContext(header, chainContext, &sysCallAddr)
 	vmenv := vm.NewEVM(context, vm.TxContext{}, state, p.chainConfig, p.vmConfig)
-
-	data, err := p.rewardABI.Pack(rewardMethodSet)
+	// Do smart contract call
+	data, err := p.rewardABI.Pack(rewardMethodSet, signer)
 	if err != nil {
 		panic(err)
 	}
