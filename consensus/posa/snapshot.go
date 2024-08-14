@@ -144,11 +144,11 @@ func (s *Snapshot) apply(headers []*types.Header) (*Snapshot, error) {
 
 		// Update signer list in snapshot
 		if number > 0 && number%s.config.Epoch == 0 {
-			s.Signers = make(map[common.Address]struct{})
+			snap.Signers = make(map[common.Address]struct{})
 			extraSuffix := len(header.Extra) - extraSeal
 			for i := 0; i < (extraSuffix-extraVanity)/common.AddressLength; i++ {
 				validator := common.BytesToAddress(header.Extra[extraVanity+i*common.AddressLength : extraVanity+(i+1)*common.AddressLength])
-				s.Signers[validator] = struct{}{}
+				snap.Signers[validator] = struct{}{}
 			}
 		}
 
