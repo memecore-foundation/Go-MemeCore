@@ -16,13 +16,13 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
-const validatorSetABI = `[ { "inputs": [], "name": "getCurrentValidators", "outputs": [ { "internalType": "address[]", "name": "", "type": "address[]" } ], "stateMutability": "view", "type": "function" } ]`
+const validatorSetABI = `[ { "inputs": [], "stateMutability": "view", "type": "function", "name": "getFirstFewValidators", "outputs": [ { "internalType": "address[]", "name": "", "type": "address[]" } ] } ]`
 const validatorSetAddr = `0x1234000000000000000000000000000000000001`
-const validatorSetMethodGet = `getCurrentValidators`
+const validatorSetMethodGet = `getFirstFewValidators`
 
-const rewardABI = `[ { "inputs": [ { "internalType": "address", "name": "validator", "type": "address" } ], "name": "settleReward", "outputs": [], "stateMutability": "nonpayable", "type": "function" } ]`
+const rewardABI = `[ { "inputs": [ { "internalType": "address", "name": "validator", "type": "address" } ], "name": "timedTask", "outputs": [], "stateMutability": "nonpayable", "type": "function" } ]`
 const rewardAddr = `0x1234000000000000000000000000000000000002`
-const rewardMethodSet = `settleReward`
+const rewardMethodSet = `timedTask`
 
 var sysCallAddr = common.HexToAddress("0xfffffffffffffffffffffffffffffffffffffffe")
 
