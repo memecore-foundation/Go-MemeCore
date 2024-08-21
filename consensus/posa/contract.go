@@ -17,11 +17,11 @@ import (
 )
 
 const validatorSetABI = `[ { "inputs": [], "stateMutability": "view", "type": "function", "name": "getFirstFewValidators", "outputs": [ { "internalType": "address[]", "name": "", "type": "address[]" } ] } ]`
-const validatorSetAddr = `0x1234000000000000000000000000000000000001`
+const validatorSetAddr = `0x1234000000000000000000000000000000000002`
 const validatorSetMethodGet = `getFirstFewValidators`
 
 const rewardABI = `[ { "inputs": [ { "internalType": "address", "name": "validator", "type": "address" } ], "name": "timedTask", "outputs": [], "stateMutability": "nonpayable", "type": "function" } ]`
-const rewardAddr = `0x1234000000000000000000000000000000000002`
+const rewardAddr = `0x1234000000000000000000000000000000000001`
 const rewardMethodSet = `timedTask`
 
 var sysCallAddr = common.HexToAddress("0xfffffffffffffffffffffffffffffffffffffffe")
