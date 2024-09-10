@@ -142,13 +142,21 @@ func (s *Snapshot) apply(headers []*types.Header) (*Snapshot, error) {
 		}
 		snap.Recents[number] = signer
 
-		// Update signer list in snapshot
 		if number > 0 && number%s.config.Epoch == 0 {
+			// Update signer list in snapshot when checkpoint
 			snap.Signers = make(map[common.Address]struct{})
 			extraSuffix := len(header.Extra) - extraSeal
 			for i := 0; i < (extraSuffix-extraVanity)/common.AddressLength; i++ {
 				validator := common.BytesToAddress(header.Extra[extraVanity+i*common.AddressLength : extraVanity+(i+1)*common.AddressLength])
 				snap.Signers[validator] = struct{}{}
+			}
+
+			// Reset recent signer history
+			limit := uint64(len(snap.Signers)/2 + 1)
+			for block := range s.Recents {
+				if number-block >= limit {
+					delete(snap.Recents, block)
+				}
 			}
 		}
 
