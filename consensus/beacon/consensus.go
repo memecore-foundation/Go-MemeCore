@@ -348,10 +348,10 @@ func (beacon *Beacon) Prepare(chain consensus.ChainHeaderReader, header *types.H
 }
 
 // Finalize implements consensus.Engine and processes withdrawals on top.
-func (beacon *Beacon) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, withdrawals []*types.Withdrawal) {
+func (beacon *Beacon) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, withdrawals []*types.Withdrawal) error {
 	if !beacon.IsPoSHeader(header) {
-		beacon.ethone.Finalize(chain, header, state, txs, uncles, nil)
-		return
+		err := beacon.ethone.Finalize(chain, header, state, txs, uncles, nil)
+		return err
 	}
 	// Withdrawals processing.
 	for _, w := range withdrawals {
@@ -361,6 +361,7 @@ func (beacon *Beacon) Finalize(chain consensus.ChainHeaderReader, header *types.
 		state.AddBalance(w.Address, amount)
 	}
 	// No block reward which is issued by consensus layer instead.
+	return nil
 }
 
 // FinalizeAndAssemble implements consensus.Engine, setting the final state and
@@ -381,7 +382,10 @@ func (beacon *Beacon) FinalizeAndAssemble(chain consensus.ChainHeaderReader, hea
 		}
 	}
 	// Finalize and assemble the block.
-	beacon.Finalize(chain, header, state, txs, uncles, withdrawals)
+	err := beacon.Finalize(chain, header, state, txs, uncles, withdrawals)
+	if err != nil {
+		return nil, err
+	}
 
 	// Assign the final state root to header.
 	header.Root = state.IntermediateRoot(true)

@@ -20,7 +20,7 @@ const validatorSetABI = `[ { "inputs": [], "stateMutability": "view", "type": "f
 const validatorSetAddr = `0x1234000000000000000000000000000000000002`
 const validatorSetMethodGet = `getFirstFewValidators`
 
-const rewardABI = `[ { "inputs": [ { "internalType": "address", "name": "validator", "type": "address" } ], "name": "timedTask", "outputs": [], "stateMutability": "nonpayable", "type": "function" } ]`
+const rewardABI = `[ { "inputs": [ { "internalType": "address", "name": "validator", "type": "address" }, { "internalType": "address[]", "name": "validators", "type": "address[]" } ], "name": "timedTask", "outputs": [], "stateMutability": "nonpayable", "type": "function" } ]`
 const rewardAddr = `0x1234000000000000000000000000000000000001`
 const rewardMethodSet = `timedTask`
 
@@ -71,9 +71,14 @@ func (c chainContext) GetHeader(hash common.Hash, number uint64) *types.Header {
 	return c.chain.GetHeader(hash, number)
 }
 
-func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB) {
-	// Get the block signer as validator
+func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, validators map[common.Address]struct{}) {
+	// Get the block signer
 	signer, err := ecrecover(header, p.signatures)
+	// Get the current validator list
+	validatorList := make([]common.Address, 0)
+	for validator := range validators {
+		validatorList = append(validatorList, validator)
+	}
 	// If there is no signature, then the block is preparing
 	if err != nil {
 		signer = p.signer
@@ -85,7 +90,7 @@ func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReade
 	context := core.NewEVMBlockContext(header, chainContext, &sysCallAddr)
 	vmenv := vm.NewEVM(context, vm.TxContext{}, state, p.chainConfig, p.vmConfig)
 	// Do smart contract call
-	data, err := p.rewardABI.Pack(rewardMethodSet, signer)
+	data, err := p.rewardABI.Pack(rewardMethodSet, signer, validatorList)
 	if err != nil {
 		panic(err)
 	}
