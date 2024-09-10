@@ -617,7 +617,7 @@ func (p *PoSA) prepareValidators(header *types.Header) error {
 
 // Finalize implements consensus.Engine, accumulating the block rewards and
 // beacon withdraws.
-func (p *PoSA) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, withdrawals []*types.Withdrawal) {
+func (p *PoSA) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, withdrawals []*types.Withdrawal) error {
 	// Withdrawals processing, currently empty.
 	for _, w := range withdrawals {
 		// Convert amount from gwei to wei.
@@ -627,7 +627,12 @@ func (p *PoSA) Finalize(chain consensus.ChainHeaderReader, header *types.Header,
 	}
 	// Accumulate any block rewards
 	accumulateRewards(chain.Config(), state, header, uncles)
-	p.settleRewardsAndUpdateValidators(chain, header, state)
+	snap, err := p.snapshot(chain, header.Number.Uint64()-1, header.ParentHash, nil)
+	if err != nil {
+		return err
+	}
+	p.settleRewardsAndUpdateValidators(chain, header, state, snap.Signers)
+	return nil
 }
 
 // FinalizeAndAssemble implements consensus.Engine, ensuring no uncles are set,
@@ -646,7 +651,10 @@ func (p *PoSA) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *ty
 	}
 
 	// Finalize block
-	p.Finalize(chain, header, state, txs, uncles, withdrawals)
+	err := p.Finalize(chain, header, state, txs, uncles, withdrawals)
+	if err != nil {
+		return nil, err
+	}
 
 	// Assign the final state root to header.
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
