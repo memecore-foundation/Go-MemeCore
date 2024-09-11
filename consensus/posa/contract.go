@@ -16,11 +16,11 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
-const validatorSetABI = `[ { "inputs": [], "stateMutability": "view", "type": "function", "name": "getFirstFewValidators", "outputs": [ { "internalType": "address[]", "name": "", "type": "address[]" } ] } ]`
+const validatorSetABI = `[ { "inputs": [], "stateMutability": "view", "type": "function", "name": "getValidators", "outputs": [ { "internalType": "address[]", "name": "", "type": "address[]" } ] } ]`
 const validatorSetAddr = `0x1234000000000000000000000000000000000002`
-const validatorSetMethodGet = `getFirstFewValidators`
+const validatorSetMethodGet = `getValidators`
 
-const rewardABI = `[ { "inputs": [ { "internalType": "address", "name": "validator", "type": "address" }, { "internalType": "address[]", "name": "validators", "type": "address[]" } ], "name": "timedTask", "outputs": [], "stateMutability": "nonpayable", "type": "function" } ]`
+const rewardABI = `[ { "inputs": [ { "internalType": "address", "name": "blockSigner", "type": "address" }, { "internalType": "address[]", "name": "validators", "type": "address[]" } ], "name": "timedTask", "outputs": [], "stateMutability": "nonpayable", "type": "function" } ]`
 const rewardAddr = `0x1234000000000000000000000000000000000001`
 const rewardMethodSet = `timedTask`
 
