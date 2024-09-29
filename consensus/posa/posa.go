@@ -58,7 +58,7 @@ var (
 	diffInTurn = big.NewInt(2) // Block difficulty for in-turn signatures
 	diffNoTurn = big.NewInt(1) // Block difficulty for out-of-turn signatures
 
-	Phase1BlockReward = new(uint256.Int).Mul(uint256.NewInt(1e+18), uint256.NewInt(6660)) // Block reward in wei for successfully mining a block
+	Phase1BlockReward = new(uint256.Int).Mul(uint256.NewInt(1e+17), uint256.NewInt(1125)) // Block reward in wei for successfully mining a block
 )
 
 // Various error messages to mark blocks invalid. These should be private to
