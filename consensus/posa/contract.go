@@ -14,6 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/internal/ethapi"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/holiman/uint256"
 )
 
 const validatorSetABI = `[ { "inputs": [], "stateMutability": "view", "type": "function", "name": "getValidators", "outputs": [ { "internalType": "address[]", "name": "", "type": "address[]" } ] } ]`
@@ -89,6 +90,13 @@ func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReade
 	}
 	context := core.NewEVMBlockContext(header, chainContext, &sysCallAddr)
 	vmenv := vm.NewEVM(context, vm.TxContext{}, state, p.chainConfig, p.vmConfig)
+	// Check potential overflow
+	contractBalance := state.GetBalance(common.HexToAddress(validatorSetAddr))
+	blockReward := Phase1BlockReward
+	_, overflow := new(uint256.Int).AddOverflow(contractBalance, blockReward)
+	if overflow {
+		panic("Balance overflow detected")
+	}
 	// Do smart contract call
 	data, err := p.rewardABI.Pack(rewardMethodSet, signer, validatorList)
 	if err != nil {
