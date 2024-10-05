@@ -386,11 +386,6 @@ func (p *PoSA) verifyCascadingFields(chain consensus.ChainHeaderReader, header *
 	if err != nil {
 		return err
 	}
-	// If the block is a checkpoint block, verify the signer list
-	err = p.verifyValidators(header)
-	if err != nil {
-		return err
-	}
 	// All basic checks passed, verify the seal and return
 	return p.verifySeal(snap, header, parents)
 }
@@ -624,6 +619,12 @@ func (p *PoSA) Finalize(chain consensus.ChainHeaderReader, header *types.Header,
 		amount := new(uint256.Int).SetUint64(w.Amount)
 		amount = amount.Mul(amount, uint256.NewInt(params.GWei))
 		state.AddBalance(w.Address, amount)
+	}
+	// If the block is a checkpoint block, verify the signer listst
+	// The verification can only be done when the state is ready, it can't be done in VerifyHeader.
+	err := p.verifyValidators(header)
+	if err != nil {
+		return err
 	}
 	// Accumulate any block rewards
 	accumulateRewards(chain.Config(), state, header, uncles)
