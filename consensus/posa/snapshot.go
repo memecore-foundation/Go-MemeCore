@@ -152,10 +152,11 @@ func (s *Snapshot) apply(headers []*types.Header) (*Snapshot, error) {
 			}
 
 			// Reset recent signer history
-			limit := uint64(len(snap.Signers)/2 + 1)
-			for block := range s.Recents {
-				if number-block >= limit {
-					delete(snap.Recents, block)
+			oldLimit := len(s.Signers)/2 + 1
+			newLimit := len(snap.Signers)/2 + 1
+			if newLimit < oldLimit {
+				for i := 0; i < oldLimit-newLimit; i++ {
+					delete(snap.Recents, number-uint64(newLimit)-uint64(i))
 				}
 			}
 		}
