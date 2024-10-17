@@ -75,14 +75,14 @@ func (c chainContext) GetHeader(hash common.Hash, number uint64) *types.Header {
 func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, validators map[common.Address]struct{}) {
 	// Get the block signer
 	signer, err := ecrecover(header, p.signatures)
+	// If there is no signature, then the block is preparing
+	if err != nil {
+		signer = p.signer
+	}
 	// Get the current validator list
 	validatorList := make([]common.Address, 0)
 	for validator := range validators {
 		validatorList = append(validatorList, validator)
-	}
-	// If there is no signature, then the block is preparing
-	if err != nil {
-		signer = p.signer
 	}
 	chainContext := chainContext{
 		chain: chain,
