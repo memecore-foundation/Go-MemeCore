@@ -319,6 +319,9 @@ func (p *PoSA) verifyHeader(chain consensus.ChainHeaderReader, header *types.Hea
 	if shanghai && header.WithdrawalsHash == nil {
 		return errors.New("missing withdrawalsHash")
 	}
+	if shanghai && header.WithdrawalsHash.Cmp(types.EmptyWithdrawalsHash) != 0 {
+		return fmt.Errorf("invalid withdrawalsHash: have %x, expected %x", header.WithdrawalsHash, &types.EmptyWithdrawalsHash)
+	}
 	if !shanghai && header.WithdrawalsHash != nil {
 		return fmt.Errorf("invalid withdrawalsHash: have %x, expected nil", header.WithdrawalsHash)
 	}
@@ -613,13 +616,6 @@ func (p *PoSA) prepareValidators(header *types.Header) error {
 // Finalize implements consensus.Engine, accumulating the block rewards and
 // beacon withdraws.
 func (p *PoSA) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, withdrawals []*types.Withdrawal) error {
-	// Withdrawals processing, currently empty.
-	for _, w := range withdrawals {
-		// Convert amount from gwei to wei.
-		amount := new(uint256.Int).SetUint64(w.Amount)
-		amount = amount.Mul(amount, uint256.NewInt(params.GWei))
-		state.AddBalance(w.Address, amount)
-	}
 	// If the block is a checkpoint block, verify the signer listst
 	// The verification can only be done when the state is ready, it can't be done in VerifyHeader.
 	err := p.verifyValidators(header)
