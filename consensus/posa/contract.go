@@ -51,6 +51,7 @@ func (p *PoSA) getCurrentValidators(blockHash common.Hash) ([]common.Address, er
 		Data: &msgData,
 	}, &blockNr, nil, nil)
 	if err != nil {
+		log.Error("Unable to get validators", "error", err)
 		return nil, err
 	}
 
@@ -72,7 +73,7 @@ func (c chainContext) GetHeader(hash common.Hash, number uint64) *types.Header {
 	return c.chain.GetHeader(hash, number)
 }
 
-func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, validators map[common.Address]struct{}) {
+func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, validators map[common.Address]struct{}) error {
 	// Get the block signer
 	signer, err := ecrecover(header, p.signatures)
 	// If there is no signature, then the block is preparing
@@ -95,12 +96,14 @@ func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReade
 	blockReward := Phase1BlockReward
 	_, overflow := new(uint256.Int).AddOverflow(contractBalance, blockReward)
 	if overflow {
-		panic("Balance overflow detected")
+		log.Error("Balance overflow detected")
+		return errors.New("validator contract balance overflow")
 	}
 	// Do smart contract call
 	data, err := p.rewardABI.Pack(rewardMethodSet, signer, validatorList)
 	if err != nil {
-		panic(err)
+		log.Error("Unable to pack tx for timedTask", "error", err)
+		return err
 	}
 	toAddress := common.HexToAddress(rewardAddr)
 	msg := &core.Message{
@@ -116,7 +119,9 @@ func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReade
 	state.AddAddressToAccessList(toAddress)
 	_, _, err = vmenv.Call(vm.AccountRef(msg.From), *msg.To, msg.Data, 50_000_000, common.U2560)
 	if err != nil {
-		panic(err)
+		log.Error("Unable to settle validator contract", "error", err)
+		return err
 	}
 	state.Finalise(true)
+	return nil
 }
