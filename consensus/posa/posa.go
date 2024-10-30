@@ -628,8 +628,7 @@ func (p *PoSA) Finalize(chain consensus.ChainHeaderReader, header *types.Header,
 	if err != nil {
 		return err
 	}
-	p.settleRewardsAndUpdateValidators(chain, header, state, snap.Signers)
-	return nil
+	return p.settleRewardsAndUpdateValidators(chain, header, state, snap.Signers)
 }
 
 // FinalizeAndAssemble implements consensus.Engine, ensuring no uncles are set,
