@@ -3,6 +3,11 @@ package posa
 import (
 	"context"
 	"errors"
+	"fmt"
+
+	"encoding/hex"
+
+	"github.com/ethereum/go-ethereum/accounts/abi"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -105,10 +110,11 @@ func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReade
 		log.Error("Unable to pack tx for timedTask", "error", err)
 		return err
 	}
+	gasLimit := uint64(50_000_000)
 	toAddress := common.HexToAddress(rewardAddr)
 	msg := &core.Message{
 		From:      sysCallAddr,
-		GasLimit:  50_000_000,
+		GasLimit:  gasLimit,
 		GasPrice:  common.Big0,
 		GasFeeCap: common.Big0,
 		GasTipCap: common.Big0,
@@ -117,10 +123,37 @@ func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReade
 	}
 	vmenv.Reset(core.NewEVMTxContext(msg), state)
 	state.AddAddressToAccessList(toAddress)
-	_, _, err = vmenv.Call(vm.AccountRef(msg.From), *msg.To, msg.Data, 50_000_000, common.U2560)
+	ret, leftOverGas, err := vmenv.Call(vm.AccountRef(msg.From), *msg.To, msg.Data, msg.GasLimit, common.U2560)
 	if err != nil {
-		log.Error("Unable to settle validator contract", "error", err)
-		return err
+		revertMsg, unpackErr := abi.UnpackRevert(ret)
+		if unpackErr == nil {
+			log.Error("Contract execution failed", "error", err, "revert_reason", revertMsg, "gas_used", gasLimit-leftOverGas)
+		} else {
+			log.Error("Contract execution failed", "error", err, "hex_data", hexutil.Encode(ret), "gas_used", gasLimit-leftOverGas)
+		}
+	} else {
+		if len(ret) > 0 {
+			log.Info("Contract executed", "gas_used", gasLimit-leftOverGas, "return_data", hexutil.Encode(ret))
+		} else {
+			log.Info("Contract executed", "gas_used", gasLimit-leftOverGas)
+		}
+	}
+	// Process emitted logs
+	logs := state.Logs()
+	if len(logs) > 0 {
+		log.Info("Transaction Logs", "tx_hash", logs[0].TxHash.String())
+		for i, evmLog := range logs {
+			log.Info(fmt.Sprintf("Log Entry[%d] Address=%s", i, evmLog.Address.String()))
+			for j, topic := range evmLog.Topics {
+				log.Info(fmt.Sprintf("Topic[%d] hex=%s", j, topic.Hex()))
+			}
+			if len(evmLog.Data) > 0 {
+				log.Info(fmt.Sprintf("Data hex=%s", "0x"+hex.EncodeToString(evmLog.Data)))
+			}
+			if i < len(logs)-1 {
+				log.Info("----------------------------------------")
+			}
+		}
 	}
 	state.Finalise(true)
 	return nil
