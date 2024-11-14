@@ -372,6 +372,8 @@ func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 		return params.SepoliaChainConfig
 	case ghash == params.GoerliGenesisHash:
 		return params.GoerliChainConfig
+	case ghash == params.FormicariumGenesisHash:
+		return params.FormicariumChainConfig
 	default:
 		return params.AllEthashProtocolChanges
 	}
@@ -537,6 +539,27 @@ func DefaultHoleskyGenesisBlock() *Genesis {
 		Alloc:      decodePrealloc(holeskyAllocData),
 	}
 }
+
+
+// DefaultFormicariumGenesisBlock returns the Formicarium network genesis block.
+func DefaultFormicariumGenesisBlock() *Genesis {
+        return &Genesis{
+                Config:     params.FormicariumChainConfig,
+                Nonce:      0x0,
+                Timestamp:  0x6707a802,
+                ExtraData:  hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000003e3840a84c41d271927bc373f2d3b4667b98c4c2da25e759cad0bf694a1d909bd4b1f68a16774e33c8a747dfe1f40511fdfc259222dadf77ce69fce3135e3c4ee7246281212c6bfc77f0b05342ce111be8c84cb304f47d1c9f237e42920e8d90ee8d6487a7aa9b98ff70039e3b91c23bccc9a454d92dd552807c3049bef24c05de424adf22589046fa7d59250000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+                GasLimit:   0x3938700,
+                Difficulty: big.NewInt(0x01),
+		Mixhash:    common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+                Alloc:      decodePrealloc(FormicariumAllocData),
+		Number:     0x0,
+		GasUsed:    0x0,
+		ParentHash: common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+		// BaseFee:    big.NewInt(0x15d3ef79800), // 1500000000000
+		BaseFee:    big.NewInt(1500000000000),
+        }
+}
+
 
 // DeveloperGenesisBlock returns the 'geth --dev' genesis block.
 func DeveloperGenesisBlock(gasLimit uint64, faucet *common.Address) *Genesis {
