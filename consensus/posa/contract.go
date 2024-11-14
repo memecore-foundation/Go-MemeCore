@@ -110,11 +110,11 @@ func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReade
 		log.Error("Unable to pack tx for timedTask", "error", err)
 		return err
 	}
-	gasLimit := uint64(50_000_000)
+
 	toAddress := common.HexToAddress(rewardAddr)
 	msg := &core.Message{
 		From:      sysCallAddr,
-		GasLimit:  gasLimit,
+		GasLimit:  uint64(50_000_000),
 		GasPrice:  common.Big0,
 		GasFeeCap: common.Big0,
 		GasTipCap: common.Big0,
@@ -127,15 +127,15 @@ func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReade
 	if err != nil {
 		revertMsg, unpackErr := abi.UnpackRevert(ret)
 		if unpackErr == nil {
-			log.Error("Contract execution failed", "error", err, "revert_reason", revertMsg, "gas_used", gasLimit-leftOverGas)
+			log.Error("Contract execution failed", "error", err, "revert_reason", revertMsg, "gas_used", msg.GasLimit-leftOverGas)
 		} else {
-			log.Error("Contract execution failed", "error", err, "hex_data", hexutil.Encode(ret), "gas_used", gasLimit-leftOverGas)
+			log.Error("Contract execution failed", "error", err, "hex_data", hexutil.Encode(ret), "gas_used", msg.GasLimit-leftOverGas)
 		}
 	} else {
 		if len(ret) > 0 {
-			log.Info("Contract executed", "gas_used", gasLimit-leftOverGas, "return_data", hexutil.Encode(ret))
+			log.Info("Contract executed", "gas_used", msg.GasLimit-leftOverGas, "return_data", hexutil.Encode(ret))
 		} else {
-			log.Info("Contract executed", "gas_used", gasLimit-leftOverGas)
+			log.Info("Contract executed", "gas_used", msg.GasLimit-leftOverGas)
 		}
 	}
 	// Process emitted logs

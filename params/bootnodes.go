@@ -87,6 +87,13 @@ var V5Bootnodes = []string{
 	"enr:-LK4QKWrXTpV9T78hNG6s8AM6IO4XH9kFT91uZtFg1GcsJ6dKovDOr1jtAAFPnS2lvNltkOGA9k29BUN7lFh_sjuc9QBh2F0dG5ldHOIAAAAAAAAAACEZXRoMpC1MD8qAAAAAP__________gmlkgnY0gmlwhANAdd-Jc2VjcDI1NmsxoQLQa6ai7y9PMN5hpLe5HmiJSlYzMuzP7ZhwRiwHvqNXdoN0Y3CCI4yDdWRwgiOM", // 3.64.117.223 | aws-eu-central-1-frankfurt}
 }
 
+var FormicariumBootnodes = []string{
+	"enode://d860a01f9722d78051619d1e2351aba3f43f943f6f00718d1b9baa4101932a1f5011f16bb2b1bb35db20d6fe28fa0bf09636d26a87d31de9ec6203eeedb1f666@18.139.212.120:30303",
+	"enode://9b5ae242c202d74db9ba8406d2e225f97bb79487eedba576f20fcf8d770488d6e5d0110b45bcaf01b107d4a429b6cfcb7dea4e07f8dbc9816e8409b0b147036e@54.254.95.106:30303",
+	"enode://1e2a44da7a379de161649f227c31025949363d6055c0372a52c8c37208e9aa26eb6bbea92113bf7d62d6d8e425dc5e3a1ba0dd473bc6f38c41b7c8ed4703656b@18.136.3.170:30303",
+	"enode://7baf26de1efd7820bced95c89adc68e0aa4ac663f4c4f2d1a79aea253ce39663f1c330b530759acf134fd85933df2cc278e2de8b926ab6f170925b68cb31934c@18.141.252.100:30303",
+}
+
 const dnsPrefix = "enrtree://AKA3AM6LPBYEUDMVNU3BSVQJ5AD45Y7YPOHJLEF6W26QOE4VTUDPE@"
 
 // KnownDNSNetwork returns the address of a public DNS-based node list for the given
@@ -103,6 +110,8 @@ func KnownDNSNetwork(genesis common.Hash, protocol string) string {
 		net = "sepolia"
 	case HoleskyGenesisHash:
 		net = "holesky"
+	case FormicariumGenesisHash:
+		net = "formicarium"
 	default:
 		return ""
 	}
