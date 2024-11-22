@@ -2,9 +2,9 @@
 # with Go source code. If you know what GOPATH is then you probably
 # don't need to bother with make.
 
-.PHONY: geth android ios evm all test clean privnet_nodes_stop privnet_bootnode_stop privnet_stop privnet_clean privnet_start privnet_start_four privnet_start_seven
+.PHONY: gmeme android ios evm all test clean privnet_nodes_stop privnet_bootnode_stop privnet_stop privnet_clean privnet_start privnet_start_four privnet_start_seven
 
-GETHBIN = ./build/bin
+GMEMEBIN = ./build/bin
 GO ?= latest
 GORUN = go run
 
@@ -72,7 +72,7 @@ RESTRICTED_NETWORK = 127.0.0.0/24
 NAT_POLICY = none
 
 define run_bootnode
-    @$(GETHBIN)/bootnode -nodekey $(1)/$(BOOTNODE)/bootnode.key \
+    @$(GMEMEBIN)/bootnode -nodekey $(1)/$(BOOTNODE)/bootnode.key \
     	-addr :$(BOOTNODE_PORT) \
     	-verbosity $(BOOTNODE_LOGLEVEL) > $(1)/$(BOOTNODE)/bootnode.log 2>&1 &
 endef
@@ -82,7 +82,7 @@ define run_miner_node
 endef
 
 define run_node
-	@$(GETHBIN)/geth --datadir $(1)/$(2) \
+	@$(GMEMEBIN)/gmeme --datadir $(1)/$(2) \
 		--port $(3) \
 		--bootnodes "enode://$$(cat $(1)/$(BOOTNODE)/bootnode_address.txt)@127.0.0.1:0?discport=$(BOOTNODE_PORT)" \
 		--networkid "$$(cat $(1)/networkid.txt)" \
@@ -100,17 +100,17 @@ define run_node
 		--metrics \
 		--nat $(NAT_POLICY) \
 		--netrestrict $(RESTRICTED_NETWORK) \
-		$(7) >  $(1)/$(2)/geth_node.log 2>&1 &
+		$(7) >  $(1)/$(2)/gmeme_node.log 2>&1 &
 endef
 
 define init_node
-    @$(GETHBIN)/geth init --datadir $(1)/$(2) $(1)/$(GENESIS_WORK_JSON) > $(1)/$(2)/geth_init.log 2>&1
+    @$(GMEMEBIN)/gmeme init --datadir $(1)/$(2) $(1)/$(GENESIS_WORK_JSON) > $(1)/$(2)/gmeme_init.log 2>&1
 endef
 
-geth:
-	$(GORUN) build/ci.go install ./cmd/geth
+gmeme:
+	$(GORUN) build/ci.go install ./cmd/gmeme
 	@echo "Done building."
-	@echo "Run \"$(GETHBIN)/geth\" to launch geth."
+	@echo "Run \"$(GMEMEBIN)/gmeme\" to launch gmeme."
 
 all:
 	$(GORUN) build/ci.go install
@@ -123,7 +123,7 @@ lint: ## Run linters.
 
 clean:
 	go clean -cache
-	rm -fr build/_workspace/pkg/ $(GETHBIN)/*
+	rm -fr build/_workspace/pkg/ $(GMEMEBIN)/*
 
 # The devtools target installs tools required for 'go generate'.
 # You need to put $GOBIN (or $GOPATH/bin) in your PATH to use 'go generate'.
@@ -140,7 +140,7 @@ devtools:
 
 privnet_nodes_stop:
 	@echo "Killing nodes processes"
-	@killall -w -v -INT geth || :
+	@killall -w -v -INT gmeme || :
 
 privnet_bootnode_stop:
 	@echo "Killing bootnode processes"
@@ -150,77 +150,77 @@ privnet_stop: privnet_bootnode_stop privnet_nodes_stop
 
 privnet_clean: privnet_stop
 	@echo "Cleaning the nodes database files from $(MAIN_DIR)"
-	@find $(MAIN_DIR)/* -type d -name 'geth' -print -exec rm -rf {} +
+	@find $(MAIN_DIR)/* -type d -name 'gmeme' -print -exec rm -rf {} +
 	@find $(MAIN_DIR)/* -type s,f -not \( -path '*/keystore/*' -or -name '*.json' -or -name '*.txt' -or -name '*.key' -or -name '*.md' \) -print -exec rm -f {} +
 
-$(SINGLE_DIR)/$(NODE1)/geth:
+$(SINGLE_DIR)/$(NODE1)/gmeme:
 	@echo "Initializing $(NODE1) from genesis"
 	$(call init_node,$(SINGLE_DIR),$(NODE1))
 
-$(SINGLE_DIR)/$(NODE2)/geth:
+$(SINGLE_DIR)/$(NODE2)/gmeme:
 	@echo "Initializing $(NODE2) from genesis"
 	$(call init_node,$(SINGLE_DIR),$(NODE2))
 
-$(FOUR_DIR)/$(NODE1)/geth:
+$(FOUR_DIR)/$(NODE1)/gmeme:
 	@echo "Initializing $(NODE1) from genesis"
 	$(call init_node,$(FOUR_DIR),$(NODE1))
 
-$(FOUR_DIR)/$(NODE2)/geth:
+$(FOUR_DIR)/$(NODE2)/gmeme:
 	@echo "Initializing $(NODE2) from genesis"
 	$(call init_node,$(FOUR_DIR),$(NODE2))
 
-$(FOUR_DIR)/$(NODE3)/geth:
+$(FOUR_DIR)/$(NODE3)/gmeme:
 	@echo "Initializing $(NODE3) from genesis"
 	$(call init_node,$(FOUR_DIR),$(NODE3))
 
-$(FOUR_DIR)/$(NODE4)/geth:
+$(FOUR_DIR)/$(NODE4)/gmeme:
 	@echo "Initializing $(NODE4) from genesis"
 	$(call init_node,$(FOUR_DIR),$(NODE4))
 
-$(FOUR_DIR)/$(NODE5)/geth:
+$(FOUR_DIR)/$(NODE5)/gmeme:
 	@echo "Initializing $(NODE5) from genesis"
 	$(call init_node,$(FOUR_DIR),$(NODE5))
 
-$(SEVEN_DIR)/$(NODE1)/geth:
+$(SEVEN_DIR)/$(NODE1)/gmeme:
 	@echo "Initializing $(NODE1) from genesis"
 	$(call init_node,$(SEVEN_DIR),$(NODE1))
 
-$(SEVEN_DIR)/$(NODE2)/geth:
+$(SEVEN_DIR)/$(NODE2)/gmeme:
 	@echo "Initializing $(NODE2) from genesis"
 	$(call init_node,$(SEVEN_DIR),$(NODE2))
 
-$(SEVEN_DIR)/$(NODE3)/geth:
+$(SEVEN_DIR)/$(NODE3)/gmeme:
 	@echo "Initializing $(NODE3) from genesis"
 	$(call init_node,$(SEVEN_DIR),$(NODE3))
 
-$(SEVEN_DIR)/$(NODE4)/geth:
+$(SEVEN_DIR)/$(NODE4)/gmeme:
 	@echo "Initializing $(NODE4) from genesis"
 	$(call init_node,$(SEVEN_DIR),$(NODE4))
 
-$(SEVEN_DIR)/$(NODE5)/geth:
+$(SEVEN_DIR)/$(NODE5)/gmeme:
 	@echo "Initializing $(NODE5) from genesis"
 	$(call init_node,$(SEVEN_DIR),$(NODE5))
 
-$(SEVEN_DIR)/$(NODE6)/geth:
+$(SEVEN_DIR)/$(NODE6)/gmeme:
 	@echo "Initializing $(NODE6) from genesis"
 	$(call init_node,$(SEVEN_DIR),$(NODE6))
 
-$(SEVEN_DIR)/$(NODE7)/geth:
+$(SEVEN_DIR)/$(NODE7)/gmeme:
 	@echo "Initializing $(NODE7) from genesis"
 	$(call init_node,$(SEVEN_DIR),$(NODE7))
 
-$(SEVEN_DIR)/$(NODE8)/geth:
+$(SEVEN_DIR)/$(NODE8)/gmeme:
 	@echo "Initializing $(NODE8) from genesis"
 	$(call init_node,$(SEVEN_DIR),$(NODE8))
 
-privnet_start: $(SINGLE_DIR)/$(NODE1)/geth $(SINGLE_DIR)/$(NODE2)/geth
+privnet_start: $(SINGLE_DIR)/$(NODE1)/gmeme $(SINGLE_DIR)/$(NODE2)/gmeme
 	@echo "Starting nodes..."
 	$(call run_bootnode,$(SINGLE_DIR))
 	$(call run_miner_node,$(SINGLE_DIR),$(NODE1),$(NODE1_PORT),$(NODE1_AUTH_PORT),$(NODE1_HTTP_PORT),$(NODE1_WS_PORT),$(NODE1))
 	$(call run_node,$(SINGLE_DIR),$(NODE2),$(NODE2_PORT),$(NODE2_AUTH_PORT),$(NODE2_HTTP_PORT),$(NODE2_WS_PORT))
-	@echo "OK! Check logs in $(SINGLE_DIR)/<node_dir>/geth_node.log"
+	@echo "OK! Check logs in $(SINGLE_DIR)/<node_dir>/gmeme_node.log"
 
-privnet_start_four: $(FOUR_DIR)/$(NODE1)/geth $(FOUR_DIR)/$(NODE2)/geth $(FOUR_DIR)/$(NODE3)/geth $(FOUR_DIR)/$(NODE4)/geth $(FOUR_DIR)/$(NODE5)/geth
+privnet_start_four: $(FOUR_DIR)/$(NODE1)/gmeme $(FOUR_DIR)/$(NODE2)/gmeme $(FOUR_DIR)/$(NODE3)/gmeme $(FOUR_DIR)/$(NODE4)/gmeme $(FOUR_DIR)/$(NODE5)/gmeme
 	@echo "Starting nodes..."
 	$(call run_bootnode,$(FOUR_DIR))
 	$(call run_miner_node,$(FOUR_DIR),$(NODE1),$(NODE1_PORT),$(NODE1_AUTH_PORT),$(NODE1_HTTP_PORT),$(NODE1_WS_PORT),$(NODE1))
@@ -228,9 +228,9 @@ privnet_start_four: $(FOUR_DIR)/$(NODE1)/geth $(FOUR_DIR)/$(NODE2)/geth $(FOUR_D
 	$(call run_miner_node,$(FOUR_DIR),$(NODE3),$(NODE3_PORT),$(NODE3_AUTH_PORT),$(NODE3_HTTP_PORT),$(NODE3_WS_PORT),$(NODE3))
 	$(call run_miner_node,$(FOUR_DIR),$(NODE4),$(NODE4_PORT),$(NODE4_AUTH_PORT),$(NODE4_HTTP_PORT),$(NODE4_WS_PORT),$(NODE4))
 	$(call run_node,$(FOUR_DIR),$(NODE5),$(NODE5_PORT),$(NODE5_AUTH_PORT),$(NODE5_HTTP_PORT),$(NODE5_WS_PORT))
-	@echo "OK! Check logs in $(FOUR_DIR)/<node_dir>/geth_node.log"
+	@echo "OK! Check logs in $(FOUR_DIR)/<node_dir>/gmeme_node.log"
 
-privnet_start_seven: $(SEVEN_DIR)/$(NODE1)/geth $(SEVEN_DIR)/$(NODE2)/geth $(SEVEN_DIR)/$(NODE3)/geth $(SEVEN_DIR)/$(NODE4)/geth $(SEVEN_DIR)/$(NODE5)/geth $(SEVEN_DIR)/$(NODE6)/geth $(SEVEN_DIR)/$(NODE7)/geth $(SEVEN_DIR)/$(NODE8)/geth
+privnet_start_seven: $(SEVEN_DIR)/$(NODE1)/gmeme $(SEVEN_DIR)/$(NODE2)/gmeme $(SEVEN_DIR)/$(NODE3)/gmeme $(SEVEN_DIR)/$(NODE4)/gmeme $(SEVEN_DIR)/$(NODE5)/gmeme $(SEVEN_DIR)/$(NODE6)/gmeme $(SEVEN_DIR)/$(NODE7)/gmeme $(SEVEN_DIR)/$(NODE8)/gmeme
 	@echo "Starting nodes..."
 	$(call run_bootnode,$(SEVEN_DIR))
 	$(call run_miner_node,$(SEVEN_DIR),$(NODE1),$(NODE1_PORT),$(NODE1_AUTH_PORT),$(NODE1_HTTP_PORT),$(NODE1_WS_PORT),$(NODE1))
@@ -241,4 +241,4 @@ privnet_start_seven: $(SEVEN_DIR)/$(NODE1)/geth $(SEVEN_DIR)/$(NODE2)/geth $(SEV
 	$(call run_miner_node,$(SEVEN_DIR),$(NODE6),$(NODE6_PORT),$(NODE6_AUTH_PORT),$(NODE6_HTTP_PORT),$(NODE6_WS_PORT),$(NODE6))
 	$(call run_miner_node,$(SEVEN_DIR),$(NODE7),$(NODE7_PORT),$(NODE7_AUTH_PORT),$(NODE7_HTTP_PORT),$(NODE7_WS_PORT),$(NODE7))
 	$(call run_node,$(SEVEN_DIR),$(NODE8),$(NODE8_PORT),$(NODE8_AUTH_PORT),$(NODE8_HTTP_PORT),$(NODE8_WS_PORT))
-	@echo "OK! Check logs in $(SEVEN_DIR)/<node_dir>/geth_node.log"
+	@echo "OK! Check logs in $(SEVEN_DIR)/<node_dir>/gmeme_node.log"

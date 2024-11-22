@@ -104,7 +104,7 @@ func (d *Downloader) concurrentFetch(queue typedQueue, beaconMode bool) error {
 	// Track the timed-out but not-yet-answered requests separately. We want to
 	// keep tracking which peers are busy (potentially overloaded), so removing
 	// all trace of a timed out request is not good. We also can't just cancel
-	// the pending request altogether as that would prevent a late response from
+	// the pending request altogmemeer as that would prevent a late response from
 	// being delivered, thus never unblocking the peer.
 	stales := make(map[string]*eth.Request)
 	defer func() {

@@ -26,7 +26,7 @@ import (
 )
 
 // BootstrapData contains a sync committee where light sync can be started,
-// together with a proof through a beacon header and corresponding state.
+// togmemeer with a proof through a beacon header and corresponding state.
 // Note: BootstrapData is fetched from a server based on a known checkpoint hash.
 type BootstrapData struct {
 	Header          Header

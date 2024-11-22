@@ -46,7 +46,7 @@ const (
 // all registered services.
 type Config struct {
 	// Name sets the instance name of the node. It must not contain the / character and is
-	// used in the devp2p node identifier. The instance name of geth is "geth". If no
+	// used in the devp2p node identifier. The instance name of gmeme is "gmeme". If no
 	// value is specified, the basename of the current executable is used.
 	Name string `toml:"-"`
 
@@ -193,7 +193,7 @@ type Config struct {
 	// Logger is a custom logger to use with the p2p.Server.
 	Logger log.Logger `toml:",omitempty"`
 
-	oldGethResourceWarning bool
+	oldGmemeResourceWarning bool
 
 	// AllowUnprotectedTxs allows non EIP-155 protected transactions to be send over RPC.
 	AllowUnprotectedTxs bool `toml:",omitempty"`
@@ -297,9 +297,9 @@ func (c *Config) ExtRPCEnabled() bool {
 // NodeName returns the devp2p node identifier.
 func (c *Config) NodeName() string {
 	name := c.name()
-	// Backwards compatibility: previous versions used title-cased "Geth", keep that.
-	if name == "geth" || name == "geth-testnet" {
-		name = "Geth"
+	// Backwards compatibility: previous versions used title-cased "Gmeme", keep that.
+	if name == "gmeme" || name == "gmeme-testnet" {
+		name = "Gmeme"
 	}
 	if c.UserIdent != "" {
 		name += "/" + c.UserIdent
@@ -323,8 +323,8 @@ func (c *Config) name() string {
 	return c.Name
 }
 
-// These resources are resolved differently for "geth" instances.
-var isOldGethResource = map[string]bool{
+// These resources are resolved differently for "gmeme" instances.
+var isOldGmemeResource = map[string]bool{
 	"chaindata":          true,
 	"nodes":              true,
 	"nodekey":            true,
@@ -341,16 +341,16 @@ func (c *Config) ResolvePath(path string) string {
 		return ""
 	}
 	// Backwards-compatibility: ensure that data directory files created
-	// by geth 1.4 are used if they exist.
-	if warn, isOld := isOldGethResource[path]; isOld {
+	// by gmeme 1.4 are used if they exist.
+	if warn, isOld := isOldGmemeResource[path]; isOld {
 		oldpath := ""
-		if c.name() == "geth" {
+		if c.name() == "gmeme" {
 			oldpath = filepath.Join(c.DataDir, path)
 		}
 		if oldpath != "" && common.FileExist(oldpath) {
-			if warn && !c.oldGethResourceWarning {
-				c.oldGethResourceWarning = true
-				log.Warn("Using deprecated resource file, please move this file to the 'geth' subdirectory of datadir.", "file", oldpath)
+			if warn && !c.oldGmemeResourceWarning {
+				c.oldGmemeResourceWarning = true
+				log.Warn("Using deprecated resource file, please move this file to the 'gmeme' subdirectory of datadir.", "file", oldpath)
 			}
 			return oldpath
 		}

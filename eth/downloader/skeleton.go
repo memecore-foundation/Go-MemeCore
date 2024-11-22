@@ -65,7 +65,7 @@ var errSyncMerged = errors.New("sync merged")
 var errSyncReorged = errors.New("sync reorged")
 
 // errTerminated is returned if the sync mechanism was terminated for this run of
-// the process. This is usually the case when Geth is shutting down and some events
+// the process. This is usually the case when Gmeme is shutting down and some events
 // might still be propagating.
 var errTerminated = errors.New("terminated")
 
@@ -97,7 +97,7 @@ func init() {
 // The subchains use the exact same database namespace and are not disjoint from
 // each other. As such, extending one to overlap the other entails reducing the
 // second one first. This combined buffer model is used to avoid having to move
-// data on disk when two subchains are joined together.
+// data on disk when two subchains are joined togmemeer.
 type subchain struct {
 	Head uint64      // Block number of the newest header in the subchain
 	Tail uint64      // Block number of the oldest header in the subchain
@@ -257,7 +257,7 @@ func (s *skeleton) startup() {
 	for {
 		select {
 		case errc := <-s.terminate:
-			// No head was announced but Geth is shutting down
+			// No head was announced but Gmeme is shutting down
 			errc <- nil
 			return
 
@@ -303,7 +303,7 @@ func (s *skeleton) startup() {
 
 				default:
 					// Sync either successfully terminated or failed with an unhandled
-					// error. Abort and wait until Geth requests a termination.
+					// error. Abort and wait until Gmeme requests a termination.
 					errc := <-s.terminate
 					errc <- err
 					return
@@ -498,7 +498,7 @@ func (s *skeleton) sync(head *types.Header) (*types.Header, error) {
 			// sync and restart with the merged subchains.
 			//
 			// If we managed to link to the existing local chain or genesis block,
-			// abort sync altogether.
+			// abort sync altogmemeer.
 			linked, merged := s.processResponse(res)
 			if linked {
 				log.Debug("Beacon sync linked to local chain")
@@ -538,7 +538,7 @@ func (s *skeleton) initSync(head *types.Header) {
 				Next: head.ParentHash,
 			}
 			for len(s.progress.Subchains) > 0 {
-				// If the last chain is above the new head, delete altogether
+				// If the last chain is above the new head, delete altogmemeer
 				lastchain := s.progress.Subchains[0]
 				if lastchain.Tail >= headchain.Tail {
 					log.Debug("Dropping skeleton subchain", "head", lastchain.Head, "tail", lastchain.Tail)
