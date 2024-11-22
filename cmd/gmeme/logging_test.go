@@ -36,7 +36,7 @@ import (
 func runSelf(args ...string) ([]byte, error) {
 	cmd := &exec.Cmd{
 		Path: reexec.Self(),
-		Args: append([]string{"geth-test"}, args...),
+		Args: append([]string{"gmeme-test"}, args...),
 	}
 	return cmd.CombinedOutput()
 }

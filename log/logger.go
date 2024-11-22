@@ -36,7 +36,7 @@ const (
 	LvlDebug = LevelDebug
 )
 
-// convert from old Geth verbosity level constants
+// convert from old Gmeme verbosity level constants
 // to levels defined by slog
 func FromLegacyLevel(lvl int) slog.Level {
 	switch lvl {

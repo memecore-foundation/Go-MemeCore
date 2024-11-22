@@ -1,6 +1,6 @@
 # Building blocks with ommers
 
-This test shows how `b11r` can chain together ommer assembles into a canonical block.
+This test shows how `b11r` can chain togmemeer ommer assembles into a canonical block.
 
 ```console
 $ echo "{ \"ommers\": [`go run . b11r --input.header=testdata/22/header.json --input.txs=testdata/22/txs.rlp --output.block=stdout | jq '.[\"rlp\"]'`,`go run . b11r --input.header=testdata/22/header.json --input.txs=testdata/22/txs.rlp --output.block=stdout | jq '.[\"rlp\"]'`]}" | go run . b11r --input.header=testdata/22/header.json --input.txs=testdata/22/txs.rlp --input.ommers=stdin --output.block=stdout

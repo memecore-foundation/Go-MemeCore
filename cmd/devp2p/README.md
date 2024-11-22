@@ -111,11 +111,11 @@ The Eth Protocol test suite is a conformance test suite for the [eth protocol][e
 To run the eth protocol test suite against your implementation, the node needs to be initialized
 with our test chain. The chain files are located in `./cmd/devp2p/internal/ethtest/testdata`.
 
-1. initialize the geth node with the `genesis.json` file
+1. initialize the gmeme node with the `genesis.json` file
 2. import blocks from `chain.rlp`
-3. run the client using the resulting database. For geth, use a command like the one below:
+3. run the client using the resulting database. For gmeme, use a command like the one below:
 
-    geth \
+    gmeme \
         --datadir <datadir>            \
         --nodiscover                   \
         --nat=none                     \

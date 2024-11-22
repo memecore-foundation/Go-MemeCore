@@ -47,7 +47,7 @@ var (
 				Action:    verifyVerkle,
 				Flags:     flags.Merge(utils.NetworkFlags, utils.DatabaseFlags),
 				Description: `
-geth verkle verify <state-root>
+gmeme verkle verify <state-root>
 This command takes a root commitment and attempts to rebuild the tree.
  `,
 			},
@@ -58,7 +58,7 @@ This command takes a root commitment and attempts to rebuild the tree.
 				Action:    expandVerkle,
 				Flags:     flags.Merge(utils.NetworkFlags, utils.DatabaseFlags),
 				Description: `
-geth verkle dump <state-root> <key 1> [<key 2> ...]
+gmeme verkle dump <state-root> <key 1> [<key 2> ...]
 This command will produce a dot file representing the tree, rooted at <root>.
 in which key1, key2, ... are expanded.
  `,

@@ -435,7 +435,7 @@ func vmTestBlockHash(n uint64) common.Hash {
 	return common.BytesToHash(crypto.Keccak256([]byte(big.NewInt(int64(n)).String())))
 }
 
-// StateTestState groups all the state database objects together for use in tests.
+// StateTestState groups all the state database objects togmemeer for use in tests.
 type StateTestState struct {
 	StateDB   *state.StateDB
 	TrieDB    *triedb.Database

@@ -254,7 +254,7 @@ func (fi *fastIterator) next(idx int) bool {
 	clash := -1
 	index := sort.Search(len(fi.iterators), func(n int) bool {
 		// The iterator always advances forward, so anything before the old slot
-		// is known to be behind us, so just skip them altogether. This actually
+		// is known to be behind us, so just skip them altogmemeer. This actually
 		// is an important clause since the sort order got invalidated.
 		if n < idx {
 			return false

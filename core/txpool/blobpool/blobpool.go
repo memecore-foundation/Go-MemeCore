@@ -278,7 +278,7 @@ func newBlobTxMeta(id uint64, size uint32, tx *types.Transaction) *blobTxMeta {
 //   - For the scenario where the pool does not contain non-executable blob txs
 //     anymore, it does not make sense to grant a later eviction priority to txs
 //     with high fee caps since it could enable pool wars. As such, any positive
-//     priority will be grouped together.
+//     priority will be grouped togmemeer.
 //
 //     priority = min(deltaBasefee, deltaBlobfee, 0)
 //

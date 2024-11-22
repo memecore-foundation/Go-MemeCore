@@ -233,7 +233,7 @@ func (db *Database) Cap(limit common.StorageSize) error {
 
 // Reference adds a new reference from a parent node to a child node. This function
 // is used to add reference between internal trie node and external node(e.g. storage
-// trie root), all internal trie nodes are referenced together by database itself.
+// trie root), all internal trie nodes are referenced togmemeer by database itself.
 //
 // It's only supported by hash-based database and will return an error for others.
 func (db *Database) Reference(root common.Hash, parent common.Hash) error {

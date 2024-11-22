@@ -35,7 +35,7 @@ import (
 // Options are the contextual parameters to execute the requested call.
 //
 // Whilst it would be possible to pass a blockchain object that aggregates all
-// these together, it would be excessively hard to test. Splitting the parts out
+// these togmemeer, it would be excessively hard to test. Splitting the parts out
 // allows testing without needing a proper live chain.
 type Options struct {
 	Config *params.ChainConfig // Chain configuration for hard fork selection
