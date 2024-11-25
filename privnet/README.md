@@ -43,22 +43,22 @@ based on the specifications mentioned above:
    INFO [09-26|10:58:04.027] Maximum peer count                       ETH=50 LES=0 total=50
    INFO [09-26|10:58:04.029] Smartcard socket not found, disabling    err="stat /run/pcscd/pcscd.comm: no such file or directory"
    INFO [09-26|10:58:04.030] Defaulting to pebble as the backing database 
-   INFO [09-26|10:58:04.030] Allocated cache and file handles         database=/home/anna/Documents/GitProjects/bane-labs/go-ethereum/privnet/single/node1/gmeme/chaindata cache=512.00MiB handles=2048
-   INFO [09-26|10:58:04.045] Opened ancient database                  database=/home/anna/Documents/GitProjects/bane-labs/go-ethereum/privnet/single/node1/gmeme/chaindata/ancient/chain readonly=false
+   INFO [09-26|10:58:04.030] Allocated cache and file handles         database=/home/anna/Documents/GitProjects/bane-labs/go-memecore/privnet/single/node1/gmeme/chaindata cache=512.00MiB handles=2048
+   INFO [09-26|10:58:04.045] Opened ancient database                  database=/home/anna/Documents/GitProjects/bane-labs/go-memecore/privnet/single/node1/gmeme/chaindata/ancient/chain readonly=false
    INFO [09-26|10:58:04.045] State schema set to default              scheme=hash
    INFO [09-26|10:58:04.045] Freezer shutting down 
    INFO [09-26|10:58:04.047] Set global gas cap                       cap=50,000,000
    INFO [09-26|10:58:04.047] Initializing the KZG library             backend=gokzg
    INFO [09-26|10:58:04.077] Using pebble as the backing database 
-   INFO [09-26|10:58:04.077] Allocated cache and file handles         database=/home/anna/Documents/GitProjects/bane-labs/go-ethereum/privnet/single/node1/gmeme/chaindata cache=16.00MiB  handles=16
-   INFO [09-26|10:58:04.088] Opened ancient database                  database=/home/anna/Documents/GitProjects/bane-labs/go-ethereum/privnet/single/node1/gmeme/chaindata/ancient/chain readonly=false
+   INFO [09-26|10:58:04.077] Allocated cache and file handles         database=/home/anna/Documents/GitProjects/bane-labs/go-memecore/privnet/single/node1/gmeme/chaindata cache=16.00MiB  handles=16
+   INFO [09-26|10:58:04.088] Opened ancient database                  database=/home/anna/Documents/GitProjects/bane-labs/go-memecore/privnet/single/node1/gmeme/chaindata/ancient/chain readonly=false
    INFO [09-26|10:58:04.088] State schema set to default              scheme=hash
    INFO [09-26|10:58:04.088] Writing custom genesis block 
    INFO [09-26|10:58:04.089] Persisted trie from memory database      nodes=3 size=411.00B time="879.578µs" gcnodes=0 gcsize=0.00B gctime=0s livenodes=0 livesize=0.00B
    INFO [09-26|10:58:04.100] Successfully wrote genesis state         database=chaindata hash=70ce01..8d4317
    INFO [09-26|10:58:04.100] Defaulting to pebble as the backing database 
-   INFO [09-26|10:58:04.100] Allocated cache and file handles         database=/home/anna/Documents/GitProjects/bane-labs/go-ethereum/privnet/single/node1/gmeme/lightchaindata cache=16.00MiB  handles=16
-   INFO [09-26|10:58:04.119] Opened ancient database                  database=/home/anna/Documents/GitProjects/bane-labs/go-ethereum/privnet/single/node1/gmeme/lightchaindata/ancient/chain readonly=false
+   INFO [09-26|10:58:04.100] Allocated cache and file handles         database=/home/anna/Documents/GitProjects/bane-labs/go-memecore/privnet/single/node1/gmeme/lightchaindata cache=16.00MiB  handles=16
+   INFO [09-26|10:58:04.119] Opened ancient database                  database=/home/anna/Documents/GitProjects/bane-labs/go-memecore/privnet/single/node1/gmeme/lightchaindata/ancient/chain readonly=false
    INFO [09-26|10:58:04.119] State schema set to default              scheme=hash
    INFO [09-26|10:58:04.119] Writing custom genesis block 
    INFO [09-26|10:58:04.120] Persisted trie from memory database      nodes=3 size=411.00B time="692.049µs" gcnodes=0 gcsize=0.00B gctime=0s livenodes=0 livesize=0.00B
@@ -73,15 +73,15 @@ based on the specifications mentioned above:
    INFO [09-26|10:58:04.348] Maximum peer count                       ETH=50 LES=0 total=50
    INFO [09-26|10:58:04.349] Smartcard socket not found, disabling    err="stat /run/pcscd/pcscd.comm: no such file or directory"
    INFO [09-26|10:58:04.351] Using pebble as the backing database 
-   INFO [09-26|10:58:04.351] Allocated cache and file handles         database=/home/anna/Documents/GitProjects/bane-labs/go-ethereum/privnet/single/node1/gmeme/chaindata cache=512.00MiB handles=2048
-   INFO [09-26|10:58:04.351] Opened ancient database                  database=/home/anna/Documents/GitProjects/bane-labs/go-ethereum/privnet/single/node1/gmeme/chaindata/ancient/chain readonly=true
+   INFO [09-26|10:58:04.351] Allocated cache and file handles         database=/home/anna/Documents/GitProjects/bane-labs/go-memecore/privnet/single/node1/gmeme/chaindata cache=512.00MiB handles=2048
+   INFO [09-26|10:58:04.351] Opened ancient database                  database=/home/anna/Documents/GitProjects/bane-labs/go-memecore/privnet/single/node1/gmeme/chaindata/ancient/chain readonly=true
    INFO [09-26|10:58:04.352] State scheme set to already existing     scheme=hash
    INFO [09-26|10:58:04.352] Set global gas cap                       cap=50,000,000
    INFO [09-26|10:58:04.352] Initializing the KZG library             backend=gokzg
    INFO [09-26|10:58:04.406] Allocated trie memory caches             clean=154.00MiB dirty=256.00MiB
    INFO [09-26|10:58:04.406] Using pebble as the backing database 
-   INFO [09-26|10:58:04.406] Allocated cache and file handles         database=/home/anna/Documents/GitProjects/bane-labs/go-ethereum/privnet/single/node1/gmeme/chaindata cache=512.00MiB handles=2048
-   INFO [09-26|10:58:04.416] Opened ancient database                  database=/home/anna/Documents/GitProjects/bane-labs/go-ethereum/privnet/single/node1/gmeme/chaindata/ancient/chain readonly=false
+   INFO [09-26|10:58:04.406] Allocated cache and file handles         database=/home/anna/Documents/GitProjects/bane-labs/go-memecore/privnet/single/node1/gmeme/chaindata cache=512.00MiB handles=2048
+   INFO [09-26|10:58:04.416] Opened ancient database                  database=/home/anna/Documents/GitProjects/bane-labs/go-memecore/privnet/single/node1/gmeme/chaindata/ancient/chain readonly=false
    INFO [09-26|10:58:04.416] Initialising Ethereum protocol           network=2,309,242,216 dbversion=<nil>
    INFO [09-26|10:58:04.418]  
    INFO [09-26|10:58:04.418] --------------------------------------------------------------------------------------------------------------------------------------------------------- 
@@ -124,8 +124,8 @@ based on the specifications mentioned above:
    INFO [09-26|10:58:04.440] Stored checkpoint snapshot to disk       number=0 hash=70ce01..8d4317
    INFO [09-26|10:58:04.511] New local node record                    seq=1,695,715,084,511 id=dcde4c3bacc6934f ip=127.0.0.1 udp=30306 tcp=30306
    INFO [09-26|10:58:04.512] Started P2P networking                   self=enode://ea80ec1bd9241833d6738d919d89a31bedeb9e65cc47018516e8a75f859d601f6431be5980a284be914ce739c33a5eaaa38b09e8c2d653fc09744ed83e37a050@127.0.0.1:30306
-   INFO [09-26|10:58:04.512] IPC endpoint opened                      url=/home/anna/Documents/GitProjects/bane-labs/go-ethereum/privnet/single/node1/gmeme.ipc
-   INFO [09-26|10:58:04.512] Generated JWT secret                     path=/home/anna/Documents/GitProjects/bane-labs/go-ethereum/privnet/single/node1/gmeme/jwtsecret
+   INFO [09-26|10:58:04.512] IPC endpoint opened                      url=/home/anna/Documents/GitProjects/bane-labs/go-memecore/privnet/single/node1/gmeme.ipc
+   INFO [09-26|10:58:04.512] Generated JWT secret                     path=/home/anna/Documents/GitProjects/bane-labs/go-memecore/privnet/single/node1/gmeme/jwtsecret
    INFO [09-26|10:58:04.513] WebSocket enabled                        url=ws://127.0.0.1:8552
    INFO [09-26|10:58:04.513] HTTP server started                      endpoint=127.0.0.1:8552 auth=true prefix= cors=localhost vhosts=localhost
    INFO [09-26|10:58:05.251] Unlocked account                         address=0x625eAFa3473492007C0dD331E23B1035f6a7FB64
@@ -164,15 +164,15 @@ based on the specifications mentioned above:
    INFO [09-26|10:58:04.345] Maximum peer count                       ETH=50 LES=0 total=50
    INFO [09-26|10:58:04.346] Smartcard socket not found, disabling    err="stat /run/pcscd/pcscd.comm: no such file or directory"
    INFO [09-26|10:58:04.347] Using pebble as the backing database 
-   INFO [09-26|10:58:04.348] Allocated cache and file handles         database=/home/anna/Documents/GitProjects/bane-labs/go-ethereum/privnet/single/node2/gmeme/chaindata cache=512.00MiB handles=2048
-   INFO [09-26|10:58:04.348] Opened ancient database                  database=/home/anna/Documents/GitProjects/bane-labs/go-ethereum/privnet/single/node2/gmeme/chaindata/ancient/chain readonly=true
+   INFO [09-26|10:58:04.348] Allocated cache and file handles         database=/home/anna/Documents/GitProjects/bane-labs/go-memecore/privnet/single/node2/gmeme/chaindata cache=512.00MiB handles=2048
+   INFO [09-26|10:58:04.348] Opened ancient database                  database=/home/anna/Documents/GitProjects/bane-labs/go-memecore/privnet/single/node2/gmeme/chaindata/ancient/chain readonly=true
    INFO [09-26|10:58:04.348] State scheme set to already existing     scheme=hash
    INFO [09-26|10:58:04.348] Set global gas cap                       cap=50,000,000
    INFO [09-26|10:58:04.349] Initializing the KZG library             backend=gokzg
    INFO [09-26|10:58:04.400] Allocated trie memory caches             clean=154.00MiB dirty=256.00MiB
    INFO [09-26|10:58:04.400] Using pebble as the backing database 
-   INFO [09-26|10:58:04.400] Allocated cache and file handles         database=/home/anna/Documents/GitProjects/bane-labs/go-ethereum/privnet/single/node2/gmeme/chaindata cache=512.00MiB handles=2048
-   INFO [09-26|10:58:04.408] Opened ancient database                  database=/home/anna/Documents/GitProjects/bane-labs/go-ethereum/privnet/single/node2/gmeme/chaindata/ancient/chain readonly=false
+   INFO [09-26|10:58:04.400] Allocated cache and file handles         database=/home/anna/Documents/GitProjects/bane-labs/go-memecore/privnet/single/node2/gmeme/chaindata cache=512.00MiB handles=2048
+   INFO [09-26|10:58:04.408] Opened ancient database                  database=/home/anna/Documents/GitProjects/bane-labs/go-memecore/privnet/single/node2/gmeme/chaindata/ancient/chain readonly=false
    INFO [09-26|10:58:04.408] Initialising Ethereum protocol           network=2,309,242,216 dbversion=<nil>
    INFO [09-26|10:58:04.410]  
    INFO [09-26|10:58:04.410] --------------------------------------------------------------------------------------------------------------------------------------------------------- 
@@ -215,8 +215,8 @@ based on the specifications mentioned above:
    INFO [09-26|10:58:04.428] Stored checkpoint snapshot to disk       number=0 hash=70ce01..8d4317
    INFO [09-26|10:58:04.464] New local node record                    seq=1,695,715,084,464 id=997395d56a658731 ip=127.0.0.1 udp=30307 tcp=30307
    INFO [09-26|10:58:04.465] Started P2P networking                   self=enode://4670b6104e5a3bcacf40d64bbf922ca6ad8bb7a06c5b511e354cd1fc00325b4602420a222fe1e338c97724f3a1fb795532aaabc10af30b6a87c9d252be08034a@127.0.0.1:30307
-   INFO [09-26|10:58:04.465] IPC endpoint opened                      url=/home/anna/Documents/GitProjects/bane-labs/go-ethereum/privnet/single/node2/gmeme.ipc
-   INFO [09-26|10:58:04.465] Generated JWT secret                     path=/home/anna/Documents/GitProjects/bane-labs/go-ethereum/privnet/single/node2/gmeme/jwtsecret
+   INFO [09-26|10:58:04.465] IPC endpoint opened                      url=/home/anna/Documents/GitProjects/bane-labs/go-memecore/privnet/single/node2/gmeme.ipc
+   INFO [09-26|10:58:04.465] Generated JWT secret                     path=/home/anna/Documents/GitProjects/bane-labs/go-memecore/privnet/single/node2/gmeme/jwtsecret
    INFO [09-26|10:58:04.466] WebSocket enabled                        url=ws://127.0.0.1:8553
    INFO [09-26|10:58:04.466] HTTP server started                      endpoint=127.0.0.1:8553 auth=true prefix= cors=localhost vhosts=localhost
    INFO [09-26|10:58:05.192] Unlocked account                         address=0x745c8f1AF649651f46DcAEc2C6EB94068843AE96
