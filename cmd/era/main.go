@@ -36,7 +36,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var app = flags.NewApp("go-ethereum era tool")
+var app = flags.NewApp("go-memecore era tool")
 
 var (
 	dirFlag = &cli.StringFlag{

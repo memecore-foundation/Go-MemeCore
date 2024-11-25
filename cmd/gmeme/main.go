@@ -199,7 +199,7 @@ var (
 	}
 )
 
-var app = flags.NewApp("the go-ethereum command line interface")
+var app = flags.NewApp("the go-memecore command line interface")
 
 func init() {
 	// Initialize the CLI app and start Gmeme
