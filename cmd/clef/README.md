@@ -95,7 +95,7 @@ Some snags and todos
       * the number of unique recipients
 
 * Gmeme todos
-    - The signer should pass the `Origin` header as call-info to the UI. As of right now, the way that info about the request is put togmemeer is a bit of a hack into the HTTP server. This could probably be greatly improved.
+    - The signer should pass the `Origin` header as call-info to the UI. As of right now, the way that info about the request is put together is a bit of a hack into the HTTP server. This could probably be greatly improved.
     - Relay: Gmeme should be started in `gmeme --signer localhost:8550`.
     - Currently, the Gmeme APIs use `common.Address` in the arguments to transaction submission (e.g `to` field). This type is 20 `bytes`, and is incapable of carrying checksum information. The signer uses `common.MixedcaseAddress`, which retains the original input.
     - The Gmeme API should switch to use the same type, and relay `to`-account verbatim to the external API.

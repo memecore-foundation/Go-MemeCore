@@ -1,4 +1,4 @@
-# Private Ethereum network (privnet)
+# Private MemeCore network (privnet)
 
 Mainly, this document is based on
 https://geth.ethereum.org/docs/fundamentals/private-network, with some 
@@ -16,7 +16,7 @@ based on the specifications mentioned above:
 
 1. Build `gmeme` and other necessary binaries:
    ```
-   $ cd go-ethereum
+   $ cd go-memecore
    $ make all
    ```
 

@@ -54,7 +54,7 @@ var (
 //   - an update can only be present if a committee is present at the same period
 //     and the update signature is valid and has enough participants.
 //     The committee at the next period (proven by the update) should also be
-//     present (note that this means they can only be added togmemeer if neither
+//     present (note that this means they can only be added together if neither
 //     is present yet). If a fixed root is present at the next period then the
 //     update can only be present if it proves the same committee root.
 //
