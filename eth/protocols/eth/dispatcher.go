@@ -51,7 +51,7 @@ type Request struct {
 	want uint64      // Message code of the response packet
 	data interface{} // Data content of the request packet
 
-	Peer string    // Demultiplexer if cross-peer requests are batched togmemeer
+	Peer string    // Demultiplexer if cross-peer requests are batched together
 	Sent time.Time // Timestamp when the request was sent
 }
 

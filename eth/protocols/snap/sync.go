@@ -1386,7 +1386,7 @@ func (s *Syncer) assignTrienodeHealTasks(success chan *trienodeHealResponse, fai
 	for len(s.healer.trieTasks) > 0 || s.healer.scheduler.Pending() > 0 {
 		// If there are not enough trie tasks queued to fully assign, fill the
 		// queue from the state sync scheduler. The trie synced schedules these
-		// togmemeer with bytecodes, so we need to queue them combined.
+		// together with bytecodes, so we need to queue them combined.
 		var (
 			have = len(s.healer.trieTasks) + len(s.healer.codeTasks)
 			want = maxTrieRequestCount + maxCodeRequestCount
@@ -1514,7 +1514,7 @@ func (s *Syncer) assignBytecodeHealTasks(success chan *bytecodeHealResponse, fai
 	for len(s.healer.codeTasks) > 0 || s.healer.scheduler.Pending() > 0 {
 		// If there are not enough trie tasks queued to fully assign, fill the
 		// queue from the state sync scheduler. The trie synced schedules these
-		// togmemeer with trie nodes, so we need to queue them combined.
+		// together with trie nodes, so we need to queue them combined.
 		var (
 			have = len(s.healer.trieTasks) + len(s.healer.codeTasks)
 			want = maxTrieRequestCount + maxCodeRequestCount

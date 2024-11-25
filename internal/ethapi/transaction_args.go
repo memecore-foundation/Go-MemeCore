@@ -303,7 +303,7 @@ func (args *TransactionArgs) setBlobTxSidecar(ctx context.Context, b Backend) er
 
 	n := len(args.Blobs)
 	// Assume user provides either only blobs (w/o hashes), or
-	// blobs togmemeer with commitments and proofs.
+	// blobs together with commitments and proofs.
 	if args.Commitments == nil && args.Proofs != nil {
 		return errors.New(`blob proofs provided while commitments were not`)
 	} else if args.Commitments != nil && args.Proofs == nil {

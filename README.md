@@ -9,12 +9,13 @@ https://pkg.go.dev/badge/github.com/ethereum/go-ethereum
 [![Travis](https://app.travis-ci.com/ethereum/go-ethereum.svg?branch=master)](https://app.travis-ci.com/github/ethereum/go-ethereum)
 [![Discord](https://img.shields.io/badge/discord-join%20chat-blue.svg)](https://discord.gg/nthXNEv)
 
-Automated builds are available for stable releases and the unstable master branch. Binary
-archives are published at https://geth.ethereum.org/downloads/.
+Automated builds are available for stable releases and the unstable master branch.
 
 ## Building the source
 
-For prerequisites and detailed build instructions please read the [Installation Instructions](https://geth.ethereum.org/docs/getting-started/installing-gmeme).
+For prerequisites and detailed build instructions please read the [Installation Instructions](https://geth.ethereum.org/docs/getting-started/installing-geth).
+
+For reference, it is technically based on geth, and the standard documentation for geth is compatible with gmeme. Therefore, please note that some of the documentation links to geth-based documentation, and you can recognize it as gmeme instead of geth.
 
 Building `gmeme` requires both a Go (version 1.19 or later) and a C compiler. You can install
 them using your favourite package manager. Once the dependencies are installed, run
@@ -82,14 +83,14 @@ This command will:
  * Start `gmeme` in snap sync mode (default, can be changed with the `--syncmode` flag),
    causing it to download more data in exchange for avoiding processing the entire history
    of the Ethereum network, which is very CPU intensive.
- * Start the built-in interactive [JavaScript console](https://geth.ethereum.org/docs/interacting-with-gmeme/javascript-console),
+ * Start the built-in interactive [JavaScript console](https://geth.ethereum.org/docs/interacting-with-geth/javascript-console),
    (via the trailing `console` subcommand) through which you can interact using [`web3` methods](https://github.com/ChainSafe/web3.js/blob/0.20.7/DOCUMENTATION.md) 
    (note: the `web3` version bundled within `gmeme` is very old, and not up to date with official docs),
-   as well as `gmeme`'s own [management APIs](https://geth.ethereum.org/docs/interacting-with-gmeme/rpc).
+   as well as `gmeme`'s own [management APIs](https://geth.ethereum.org/docs/interacting-with-geth/rpc).
    This tool is optional and if you leave it out you can always attach it to an already running
    `gmeme` instance with `gmeme attach`.
 
-### A Full node on the Görli test network
+### A Full node on the Formicarium test network
 
 Transitioning towards developers, if you'd like to play around with creating Ethereum
 contracts, you almost certainly would like to do that without any real money involved until
@@ -98,23 +99,23 @@ network, you want to join the **test** network with your node, which is fully eq
 the main network, but with play-Ether only.
 
 ```shell
-$ gmeme --goerli console
+$ gmeme --formicarium console
 ```
 
 The `console` subcommand has the same meaning as above and is equally
 useful on the testnet too.
 
-Specifying the `--goerli` flag, however, will reconfigure your `gmeme` instance a bit:
+Specifying the `--formicarium` flag, however, will reconfigure your `gmeme` instance a bit:
 
- * Instead of connecting to the main Ethereum network, the client will connect to the Görli
+ * Instead of connecting to the main Ethereum network, the client will connect to the Formicarium
    test network, which uses different P2P bootnodes, different network IDs and genesis
    states.
  * Instead of using the default data directory (`~/.ethereum` on Linux for example), `gmeme`
-   will nest itself one level deeper into a `goerli` subfolder (`~/.ethereum/goerli` on
+   will nest itself one level deeper into a `formicarium` subfolder (`~/.ethereum/formicarium` on
    Linux). Note, on OSX and Linux this also means that attaching to a running testnet node
    requires the use of a custom endpoint since `gmeme attach` will try to attach to a
    production node endpoint by default, e.g.,
-   `gmeme attach <datadir>/goerli/gmeme.ipc`. Windows users are not affected by
+   `gmeme attach <datadir>/formicarium/gmeme.ipc`. Windows users are not affected by
    this.
 
 *Note: Although some internal protective measures prevent transactions from
@@ -166,7 +167,7 @@ accessible from the outside.
 As a developer, sooner rather than later you'll want to start interacting with `gmeme` and the
 Ethereum network via your own programs and not manually through the console. To aid
 this, `gmeme` has built-in support for a JSON-RPC based APIs ([standard APIs](https://ethereum.github.io/execution-apis/api-documentation/)
-and [`gmeme` specific APIs](https://geth.ethereum.org/docs/interacting-with-gmeme/rpc)).
+and [`gmeme` specific APIs](https://geth.ethereum.org/docs/interacting-with-geth/rpc)).
 These can be exposed via HTTP, WebSockets and IPC (UNIX sockets on UNIX based
 platforms, and named pipes on Windows).
 
@@ -340,12 +341,6 @@ Please make sure your contributions adhere to our coding guidelines:
 Please see the [Developers' Guide](https://geth.ethereum.org/docs/developers/geth-developer/dev-guide)
 for more details on configuring your environment, managing project dependencies, and
 testing procedures.
-
-### Contributing to geth.ethereum.org
-
-For contributions to the [go-ethereum website](https://geth.ethereum.org), please checkout and raise pull requests against the `website` branch.
-For more detailed instructions please see the `website` branch [README](https://github.com/ethereum/go-ethereum/tree/website#readme) or the 
-[contributing](https://geth.ethereum.org/docs/developers/geth-developer/contributing) page of the website.
 
 ## License
 

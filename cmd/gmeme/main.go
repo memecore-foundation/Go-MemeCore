@@ -14,7 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
 
-// gmeme is a command-line client for Ethereum.
+// geth is a command-line client for Ethereum.
+// gmeme is a command-line client for MemeCore.
 package main
 
 import (
@@ -287,6 +288,9 @@ func prepare(ctx *cli.Context) {
 	case ctx.IsSet(utils.HoleskyFlag.Name):
 		log.Info("Starting Gmeme on Holesky testnet...")
 
+	case ctx.IsSet(utils.FormicariumFlag.Name):
+		log.Info("Starting Gmeme on Formicarium testnet...")
+
 	case ctx.IsSet(utils.DeveloperFlag.Name):
 		log.Info("Starting Gmeme in ephemeral dev mode...")
 		log.Warn(`You are running Gmeme in --dev mode. Please note the following:
@@ -306,7 +310,7 @@ func prepare(ctx *cli.Context) {
 `)
 
 	case !ctx.IsSet(utils.NetworkIdFlag.Name):
-		log.Info("Starting Gmeme on Ethereum mainnet...")
+		log.Info("Starting Gmeme on MemeCore mainnet...")
 	}
 	// If we're a full node on mainnet without --cache specified, bump default cache allowance
 	if !ctx.IsSet(utils.CacheFlag.Name) && !ctx.IsSet(utils.NetworkIdFlag.Name) {

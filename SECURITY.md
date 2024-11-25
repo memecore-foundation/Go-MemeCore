@@ -6,7 +6,9 @@ Please see [Releases](https://github.com/ethereum/go-ethereum/releases). We reco
 
 ## Audit reports
 
-Audit reports are published in the `docs` folder: https://github.com/ethereum/go-ethereum/tree/master/docs/audits 
+Audit reports are published in the `docs` folder: https://github.com/ethereum/go-ethereum/tree/master/docs/audits
+
+For reference, it is technically based on geth, and the standard documentation for geth is compatible with gmeme. Therefore, please note that some of the documentation links to geth-based documentation, and you can recognize it as gmeme instead of geth.
 
 | Scope | Date | Report Link |
 | ------- | ------- | ----------- |
