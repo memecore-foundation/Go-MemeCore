@@ -6,7 +6,7 @@
 --> {"jsonrpc":"2.1","id":1,"method":"test_echo","params":["x", 3]}
 <-- {"jsonrpc":"2.0","id":1,"error":{"code":-32600,"message":"invalid request"}}
 
---> {"jsonrpc":"go-ethereum","id":1,"method":"test_echo","params":["x", 3]}
+--> {"jsonrpc":"go-memecore","id":1,"method":"test_echo","params":["x", 3]}
 <-- {"jsonrpc":"2.0","id":1,"error":{"code":-32600,"message":"invalid request"}}
 
 --> {"jsonrpc":1,"id":1,"method":"test_echo","params":["x", 3]}
