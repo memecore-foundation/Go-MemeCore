@@ -422,10 +422,6 @@ func importHistory(ctx *cli.Context) error {
 		switch {
 		case ctx.Bool(utils.MainnetFlag.Name):
 			network = "mainnet"
-		case ctx.Bool(utils.SepoliaFlag.Name):
-			network = "sepolia"
-		case ctx.Bool(utils.GoerliFlag.Name):
-			network = "goerli"
 		case ctx.Bool(utils.FormicariumFlag.Name):
 			network = "formicarium"
 		}
