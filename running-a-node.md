@@ -31,7 +31,7 @@ make all
 
 ## 2. Initializing Gmeme Database
 
-Download the latest .json configuration file from [https://github.com/tech-memecore/mimnetwork-private-sharing/tree/master/privnet/seven](https://github.com/tech-memecore/mimnetwork-private-sharing/tree/master/privnet/seven).
+Download the latest .json configuration file from [https://github.com/memecore-foundation/go-memecore/tree/master/privnet/seven](https://github.com/memecore-foundation/go-memecore/tree/master/privnet/seven).
 
 To create a blockchain node that uses this genesis block, first use gmeme init to import and set the canonical genesis block for the new chain. This requires the path to the configuration file to be passed as an argument.
 
