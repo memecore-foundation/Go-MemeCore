@@ -223,7 +223,7 @@ type worker struct {
 
 	// newpayloadTimeout is the maximum timeout allowance for creating payload.
 	// The default value is 2 seconds but node operator can set it to arbitrary
-	// large value. A large timeout allowance may cause Geth to fail creating
+	// large value. A large timeout allowance may cause Gmeme to fail creating
 	// a non-empty payload within the specified time and eventually miss the slot
 	// in case there are some computation expensive transactions in txpool.
 	newpayloadTimeout time.Duration

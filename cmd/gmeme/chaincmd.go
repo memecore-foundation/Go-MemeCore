@@ -163,7 +163,7 @@ into Era archives. Eras are typically packaged in steps of 8192 blocks.
 		}, utils.DatabaseFlags),
 		Description: `
 The import-preimages command imports hash preimages from an RLP encoded stream.
-It's deprecated, please use "geth db import" instead.
+It's deprecated, please use "gmeme db import" instead.
 `,
 	}
 
@@ -422,10 +422,6 @@ func importHistory(ctx *cli.Context) error {
 		switch {
 		case ctx.Bool(utils.MainnetFlag.Name):
 			network = "mainnet"
-		case ctx.Bool(utils.SepoliaFlag.Name):
-			network = "sepolia"
-		case ctx.Bool(utils.GoerliFlag.Name):
-			network = "goerli"
 		case ctx.Bool(utils.FormicariumFlag.Name):
 			network = "formicarium"
 		}

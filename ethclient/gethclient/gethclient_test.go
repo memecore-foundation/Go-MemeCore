@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package gethclient
+package gmemeclient
 
 import (
 	"bytes"
@@ -98,7 +98,7 @@ func generateTestChain() (*core.Genesis, []*types.Block) {
 	return genesis, blocks
 }
 
-func TestGethClient(t *testing.T) {
+func TestGmemeClient(t *testing.T) {
 	backend, _ := newTestBackend(t)
 	client := backend.Attach()
 	defer backend.Close()
