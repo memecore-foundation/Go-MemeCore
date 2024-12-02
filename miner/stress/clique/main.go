@@ -148,7 +148,7 @@ func main() {
 // signer and faucet accounts.
 func makeGenesis(faucets []*ecdsa.PrivateKey, sealers []*ecdsa.PrivateKey) *core.Genesis {
 	// Create a Clique network based off of the Sepolia config
-	genesis := core.DefaultSepoliaGenesisBlock()
+	genesis := core.DefaultFormicariumGenesisBlock()
 	genesis.GasLimit = 25000000
 
 	genesis.Config.ChainID = big.NewInt(18)
