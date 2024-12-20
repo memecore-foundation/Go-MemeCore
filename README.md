@@ -1,6 +1,6 @@
 ## Go MemeCore
 
-Golang execution layer implementation of the Ethereum protocol.
+Golang execution layer implementation of the MemeCore protocol (Ethereum-compatible).
 
 [![API Reference](
 https://pkg.go.dev/badge/github.com/ethereum/go-ethereum
@@ -37,13 +37,13 @@ directory.
 
 |  Command   | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | :--------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`gmeme`** | Our main MemeCore CLI client. It is the entry point into the MemeCore network (main-, test- or private net), capable of running as a full node (default), archive node (retaining all historical state) or a light node (retrieving data live). It can be used by other processes as a gateway into the Ethereum network via JSON RPC endpoints exposed on top of HTTP, WebSocket and/or IPC transports. `gmeme --help` and the [CLI page](https://geth.ethereum.org/docs/fundamentals/command-line-options) for command line options. |
+| **`gmeme`** | Our main MemeCore CLI client. It is the entry point into the MemeCore network (main-, test- or private net), capable of running as a full node (default), archive node (retaining all historical state) or a light node (retrieving data live). It can be used by other processes as a gateway into the MemeCore network via JSON RPC endpoints exposed on top of HTTP, WebSocket and/or IPC transports. `gmeme --help` and the [CLI page](https://geth.ethereum.org/docs/fundamentals/command-line-options) for command line options. |
 |   `clef`   | Stand-alone signing tool, which can be used as a backend signer for `gmeme`.                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 |  `devp2p`  | Utilities to interact with nodes on the networking layer, without running a full blockchain.                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-|  `abigen`  | Source code generator to convert Ethereum contract definitions into easy-to-use, compile-time type-safe Go packages. It operates on plain [Ethereum contract ABIs](https://docs.soliditylang.org/en/develop/abi-spec.html) with expanded functionality if the contract bytecode is also available. However, it also accepts Solidity source files, making development much more streamlined. Please see our [Native DApps](https://geth.ethereum.org/docs/developers/dapp-developer/native-bindings) page for details.                                  |
-| `bootnode` | Stripped down version of our Ethereum client implementation that only takes part in the network node discovery protocol, but does not run any of the higher level application protocols. It can be used as a lightweight bootstrap node to aid in finding peers in private networks.                                                                                                                                                                                                                                               |
-|   `evm`    | Developer utility version of the EVM (Ethereum Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode. Its purpose is to allow isolated, fine-grained debugging of EVM opcodes (e.g. `evm --code 60ff60ff --debug run`).                                                                                                                                                                                                                                               |
-| `rlpdump`  | Developer utility tool to convert binary RLP ([Recursive Length Prefix](https://ethereum.org/en/developers/docs/data-structures-and-encoding/rlp)) dumps (data encoding used by the Ethereum protocol both network as well as consensus wise) to user-friendlier hierarchical representation (e.g. `rlpdump --hex CE0183FFFFFFC4C304050583616263`).                                                                                                                                                                                |
+|  `abigen`  | Source code generator to convert MemeCore contract definitions into easy-to-use, compile-time type-safe Go packages. It operates on plain [MemeCore contract ABIs](https://docs.soliditylang.org/en/develop/abi-spec.html) with expanded functionality if the contract bytecode is also available. However, it also accepts Solidity source files, making development much more streamlined. Please see our [Native DApps](https://geth.ethereum.org/docs/developers/dapp-developer/native-bindings) page for details.                                  |
+| `bootnode` | Stripped down version of our MemeCore client implementation that only takes part in the network node discovery protocol, but does not run any of the higher level application protocols. It can be used as a lightweight bootstrap node to aid in finding peers in private networks.                                                                                                                                                                                                                                               |
+|   `evm`    | Developer utility version of the EVM (MemeCore Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode. Its purpose is to allow isolated, fine-grained debugging of EVM opcodes (e.g. `evm --code 60ff60ff --debug run`).                                                                                                                                                                                                                                               |
+| `rlpdump`  | Developer utility tool to convert binary RLP ([Recursive Length Prefix](https://ethereum.org/en/developers/docs/data-structures-and-encoding/rlp)) dumps (data encoding used by the MemeCore protocol both network as well as consensus wise) to user-friendlier hierarchical representation (e.g. `rlpdump --hex CE0183FFFFFFC4C304050583616263`).                                                                                                                                                                                |
 
 ## Running `gmeme`
 
@@ -68,9 +68,9 @@ Recommended:
 * High-performance SSD with at least 1TB of free space
 * 25+ MBit/sec download Internet service
 
-### Full node on the main Ethereum network
+### Full node on the main MemeCore network
 
-By far the most common scenario is people wanting to simply interact with the Ethereum
+By far the most common scenario is people wanting to simply interact with the MemeCore 
 network: create accounts; transfer funds; deploy and interact with contracts. For this
 particular use case, the user doesn't care about years-old historical data, so we can
 sync quickly to the current state of the network. To do so:
@@ -82,7 +82,7 @@ $ gmeme console
 This command will:
  * Start `gmeme` in snap sync mode (default, can be changed with the `--syncmode` flag),
    causing it to download more data in exchange for avoiding processing the entire history
-   of the Ethereum network, which is very CPU intensive.
+   of the MemeCore network, which is very CPU intensive.
  * Start the built-in interactive [JavaScript console](https://geth.ethereum.org/docs/interacting-with-geth/javascript-console),
    (via the trailing `console` subcommand) through which you can interact using [`web3` methods](https://github.com/ChainSafe/web3.js/blob/0.20.7/DOCUMENTATION.md) 
    (note: the `web3` version bundled within `gmeme` is very old, and not up to date with official docs),
@@ -92,11 +92,11 @@ This command will:
 
 ### A Full node on the Formicarium test network
 
-Transitioning towards developers, if you'd like to play around with creating Ethereum
+Transitioning towards developers, if you'd like to play around with creating MemeCore
 contracts, you almost certainly would like to do that without any real money involved until
 you get the hang of the entire system. In other words, instead of attaching to the main
 network, you want to join the **test** network with your node, which is fully equivalent to
-the main network, but with play-Ether only.
+the main network, but with play-Meme(tM) only.
 
 ```shell
 $ gmeme --formicarium console
@@ -107,7 +107,7 @@ useful on the testnet too.
 
 Specifying the `--formicarium` flag, however, will reconfigure your `gmeme` instance a bit:
 
- * Instead of connecting to the main Ethereum network, the client will connect to the Formicarium
+ * Instead of connecting to the main MemeCore network, the client will connect to the Formicarium
    test network, which uses different P2P bootnodes, different network IDs and genesis
    states.
  * Instead of using the default data directory (`~/.ethereum` on Linux for example), `gmeme`
@@ -144,7 +144,7 @@ $ gmeme --your-favourite-flags dumpconfig
 
 #### Docker quick start
 
-One of the quickest ways to get Ethereum up and running on your machine is by using
+One of the quickest ways to get MemeCore up and running on your machine is by using
 Docker:
 
 ```shell
@@ -165,7 +165,7 @@ accessible from the outside.
 ### Programmatically interfacing `gmeme` nodes
 
 As a developer, sooner rather than later you'll want to start interacting with `gmeme` and the
-Ethereum network via your own programs and not manually through the console. To aid
+MemeCore network via your own programs and not manually through the console. To aid
 this, `gmeme` has built-in support for a JSON-RPC based APIs ([standard APIs](https://ethereum.github.io/execution-apis/api-documentation/)
 and [`gmeme` specific APIs](https://geth.ethereum.org/docs/interacting-with-geth/rpc)).
 These can be exposed via HTTP, WebSockets and IPC (UNIX sockets on UNIX based
@@ -199,7 +199,7 @@ can reuse the same connection for multiple requests!
 
 **Note: Please understand the security implications of opening up an HTTP/WS based
 transport before doing so! Hackers on the internet are actively trying to subvert
-Ethereum nodes with exposed APIs! Further, all browser tabs can access locally
+MemeCore nodes with exposed APIs! Further, all browser tabs can access locally
 running web servers, so malicious web pages could try to subvert locally available
 APIs!**
 

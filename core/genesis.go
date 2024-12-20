@@ -485,16 +485,22 @@ func (g *Genesis) MustCommit(db ethdb.Database, triedb *triedb.Database) *types.
 	return block
 }
 
-// DefaultGenesisBlock returns the Ethereum main net genesis block.
+// DefaultGenesisBlock returns the MemeCore main net genesis block.
 func DefaultGenesisBlock() *Genesis {
-	return &Genesis{
-		Config:     params.MainnetChainConfig,
-		Nonce:      66,
-		ExtraData:  hexutil.MustDecode("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
-		GasLimit:   5000,
-		Difficulty: big.NewInt(17179869184),
-		Alloc:      decodePrealloc(mainnetAllocData),
-	}
+        return &Genesis{
+                Config:     params.MainnetChainConfig,
+                Nonce:      0x0,
+                Timestamp:  0x67581382,
+                ExtraData:  hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000007dde846776b4d81c83f8bd693102eac34036009fd19cf636560a9bd4e616d3460e1670ba339efe77387ecb4bd5031acc67cab58dc705b0188de1b0040b08d0f90d654aa1aef066fac7d4e09f076a74cfca47474575f5030a734fdd9a6991c689a937ab46c3c005f25dfd5cc1fa76afdd5d8db1a96f88ce5d224fc738e0da71ce402f8e26d5ce743aaaf505670000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+                GasLimit:   0x3938700,
+                Difficulty: big.NewInt(1),
+		Mixhash:    common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+                Alloc:      decodePrealloc(mainnetAllocData),
+		Number:     0x0,
+		GasUsed:    0x0,
+		ParentHash: common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+		BaseFee:    big.NewInt(1500000000000),
+        }
 }
 
 // DefaultFormicariumGenesisBlock returns the Formicarium network genesis block.
@@ -505,13 +511,12 @@ func DefaultFormicariumGenesisBlock() *Genesis {
                 Timestamp:  0x6707a802,
                 ExtraData:  hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000003e3840a84c41d271927bc373f2d3b4667b98c4c2da25e759cad0bf694a1d909bd4b1f68a16774e33c8a747dfe1f40511fdfc259222dadf77ce69fce3135e3c4ee7246281212c6bfc77f0b05342ce111be8c84cb304f47d1c9f237e42920e8d90ee8d6487a7aa9b98ff70039e3b91c23bccc9a454d92dd552807c3049bef24c05de424adf22589046fa7d59250000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
                 GasLimit:   0x3938700,
-                Difficulty: big.NewInt(0x01),
+                Difficulty: big.NewInt(1),
 		Mixhash:    common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
                 Alloc:      decodePrealloc(FormicariumAllocData),
 		Number:     0x0,
 		GasUsed:    0x0,
 		ParentHash: common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
-		// BaseFee:    big.NewInt(0x15d3ef79800), // 1500000000000
 		BaseFee:    big.NewInt(1500000000000),
         }
 }
