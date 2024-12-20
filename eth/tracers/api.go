@@ -94,7 +94,7 @@ type API struct {
 	backend Backend
 }
 
-// NewAPI creates a new API definition for the tracing methods of the Ethereum service.
+// NewAPI creates a new API definition for the tracing methods of the MemeCore service.
 func NewAPI(backend Backend) *API {
 	return &API{backend: backend}
 }
