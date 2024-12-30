@@ -2,9 +2,7 @@
 
 Golang execution layer implementation of the MemeCore protocol (Ethereum-compatible).
 
-[![API Reference](
-https://pkg.go.dev/badge/github.com/ethereum/go-ethereum
-)](https://pkg.go.dev/github.com/ethereum/go-ethereum?tab=doc)
+[![API Reference](https://pkg.go.dev/badge/github.com/ethereum/go-ethereum)](https://pkg.go.dev/github.com/ethereum/go-ethereum?tab=doc)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ethereum/go-ethereum)](https://goreportcard.com/report/github.com/ethereum/go-ethereum)
 [![Travis](https://app.travis-ci.com/ethereum/go-ethereum.svg?branch=master)](https://app.travis-ci.com/github/ethereum/go-ethereum)
 [![Discord](https://img.shields.io/badge/discord-join%20chat-blue.svg)](https://discord.gg/nthXNEv)
@@ -35,15 +33,15 @@ make all
 The go-ethereum project comes with several wrappers/executables found in the `cmd`
 directory.
 
-|  Command   | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| :--------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|   Command   | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| :---------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **`gmeme`** | Our main MemeCore CLI client. It is the entry point into the MemeCore network (main-, test- or private net), capable of running as a full node (default), archive node (retaining all historical state) or a light node (retrieving data live). It can be used by other processes as a gateway into the MemeCore network via JSON RPC endpoints exposed on top of HTTP, WebSocket and/or IPC transports. `gmeme --help` and the [CLI page](https://geth.ethereum.org/docs/fundamentals/command-line-options) for command line options. |
-|   `clef`   | Stand-alone signing tool, which can be used as a backend signer for `gmeme`.                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-|  `devp2p`  | Utilities to interact with nodes on the networking layer, without running a full blockchain.                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-|  `abigen`  | Source code generator to convert Ethereum contract definitions into easy-to-use, compile-time type-safe Go packages. It operates on plain [Ethereum contract ABIs](https://docs.soliditylang.org/en/develop/abi-spec.html) with expanded functionality if the contract bytecode is also available. However, it also accepts Solidity source files, making development much more streamlined. Please see our [Native DApps](https://geth.ethereum.org/docs/developers/dapp-developer/native-bindings) page for details.                                  |
-| `bootnode` | Stripped down version of our MemeCore client implementation that only takes part in the network node discovery protocol, but does not run any of the higher level application protocols. It can be used as a lightweight bootstrap node to aid in finding peers in private networks.                                                                                                                                                                                                                                               |
-|   `evm`    | Developer utility version of the EVM (Ethereum Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode. Its purpose is to allow isolated, fine-grained debugging of EVM opcodes (e.g. `evm --code 60ff60ff --debug run`).                                                                                                                                                                                                                                               |
-| `rlpdump`  | Developer utility tool to convert binary RLP ([Recursive Length Prefix](https://ethereum.org/en/developers/docs/data-structures-and-encoding/rlp)) dumps (data encoding used by the Ethereum protocol both network as well as consensus wise) to user-friendlier hierarchical representation (e.g. `rlpdump --hex CE0183FFFFFFC4C304050583616263`).                                                                                                                                                                                |
+|   `clef`    | Stand-alone signing tool, which can be used as a backend signer for `gmeme`.                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+|  `devp2p`   | Utilities to interact with nodes on the networking layer, without running a full blockchain.                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+|  `abigen`   | Source code generator to convert Ethereum contract definitions into easy-to-use, compile-time type-safe Go packages. It operates on plain [Ethereum contract ABIs](https://docs.soliditylang.org/en/develop/abi-spec.html) with expanded functionality if the contract bytecode is also available. However, it also accepts Solidity source files, making development much more streamlined. Please see our [Native DApps](https://geth.ethereum.org/docs/developers/dapp-developer/native-bindings) page for details.                 |
+| `bootnode`  | Stripped down version of our MemeCore client implementation that only takes part in the network node discovery protocol, but does not run any of the higher level application protocols. It can be used as a lightweight bootstrap node to aid in finding peers in private networks.                                                                                                                                                                                                                                                   |
+|    `evm`    | Developer utility version of the EVM (Ethereum Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode. Its purpose is to allow isolated, fine-grained debugging of EVM opcodes (e.g. `evm --code 60ff60ff --debug run`).                                                                                                                                                                                                                                                   |
+|  `rlpdump`  | Developer utility tool to convert binary RLP ([Recursive Length Prefix](https://ethereum.org/en/developers/docs/data-structures-and-encoding/rlp)) dumps (data encoding used by the Ethereum protocol both network as well as consensus wise) to user-friendlier hierarchical representation (e.g. `rlpdump --hex CE0183FFFFFFC4C304050583616263`).                                                                                                                                                                                    |
 
 ## Running `gmeme`
 
@@ -56,21 +54,21 @@ on how you can run your own `gmeme` instance.
 
 Minimum:
 
-* CPU with 2+ cores
-* 4GB RAM
-* 1TB free storage space to sync the Mainnet
-* 8 MBit/sec download Internet service
+- CPU with 2+ cores
+- 4GB RAM
+- 1TB free storage space to sync the Mainnet
+- 8 MBit/sec download Internet service
 
 Recommended:
 
-* Fast CPU with 4+ cores
-* 16GB+ RAM
-* High-performance SSD with at least 1TB of free space
-* 25+ MBit/sec download Internet service
+- Fast CPU with 4+ cores
+- 16GB+ RAM
+- High-performance SSD with at least 1TB of free space
+- 25+ MBit/sec download Internet service
 
 ### Full node on the main MemeCore network
 
-By far the most common scenario is people wanting to simply interact with the MemeCore 
+By far the most common scenario is people wanting to simply interact with the MemeCore
 network: create accounts; transfer funds; deploy and interact with contracts. For this
 particular use case, the user doesn't care about years-old historical data, so we can
 sync quickly to the current state of the network. To do so:
@@ -80,15 +78,16 @@ $ gmeme console
 ```
 
 This command will:
- * Start `gmeme` in snap sync mode (default, can be changed with the `--syncmode` flag),
-   causing it to download more data in exchange for avoiding processing the entire history
-   of the MemeCore network, which is very CPU intensive.
- * Start the built-in interactive [JavaScript console](https://geth.ethereum.org/docs/interacting-with-geth/javascript-console),
-   (via the trailing `console` subcommand) through which you can interact using [`web3` methods](https://github.com/ChainSafe/web3.js/blob/0.20.7/DOCUMENTATION.md) 
-   (note: the `web3` version bundled within `gmeme` is very old, and not up to date with official docs),
-   as well as `gmeme`'s own [management APIs](https://geth.ethereum.org/docs/interacting-with-geth/rpc).
-   This tool is optional and if you leave it out you can always attach it to an already running
-   `gmeme` instance with `gmeme attach`.
+
+- Start `gmeme` in snap sync mode (default, can be changed with the `--syncmode` flag),
+  causing it to download more data in exchange for avoiding processing the entire history
+  of the MemeCore network, which is very CPU intensive.
+- Start the built-in interactive [JavaScript console](https://geth.ethereum.org/docs/interacting-with-geth/javascript-console),
+  (via the trailing `console` subcommand) through which you can interact using [`web3` methods](https://github.com/ChainSafe/web3.js/blob/0.20.7/DOCUMENTATION.md)
+  (note: the `web3` version bundled within `gmeme` is very old, and not up to date with official docs),
+  as well as `gmeme`'s own [management APIs](https://geth.ethereum.org/docs/interacting-with-geth/rpc).
+  This tool is optional and if you leave it out you can always attach it to an already running
+  `gmeme` instance with `gmeme attach`.
 
 ### A Full node on the Formicarium test network
 
@@ -107,22 +106,22 @@ useful on the testnet too.
 
 Specifying the `--formicarium` flag, however, will reconfigure your `gmeme` instance a bit:
 
- * Instead of connecting to the main MemeCore network, the client will connect to the Formicarium
-   test network, which uses different P2P bootnodes, different network IDs and genesis
-   states.
- * Instead of using the default data directory (`~/.ethereum` on Linux for example), `gmeme`
-   will nest itself one level deeper into a `formicarium` subfolder (`~/.ethereum/formicarium` on
-   Linux). Note, on OSX and Linux this also means that attaching to a running testnet node
-   requires the use of a custom endpoint since `gmeme attach` will try to attach to a
-   production node endpoint by default, e.g.,
-   `gmeme attach <datadir>/formicarium/gmeme.ipc`. Windows users are not affected by
-   this.
+- Instead of connecting to the main MemeCore network, the client will connect to the Formicarium
+  test network, which uses different P2P bootnodes, different network IDs and genesis
+  states.
+- Instead of using the default data directory (`~/.ethereum` on Linux for example), `gmeme`
+  will nest itself one level deeper into a `formicarium` subfolder (`~/.ethereum/formicarium` on
+  Linux). Note, on OSX and Linux this also means that attaching to a running testnet node
+  requires the use of a custom endpoint since `gmeme attach` will try to attach to a
+  production node endpoint by default, e.g.,
+  `gmeme attach <datadir>/formicarium/gmeme.ipc`. Windows users are not affected by
+  this.
 
-*Note: Although some internal protective measures prevent transactions from
+_Note: Although some internal protective measures prevent transactions from
 crossing over between the main network and test network, you should always
 use separate accounts for play and real money. Unless you manually move
 accounts, `gmeme` will by default correctly separate the two networks and will not make any
-accounts available between them.*
+accounts available between them._
 
 ### Configuration
 
@@ -140,7 +139,7 @@ export your existing configuration:
 $ gmeme --your-favourite-flags dumpconfig
 ```
 
-*Note: This works only with `gmeme` v1.6.0 and above.*
+_Note: This works only with `gmeme` v1.6.0 and above._
 
 #### Docker quick start
 
@@ -154,7 +153,7 @@ docker run -d --name ethereum-node -v /Users/alice/ethereum:/root \
 ```
 
 This will start `gmeme` in snap-sync mode with a DB memory allowance of 1GB, as the
-above command does.  It will also create a persistent volume in your home directory for
+above command does. It will also create a persistent volume in your home directory for
 saving your blockchain as well as map the default ports. There is also an `alpine` tag
 available for a slim version of the image.
 
@@ -178,19 +177,21 @@ you'd expect.
 
 HTTP based JSON-RPC API options:
 
-  * `--http` Enable the HTTP-RPC server
-  * `--http.addr` HTTP-RPC server listening interface (default: `localhost`)
-  * `--http.port` HTTP-RPC server listening port (default: `8545`)
-  * `--http.api` API's offered over the HTTP-RPC interface (default: `eth,net,web3`)
-  * `--http.corsdomain` Comma separated list of domains from which to accept cross origin requests (browser enforced)
-  * `--ws` Enable the WS-RPC server
-  * `--ws.addr` WS-RPC server listening interface (default: `localhost`)
-  * `--ws.port` WS-RPC server listening port (default: `8546`)
-  * `--ws.api` API's offered over the WS-RPC interface (default: `eth,net,web3`)
-  * `--ws.origins` Origins from which to accept WebSocket requests
-  * `--ipcdisable` Disable the IPC-RPC server
-  * `--ipcapi` API's offered over the IPC-RPC interface (default: `admin,debug,eth,miner,net,personal,txpool,web3`)
-  * `--ipcpath` Filename for IPC socket/pipe within the datadir (explicit paths escape it)
+- `--http` Enable the HTTP-RPC server
+- `--http.addr` HTTP-RPC server listening interface (default: `localhost`)
+- `--http.port` HTTP-RPC server listening port (default: `8545`)
+- `--http.api` API's offered over the HTTP-RPC interface (default: `eth,net,web3`)
+- `--http.api.debug` Methods of Debug API's offered over the HTTP-RPC interface, when only debug api is enabled. If not set, enable all.
+- `--http.corsdomain` Comma separated list of domains from which to accept cross origin requests (browser enforced)
+- `--ws` Enable the WS-RPC server
+- `--ws.addr` WS-RPC server listening interface (default: `localhost`)
+- `--ws.port` WS-RPC server listening port (default: `8546`)
+- `--ws.api` API's offered over the WS-RPC interface (default: `eth,net,web3`)
+- `--ws.api.debug` Methods of Debug API's offered over the WS-RPC interface, when only debug api is enabled. If not set, enable all.
+- `--ws.origins` Origins from which to accept WebSocket requests
+- `--ipcdisable` Disable the IPC-RPC server
+- `--ipcapi` API's offered over the IPC-RPC interface (default: `admin,debug,eth,miner,net,personal,txpool,web3`)
+- `--ipcpath` Filename for IPC socket/pipe within the datadir (explicit paths escape it)
 
 You'll need to use your own programming environments' capabilities (libraries, tools, etc) to
 connect via HTTP, WS or IPC to a `gmeme` node configured with the above flags and you'll
@@ -280,8 +281,8 @@ that other nodes can use to connect to it and exchange peer information. Make su
 replace the displayed IP address information (most probably `[::]`) with your externally
 accessible IP to get the actual `enode` URL.
 
-*Note: You could also use a full-fledged `gmeme` node as a bootnode, but it's the less
-recommended way.*
+_Note: You could also use a full-fledged `gmeme` node as a bootnode, but it's the less
+recommended way._
 
 #### Starting up your member nodes
 
@@ -295,11 +296,10 @@ do also specify a custom `--datadir` flag.
 $ gmeme --datadir=path/to/custom/data/folder --bootnodes=<bootnode-enode-url-from-above>
 ```
 
-*Note: Since your network will be completely cut off from the main and test networks, you'll
-also need to configure a miner to process transactions and create new blocks for you.*
+_Note: Since your network will be completely cut off from the main and test networks, you'll
+also need to configure a miner to process transactions and create new blocks for you._
 
 #### Running a private miner
-
 
 In a private network setting a single CPU miner instance is more than enough for
 practical purposes as it can produce a stable stream of blocks at the correct intervals
@@ -330,13 +330,13 @@ and merge procedures quick and simple.
 
 Please make sure your contributions adhere to our coding guidelines:
 
- * Code must adhere to the official Go [formatting](https://golang.org/doc/effective_go.html#formatting)
-   guidelines (i.e. uses [gofmt](https://golang.org/cmd/gofmt/)).
- * Code must be documented adhering to the official Go [commentary](https://golang.org/doc/effective_go.html#commentary)
-   guidelines.
- * Pull requests need to be based on and opened against the `master` branch.
- * Commit messages should be prefixed with the package(s) they modify.
-   * E.g. "eth, rpc: make trace configs optional"
+- Code must adhere to the official Go [formatting](https://golang.org/doc/effective_go.html#formatting)
+  guidelines (i.e. uses [gofmt](https://golang.org/cmd/gofmt/)).
+- Code must be documented adhering to the official Go [commentary](https://golang.org/doc/effective_go.html#commentary)
+  guidelines.
+- Pull requests need to be based on and opened against the `master` branch.
+- Commit messages should be prefixed with the package(s) they modify.
+  - E.g. "eth, rpc: make trace configs optional"
 
 Please see the [Developers' Guide](https://geth.ethereum.org/docs/developers/geth-developer/dev-guide)
 for more details on configuring your environment, managing project dependencies, and

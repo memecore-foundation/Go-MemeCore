@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"reflect"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"unicode"
@@ -91,6 +92,37 @@ func (r *serviceRegistry) registerName(name string, rcvr interface{}) error {
 	return nil
 }
 
+func (r *serviceRegistry) registerNameWithFilter(name string, rcvr interface{}, filter []string) error {
+	rcvrVal := reflect.ValueOf(rcvr)
+	if name == "" {
+		return fmt.Errorf("no service name for type %s", rcvrVal.Type().String())
+	}
+	callbacks := suitableCallbacksWithFilter(rcvrVal, filter)
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.services == nil {
+		r.services = make(map[string]service)
+	}
+	svc, ok := r.services[name]
+	if !ok {
+		svc = service{
+			name:          name,
+			callbacks:     make(map[string]*callback),
+			subscriptions: make(map[string]*callback),
+		}
+		r.services[name] = svc
+	}
+	for name, cb := range callbacks {
+		if cb.isSubscribe {
+			svc.subscriptions[name] = cb
+		} else {
+			svc.callbacks[name] = cb
+		}
+	}
+	return nil
+}
+
 // callback returns the callback corresponding to the given RPC method name.
 func (r *serviceRegistry) callback(method string) *callback {
 	before, after, found := strings.Cut(method, serviceMethodSeparator)
@@ -126,6 +158,29 @@ func suitableCallbacks(receiver reflect.Value) map[string]*callback {
 		}
 		name := formatName(method.Name)
 		callbacks[name] = cb
+	}
+	return callbacks
+}
+
+// suitableCallbacks iterates over the methods of the given type. It determines if a method
+// satisfies the criteria for a RPC callback or a subscription callback and adds it to the
+// collection of callbacks. See server documentation for a summary of these criteria.
+func suitableCallbacksWithFilter(receiver reflect.Value, filter []string) map[string]*callback {
+	typ := receiver.Type()
+	callbacks := make(map[string]*callback)
+	for m := 0; m < typ.NumMethod(); m++ {
+		method := typ.Method(m)
+		if method.PkgPath != "" {
+			continue // method not exported
+		}
+		name := formatName(method.Name)
+		if slices.Contains(filter, name) {
+			cb := newCallback(receiver, method.Func)
+			if cb == nil {
+				continue // function invalid
+			}
+			callbacks[name] = cb
+		}
 	}
 	return callbacks
 }

@@ -130,6 +130,8 @@ type Config struct {
 	// exposed.
 	HTTPModules []string
 
+	HTTPModuleFilters map[string][]string
+
 	// HTTPTimeouts allows for customization of the timeout values used by the HTTP RPC
 	// interface.
 	HTTPTimeouts rpc.HTTPTimeouts
@@ -168,6 +170,8 @@ type Config struct {
 	// If the module list is empty, all RPC API endpoints designated public will be
 	// exposed.
 	WSModules []string
+
+	WSModuleFilters map[string][]string
 
 	// WSExposeAll exposes all API modules via the WebSocket RPC interface rather
 	// than just the public ones.
