@@ -418,6 +418,7 @@ func (n *Node) startRPC() error {
 			Vhosts:             n.config.HTTPVirtualHosts,
 			Modules:            n.config.HTTPModules,
 			prefix:             n.config.HTTPPathPrefix,
+			ModuleFilters:      n.config.HTTPModuleFilters,
 			rpcEndpointConfig:  rpcConfig,
 		}); err != nil {
 			return err
@@ -435,6 +436,7 @@ func (n *Node) startRPC() error {
 			Modules:           n.config.WSModules,
 			Origins:           n.config.WSOrigins,
 			prefix:            n.config.WSPathPrefix,
+			ModuleFilters:     n.config.WSModuleFilters,
 			rpcEndpointConfig: rpcConfig,
 		}); err != nil {
 			return err

@@ -597,6 +597,12 @@ var (
 		Value:    "",
 		Category: flags.APICategory,
 	}
+	HTTPDebugApiFlag = &cli.StringFlag{
+		Name:     "http.api.debug",
+		Usage:    "Methods of Debug API's offered over the HTTP-RPC interface, when only debug api is enabled. If not set, enable all.",
+		Value:    "",
+		Category: flags.APICategory,
+	}
 	HTTPPathPrefixFlag = &cli.StringFlag{
 		Name:     "http.rpcprefix",
 		Usage:    "HTTP path path prefix on which JSON-RPC is served. Use '/' to serve on all paths.",
@@ -640,6 +646,12 @@ var (
 	WSApiFlag = &cli.StringFlag{
 		Name:     "ws.api",
 		Usage:    "API's offered over the WS-RPC interface",
+		Value:    "",
+		Category: flags.APICategory,
+	}
+	WSDebugApiFlag = &cli.StringFlag{
+		Name:     "ws.api.debug",
+		Usage:    "Methods of Debug API's offered over the WS-RPC interface, when only debug api is enabled. If not set, enable all.",
 		Value:    "",
 		Category: flags.APICategory,
 	}
@@ -1099,6 +1111,13 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 		cfg.HTTPModules = SplitAndTrim(ctx.String(HTTPApiFlag.Name))
 	}
 
+	if ctx.IsSet(HTTPDebugApiFlag.Name) {
+		if cfg.HTTPModuleFilters == nil {
+			cfg.HTTPModuleFilters = make(map[string][]string)
+		}
+		cfg.HTTPModuleFilters["debug"] = SplitAndTrim(ctx.String(HTTPDebugApiFlag.Name))
+	}
+
 	if ctx.IsSet(HTTPVirtualHostsFlag.Name) {
 		cfg.HTTPVirtualHosts = SplitAndTrim(ctx.String(HTTPVirtualHostsFlag.Name))
 	}
@@ -1151,6 +1170,13 @@ func setWS(ctx *cli.Context, cfg *node.Config) {
 
 	if ctx.IsSet(WSApiFlag.Name) {
 		cfg.WSModules = SplitAndTrim(ctx.String(WSApiFlag.Name))
+	}
+
+	if ctx.IsSet(WSDebugApiFlag.Name) {
+		if cfg.WSModuleFilters == nil {
+			cfg.WSModuleFilters = make(map[string][]string)
+		}
+		cfg.WSModuleFilters["debug"] = SplitAndTrim(ctx.String(WSDebugApiFlag.Name))
 	}
 
 	if ctx.IsSet(WSPathPrefixFlag.Name) {
