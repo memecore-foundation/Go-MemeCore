@@ -92,7 +92,7 @@ func (s *Server) SetHTTPBodyLimit(limit int) {
 // subscription an error is returned. Otherwise a new service is created and added to the
 // service collection this server provides to clients.
 func (s *Server) RegisterName(name string, receiver interface{}) error {
-	return s.services.registerName(name, receiver)
+	return s.services.registerNameWithFilter(name, receiver, nil)
 }
 
 func (s *Server) RegisterNameWithFilter(name string, receiver interface{}, filter []string) error {

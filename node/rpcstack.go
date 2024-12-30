@@ -645,27 +645,9 @@ func (is *ipcServer) stop() error {
 // RegisterApis checks the given modules' availability, generates an allowlist based on the allowed modules,
 // and then registers all of the APIs exposed by the services.
 func RegisterApis(apis []rpc.API, modules []string, srv *rpc.Server) error {
-	if bad, available := checkModuleAvailability(modules, apis); len(bad) > 0 {
-		log.Error("Unavailable modules in HTTP API list", "unavailable", bad, "available", available)
-	}
-	// Generate the allow list based on the allowed modules
-	allowList := make(map[string]bool)
-	for _, module := range modules {
-		allowList[module] = true
-	}
-	// Register all the APIs exposed by the services
-	for _, api := range apis {
-		if allowList[api.Namespace] || len(allowList) == 0 {
-			if err := srv.RegisterName(api.Namespace, api.Service); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
+	return RegisterApisWithFilter(apis, modules, srv, nil)
 }
 
-// RegisterApis checks the given modules' availability, generates an allowlist based on the allowed modules,
-// and then registers all of the APIs exposed by the services.
 func RegisterApisWithFilter(apis []rpc.API, modules []string, srv *rpc.Server, filter map[string][]string) error {
 	if bad, available := checkModuleAvailability(modules, apis); len(bad) > 0 {
 		log.Error("Unavailable modules in HTTP API list", "unavailable", bad, "available", available)
@@ -678,7 +660,7 @@ func RegisterApisWithFilter(apis []rpc.API, modules []string, srv *rpc.Server, f
 	// Register all the APIs exposed by the services
 	for _, api := range apis {
 		if allowList[api.Namespace] || len(allowList) == 0 {
-			if filter[api.Namespace] != nil {
+			if filter != nil && filter[api.Namespace] != nil {
 				if err := srv.RegisterNameWithFilter(api.Namespace, api.Service, filter[api.Namespace]); err != nil {
 					return err
 				}

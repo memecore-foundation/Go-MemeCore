@@ -58,46 +58,17 @@ type callback struct {
 	isSubscribe bool           // true if this is a subscription callback
 }
 
-func (r *serviceRegistry) registerName(name string, rcvr interface{}) error {
-	rcvrVal := reflect.ValueOf(rcvr)
-	if name == "" {
-		return fmt.Errorf("no service name for type %s", rcvrVal.Type().String())
-	}
-	callbacks := suitableCallbacks(rcvrVal)
-	if len(callbacks) == 0 {
-		return fmt.Errorf("service %T doesn't have any suitable methods/subscriptions to expose", rcvr)
-	}
-
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if r.services == nil {
-		r.services = make(map[string]service)
-	}
-	svc, ok := r.services[name]
-	if !ok {
-		svc = service{
-			name:          name,
-			callbacks:     make(map[string]*callback),
-			subscriptions: make(map[string]*callback),
-		}
-		r.services[name] = svc
-	}
-	for name, cb := range callbacks {
-		if cb.isSubscribe {
-			svc.subscriptions[name] = cb
-		} else {
-			svc.callbacks[name] = cb
-		}
-	}
-	return nil
-}
-
 func (r *serviceRegistry) registerNameWithFilter(name string, rcvr interface{}, filter []string) error {
 	rcvrVal := reflect.ValueOf(rcvr)
 	if name == "" {
 		return fmt.Errorf("no service name for type %s", rcvrVal.Type().String())
 	}
-	callbacks := suitableCallbacksWithFilter(rcvrVal, filter)
+	var callbacks map[string]*callback
+	if filter == nil {
+		callbacks = suitableCallbacks(rcvrVal)
+	} else {
+		callbacks = suitableCallbacksWithFilter(rcvrVal, filter)
+	}
 
 	r.mu.Lock()
 	defer r.mu.Unlock()

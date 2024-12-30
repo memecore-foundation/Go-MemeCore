@@ -276,7 +276,7 @@ func initClient(conn ServerCodec, services *serviceRegistry, cfg *clientConfig) 
 // subscription an error is returned. Otherwise a new service is created and added to the
 // service collection this client provides to the server.
 func (c *Client) RegisterName(name string, receiver interface{}) error {
-	return c.services.registerName(name, receiver)
+	return c.services.registerNameWithFilter(name, receiver, nil)
 }
 
 func (c *Client) nextID() json.RawMessage {
