@@ -130,6 +130,9 @@ type Config struct {
 	// exposed.
 	HTTPModules []string
 
+	// HTTPModuleFilters is method filter for HTTPModules.
+	// If the method names in the list with module name, its module enables methods only in list.
+	// e.g. HTTPModuleFilters[moduleName] = [method1, method2]
 	HTTPModuleFilters map[string][]string
 
 	// HTTPTimeouts allows for customization of the timeout values used by the HTTP RPC
@@ -171,6 +174,9 @@ type Config struct {
 	// exposed.
 	WSModules []string
 
+	// WSModuleFilters is method filter for WSModules.
+	// If the method names in the list with module name, its module enables methods only in list.
+	// e.g. WSModuleFilters[moduleName] = [method1, method2]
 	WSModuleFilters map[string][]string
 
 	// WSExposeAll exposes all API modules via the WebSocket RPC interface rather
