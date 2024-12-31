@@ -176,6 +176,7 @@ func (api *adminAPI) StartHTTP(host *string, port *int, cors *string, apis *stri
 		CorsAllowedOrigins: api.node.config.HTTPCors,
 		Vhosts:             api.node.config.HTTPVirtualHosts,
 		Modules:            api.node.config.HTTPModules,
+		ModuleFilters:      api.node.config.HTTPModuleFilters,
 		rpcEndpointConfig: rpcEndpointConfig{
 			batchItemLimit:         api.node.config.BatchRequestLimit,
 			batchResponseSizeLimit: api.node.config.BatchResponseMaxSize,
@@ -254,6 +255,7 @@ func (api *adminAPI) StartWS(host *string, port *int, allowedOrigins *string, ap
 		Modules: api.node.config.WSModules,
 		Origins: api.node.config.WSOrigins,
 		// ExposeAll: api.node.config.WSExposeAll,
+		ModuleFilters: api.node.config.WSModuleFilters,
 		rpcEndpointConfig: rpcEndpointConfig{
 			batchItemLimit:         api.node.config.BatchRequestLimit,
 			batchResponseSizeLimit: api.node.config.BatchResponseMaxSize,

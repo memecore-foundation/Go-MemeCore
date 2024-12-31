@@ -40,15 +40,17 @@ type httpConfig struct {
 	Modules            []string
 	CorsAllowedOrigins []string
 	Vhosts             []string
-	prefix             string // path prefix on which to mount http handler
+	prefix             string              // path prefix on which to mount http handler
+	ModuleFilters      map[string][]string // filter for callbacks in module
 	rpcEndpointConfig
 }
 
 // wsConfig is the JSON-RPC/Websocket configuration
 type wsConfig struct {
-	Origins []string
-	Modules []string
-	prefix  string // path prefix on which to mount ws handler
+	Origins       []string
+	Modules       []string
+	prefix        string              // path prefix on which to mount ws handler
+	ModuleFilters map[string][]string // filter for callbacks in module
 	rpcEndpointConfig
 }
 
@@ -308,8 +310,14 @@ func (h *httpServer) enableRPC(apis []rpc.API, config httpConfig) error {
 	if config.httpBodyLimit > 0 {
 		srv.SetHTTPBodyLimit(config.httpBodyLimit)
 	}
-	if err := RegisterApis(apis, config.Modules, srv); err != nil {
-		return err
+	if config.ModuleFilters != nil {
+		if err := RegisterApisWithFilter(apis, config.Modules, srv, config.ModuleFilters); err != nil {
+			return err
+		}
+	} else {
+		if err := RegisterApis(apis, config.Modules, srv); err != nil {
+			return err
+		}
 	}
 	h.httpConfig = config
 	h.httpHandler.Store(&rpcHandler{
@@ -343,8 +351,14 @@ func (h *httpServer) enableWS(apis []rpc.API, config wsConfig) error {
 	if config.httpBodyLimit > 0 {
 		srv.SetHTTPBodyLimit(config.httpBodyLimit)
 	}
-	if err := RegisterApis(apis, config.Modules, srv); err != nil {
-		return err
+	if config.ModuleFilters != nil {
+		if err := RegisterApisWithFilter(apis, config.Modules, srv, config.ModuleFilters); err != nil {
+			return err
+		}
+	} else {
+		if err := RegisterApis(apis, config.Modules, srv); err != nil {
+			return err
+		}
 	}
 	h.wsConfig = config
 	h.wsHandler.Store(&rpcHandler{
@@ -631,6 +645,12 @@ func (is *ipcServer) stop() error {
 // RegisterApis checks the given modules' availability, generates an allowlist based on the allowed modules,
 // and then registers all of the APIs exposed by the services.
 func RegisterApis(apis []rpc.API, modules []string, srv *rpc.Server) error {
+	return RegisterApisWithFilter(apis, modules, srv, nil)
+}
+
+// RegisterApisWithFilter checks the given modules' availability, generates an allowlist based on the allowed modules,
+// and then registers all of the APIs exposed by the services with methods filtering.
+func RegisterApisWithFilter(apis []rpc.API, modules []string, srv *rpc.Server, filter map[string][]string) error {
 	if bad, available := checkModuleAvailability(modules, apis); len(bad) > 0 {
 		log.Error("Unavailable modules in HTTP API list", "unavailable", bad, "available", available)
 	}
@@ -642,7 +662,7 @@ func RegisterApis(apis []rpc.API, modules []string, srv *rpc.Server) error {
 	// Register all the APIs exposed by the services
 	for _, api := range apis {
 		if allowList[api.Namespace] || len(allowList) == 0 {
-			if err := srv.RegisterName(api.Namespace, api.Service); err != nil {
+			if err := srv.RegisterNameWithFilter(api.Namespace, api.Service, filter[api.Namespace]); err != nil {
 				return err
 			}
 		}

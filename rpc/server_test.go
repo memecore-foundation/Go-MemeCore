@@ -33,7 +33,7 @@ func TestServerRegisterName(t *testing.T) {
 	service := new(testService)
 
 	svcName := "test"
-	if err := server.RegisterName(svcName, service); err != nil {
+	if err := server.RegisterNameWithFilter(svcName, service, nil); err != nil {
 		t.Fatalf("%v", err)
 	}
 

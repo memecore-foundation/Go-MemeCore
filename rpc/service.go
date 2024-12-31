@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"reflect"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"unicode"
@@ -57,14 +58,15 @@ type callback struct {
 	isSubscribe bool           // true if this is a subscription callback
 }
 
-func (r *serviceRegistry) registerName(name string, rcvr interface{}) error {
+func (r *serviceRegistry) registerNameWithFilter(name string, rcvr interface{}, filter []string) error {
 	rcvrVal := reflect.ValueOf(rcvr)
 	if name == "" {
 		return fmt.Errorf("no service name for type %s", rcvrVal.Type().String())
 	}
-	callbacks := suitableCallbacks(rcvrVal)
+	callbacks := suitableCallbacksWithFilter(rcvrVal, filter)
 	if len(callbacks) == 0 {
-		return fmt.Errorf("service %T doesn't have any suitable methods/subscriptions to expose", rcvr)
+		log.Warn("service", name, "doesn't have any suitable methods/subscriptions to expose")
+		return nil
 	}
 
 	r.mu.Lock()
@@ -110,9 +112,9 @@ func (r *serviceRegistry) subscription(service, name string) *callback {
 }
 
 // suitableCallbacks iterates over the methods of the given type. It determines if a method
-// satisfies the criteria for a RPC callback or a subscription callback and adds it to the
-// collection of callbacks. See server documentation for a summary of these criteria.
-func suitableCallbacks(receiver reflect.Value) map[string]*callback {
+// satisfies the criteria for a RPC callback or a subscription callback and given filter.
+// And adds it to the collection of callbacks. See server documentation for a summary of these criteria.
+func suitableCallbacksWithFilter(receiver reflect.Value, filter []string) map[string]*callback {
 	typ := receiver.Type()
 	callbacks := make(map[string]*callback)
 	for m := 0; m < typ.NumMethod(); m++ {
@@ -120,11 +122,14 @@ func suitableCallbacks(receiver reflect.Value) map[string]*callback {
 		if method.PkgPath != "" {
 			continue // method not exported
 		}
+		name := formatName(method.Name)
+		if filter != nil && !slices.Contains(filter, name) {
+			continue // method is filtered
+		}
 		cb := newCallback(receiver, method.Func)
 		if cb == nil {
 			continue // function invalid
 		}
-		name := formatName(method.Name)
 		callbacks[name] = cb
 	}
 	return callbacks
