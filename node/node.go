@@ -542,7 +542,7 @@ func (n *Node) stopRPC() {
 // startInProc registers all RPC APIs on the inproc server.
 func (n *Node) startInProc(apis []rpc.API) error {
 	for _, api := range apis {
-		if err := n.inprocHandler.RegisterName(api.Namespace, api.Service); err != nil {
+		if err := n.inprocHandler.RegisterNameWithFilter(api.Namespace, api.Service, nil); err != nil {
 			return err
 		}
 	}
