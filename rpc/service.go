@@ -63,11 +63,10 @@ func (r *serviceRegistry) registerNameWithFilter(name string, rcvr interface{}, 
 	if name == "" {
 		return fmt.Errorf("no service name for type %s", rcvrVal.Type().String())
 	}
-	var callbacks map[string]*callback
-	if filter == nil {
-		callbacks = suitableCallbacks(rcvrVal)
-	} else {
-		callbacks = suitableCallbacksWithFilter(rcvrVal, filter)
+	callbacks := suitableCallbacksWithFilter(rcvrVal, filter)
+	if len(callbacks) == 0 {
+		log.Warn("service", name, "doesn't have any suitable methods/subscriptions to expose")
+		return nil
 	}
 
 	r.mu.Lock()
@@ -113,29 +112,8 @@ func (r *serviceRegistry) subscription(service, name string) *callback {
 }
 
 // suitableCallbacks iterates over the methods of the given type. It determines if a method
-// satisfies the criteria for a RPC callback or a subscription callback and adds it to the
-// collection of callbacks. See server documentation for a summary of these criteria.
-func suitableCallbacks(receiver reflect.Value) map[string]*callback {
-	typ := receiver.Type()
-	callbacks := make(map[string]*callback)
-	for m := 0; m < typ.NumMethod(); m++ {
-		method := typ.Method(m)
-		if method.PkgPath != "" {
-			continue // method not exported
-		}
-		cb := newCallback(receiver, method.Func)
-		if cb == nil {
-			continue // function invalid
-		}
-		name := formatName(method.Name)
-		callbacks[name] = cb
-	}
-	return callbacks
-}
-
-// suitableCallbacks iterates over the methods of the given type. It determines if a method
-// satisfies the criteria for a RPC callback or a subscription callback and adds it to the
-// collection of callbacks. See server documentation for a summary of these criteria.
+// satisfies the criteria for a RPC callback or a subscription callback and given filter.
+// And adds it to the collection of callbacks. See server documentation for a summary of these criteria.
 func suitableCallbacksWithFilter(receiver reflect.Value, filter []string) map[string]*callback {
 	typ := receiver.Type()
 	callbacks := make(map[string]*callback)
@@ -145,13 +123,14 @@ func suitableCallbacksWithFilter(receiver reflect.Value, filter []string) map[st
 			continue // method not exported
 		}
 		name := formatName(method.Name)
-		if slices.Contains(filter, name) {
-			cb := newCallback(receiver, method.Func)
-			if cb == nil {
-				continue // function invalid
-			}
-			callbacks[name] = cb
+		if filter != nil && !slices.Contains(filter, name) {
+			continue // method is filtered
 		}
+		cb := newCallback(receiver, method.Func)
+		if cb == nil {
+			continue // function invalid
+		}
+		callbacks[name] = cb
 	}
 	return callbacks
 }

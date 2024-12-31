@@ -457,7 +457,7 @@ func TestClientSubscribeClose(t *testing.T) {
 		gotHangSubscriptionReq:  make(chan struct{}),
 		unblockHangSubscription: make(chan struct{}),
 	}
-	if err := server.RegisterName("nftest2", service); err != nil {
+	if err := server.RegisterNameWithFilter("nftest2", service, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -547,7 +547,7 @@ func TestClientSubscriptionUnsubscribeServer(t *testing.T) {
 
 	// Create the server.
 	srv := NewServer()
-	srv.RegisterName("nftest", new(notificationTestService))
+	srv.RegisterNameWithFilter("nftest", new(notificationTestService), nil)
 	p1, p2 := net.Pipe()
 	recorder := &unsubscribeRecorder{ServerCodec: NewCodec(p1)}
 	go srv.ServeCodec(recorder, OptionMethodInvocation|OptionSubscriptions)
@@ -590,7 +590,7 @@ func TestClientSubscriptionChannelClose(t *testing.T) {
 	defer srv.Stop()
 	defer httpsrv.Close()
 
-	srv.RegisterName("nftest", new(notificationTestService))
+	srv.RegisterNameWithFilter("nftest", new(notificationTestService), nil)
 	client, _ := Dial(wsURL)
 
 	for i := 0; i < 100; i++ {

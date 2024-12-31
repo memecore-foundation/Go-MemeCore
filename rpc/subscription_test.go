@@ -71,7 +71,7 @@ func TestSubscriptions(t *testing.T) {
 
 	// setup and start server
 	for _, namespace := range namespaces {
-		if err := server.RegisterName(namespace, service); err != nil {
+		if err := server.RegisterNameWithFilter(namespace, service, nil); err != nil {
 			t.Fatalf("unable to register test service %v", err)
 		}
 	}
@@ -138,7 +138,7 @@ func TestServerUnsubscribe(t *testing.T) {
 	// Start the server.
 	server := newTestServer()
 	service := &notificationTestService{unsubscribed: make(chan string, 1)}
-	server.RegisterName("nftest2", service)
+	server.RegisterNameWithFilter("nftest2", service, nil)
 	go server.ServeCodec(NewCodec(p1), 0)
 
 	// Subscribe.
