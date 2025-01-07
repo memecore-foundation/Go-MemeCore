@@ -164,6 +164,8 @@ var (
 		utils.GraphQLVirtualHostsFlag,
 		utils.HTTPApiFlag,
 		utils.HTTPDebugApiFlag,
+		utils.HTTPHealthEnabledFlag,
+		utils.HTTPHealthPathFlag,
 		utils.HTTPPathPrefixFlag,
 		utils.WSEnabledFlag,
 		utils.WSListenAddrFlag,

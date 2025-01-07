@@ -55,6 +55,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb/remotedb"
 	"github.com/ethereum/go-ethereum/ethstats"
 	"github.com/ethereum/go-ethereum/graphql"
+	"github.com/ethereum/go-ethereum/health"
 	"github.com/ethereum/go-ethereum/internal/ethapi"
 	"github.com/ethereum/go-ethereum/internal/flags"
 	"github.com/ethereum/go-ethereum/log"
@@ -603,6 +604,18 @@ var (
 		Value:    "",
 		Category: flags.APICategory,
 	}
+	HTTPHealthEnabledFlag = &cli.BoolFlag{
+		Name:     "health",
+		Usage:    "Health check about HTTP RPC server available",
+		Value:    health.DefaultConfig.Enabled,
+		Category: flags.APICategory,
+	}
+	HTTPHealthPathFlag = &cli.StringFlag{
+		Name:     "health.path",
+		Usage:    "URL path for Health check",
+		Value:    health.DefaultConfig.Path,
+		Category: flags.APICategory,
+	}
 	HTTPPathPrefixFlag = &cli.StringFlag{
 		Name:     "http.rpcprefix",
 		Usage:    "HTTP path path prefix on which JSON-RPC is served. Use '/' to serve on all paths.",
@@ -1116,6 +1129,13 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 			cfg.HTTPModuleFilters = make(map[string][]string)
 		}
 		cfg.HTTPModuleFilters["debug"] = SplitAndTrim(ctx.String(HTTPDebugApiFlag.Name))
+	}
+
+	cfg.HTTPHealthCheckEnabled = ctx.IsSet(HTTPHealthEnabledFlag.Name)
+
+	cfg.HTTPHealthCheckPath = health.DefaultConfig.Path
+	if ctx.IsSet(HTTPHealthPathFlag.Name) {
+		cfg.HTTPHealthCheckPath = ctx.String(HTTPHealthPathFlag.Name)
 	}
 
 	if ctx.IsSet(HTTPVirtualHostsFlag.Name) {

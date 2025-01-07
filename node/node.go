@@ -423,6 +423,7 @@ func (n *Node) startRPC() error {
 		}); err != nil {
 			return err
 		}
+
 		servers = append(servers, server)
 		return nil
 	}
