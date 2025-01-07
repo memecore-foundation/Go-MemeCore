@@ -36,6 +36,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/eth/catalyst"
 	"github.com/ethereum/go-ethereum/eth/ethconfig"
+	"github.com/ethereum/go-ethereum/health"
 	"github.com/ethereum/go-ethereum/internal/ethapi"
 	"github.com/ethereum/go-ethereum/internal/flags"
 	"github.com/ethereum/go-ethereum/internal/version"
@@ -226,6 +227,9 @@ func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 		if err != nil {
 			utils.Fatalf("failed to register catalyst service: %v", err)
 		}
+	}
+	if ctx.IsSet(utils.HTTPHealthEnabledFlag.Name) {
+		stack.RegisterHandler("health_sync", cfg.Node.HTTPHealthCheckPath+"/sync", health.NewHandler(eth, cfg.Node.HTTPCors, cfg.Node.HTTPVirtualHosts))
 	}
 	return stack, backend
 }
