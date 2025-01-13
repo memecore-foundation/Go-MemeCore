@@ -135,6 +135,12 @@ type Config struct {
 	// e.g. HTTPModuleFilters[moduleName] = [method1, method2]
 	HTTPModuleFilters map[string][]string
 
+	// Health check about HTTP RPC server available
+	HTTPHealthCheckEnabled bool
+
+	// URL path for Health check
+	HTTPHealthCheckPath string
+
 	// HTTPTimeouts allows for customization of the timeout values used by the HTTP RPC
 	// interface.
 	HTTPTimeouts rpc.HTTPTimeouts
