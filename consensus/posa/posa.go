@@ -40,7 +40,8 @@ const (
 	inmemorySnapshots  = 128  // Number of recent vote snapshots to keep in memory
 	inmemorySignatures = 4096 // Number of recent block signatures to keep in memory
 
-	wiggleTime = 500 * time.Millisecond // Random delay (per signer) to allow concurrent signers
+	wiggleTime         = 500 * time.Millisecond // Random delay (per signer) to allow concurrent signers
+	noturnMinimumDelay = 500 * time.Millisecond // Min value of delay for no turn signers. It makes time for syncing signed block.
 )
 
 // PoSA protocol constants.
@@ -186,9 +187,9 @@ type PoSA struct {
 
 // SetEventLoggingEnabled sets whether event logging is enabled or disabled.
 func (p *PoSA) SetEventLoggingEnabled(enabled bool) {
-    p.lock.Lock()
-    defer p.lock.Unlock()
-    p.enableEventLogging = enabled
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	p.enableEventLogging = enabled
 }
 
 // New creates a PoSA consensus engine with the initial signers set to the
@@ -719,7 +720,7 @@ func (p *PoSA) Seal(chain consensus.ChainHeaderReader, block *types.Block, resul
 	if header.Difficulty.Cmp(diffNoTurn) == 0 {
 		// It's not our turn explicitly to sign, delay it a bit
 		wiggle := time.Duration(len(snap.Signers)/2+1) * wiggleTime
-		delay += time.Duration(rand.Int63n(int64(wiggle)))
+		delay += noturnMinimumDelay + time.Duration(rand.Int63n(int64(wiggle)))
 
 		log.Trace("Out-of-turn signing requested", "wiggle", common.PrettyDuration(wiggle))
 	}
@@ -736,6 +737,11 @@ func (p *PoSA) Seal(chain consensus.ChainHeaderReader, block *types.Block, resul
 		case <-stop:
 			return
 		case <-time.After(delay):
+			// Prevent commit block which signed already.
+			if header.Difficulty.Cmp(diffNoTurn) == 0 && chain.CurrentHeader().Number.Uint64() >= header.Number.Uint64() {
+				log.Info("Current header has updated to abort this seal", "number", header.Number.Uint64(), "sealhash", SealHash(header))
+				return
+			}
 		}
 
 		select {
