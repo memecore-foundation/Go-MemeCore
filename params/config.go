@@ -26,7 +26,7 @@ import (
 
 // Genesis hashes to enforce below configs on.
 var (
-	MainnetGenesisHash = common.HexToHash("0x6cc299e891e82ccb5bcd2f03c19741a872a2165c2e4fbae9014b1183216c45cf")
+	MainnetGenesisHash = common.HexToHash("0x2ede7ea2e1feeba523f156c772d2189386a0e349b87a79327ad2c81c3bc6d9b8")
 	FormicariumGenesisHash  = common.HexToHash("0xce00b0874554d9ed1539bb02b5f261dfc2fa1f230aa37f88c66137af6d180114")
 )
 
