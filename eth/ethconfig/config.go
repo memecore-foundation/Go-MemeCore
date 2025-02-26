@@ -68,6 +68,8 @@ var Defaults = Config{
 	RPCEVMTimeout:      5 * time.Second,
 	GPO:                FullNodeGPO,
 	RPCTxFeeCap:        1500, // 1500 ether
+
+	PoSAEnableEventLogging: false,
 }
 
 //go:generate go run github.com/fjl/gencodec -type Config -formats toml -out gen_config.go
@@ -160,6 +162,9 @@ type Config struct {
 
 	// OverrideVerkle (TODO: remove after the fork)
 	OverrideVerkle *uint64 `toml:",omitempty"`
+
+	// PoSA-specific settings
+	PoSAEnableEventLogging bool // Enable event logging for PoSA consensus engine
 }
 
 // CreateConsensusEngine creates a consensus engine for the given chain config.

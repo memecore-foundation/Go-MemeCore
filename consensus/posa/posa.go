@@ -180,6 +180,15 @@ type PoSA struct {
 
 	// The fields below are for testing only
 	fakeDiff bool // Skip difficulty verifications
+
+	enableEventLogging bool // Flag to control event logging
+}
+
+// SetEventLoggingEnabled sets whether event logging is enabled or disabled.
+func (p *PoSA) SetEventLoggingEnabled(enabled bool) {
+    p.lock.Lock()
+    defer p.lock.Unlock()
+    p.enableEventLogging = enabled
 }
 
 // New creates a PoSA consensus engine with the initial signers set to the
