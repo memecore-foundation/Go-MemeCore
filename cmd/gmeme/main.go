@@ -252,6 +252,7 @@ func init() {
 		consoleFlags,
 		debug.Flags,
 		metricsFlags,
+		[]cli.Flag{utils.PoSAEnableEventLoggingFlag},
 	)
 	flags.AutoEnvVars(app.Flags, "GMEME")
 

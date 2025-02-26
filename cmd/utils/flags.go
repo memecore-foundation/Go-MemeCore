@@ -34,6 +34,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/consensus/posa"
+	"github.com/ethereum/go-ethereum/consensus/beacon"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
@@ -922,6 +924,13 @@ Please note that --` + MetricsHTTPFlag.Name + ` must be set to start the server.
 		Usage:    "InfluxDB organization name (v2 only)",
 		Value:    metrics.DefaultConfig.InfluxDBOrganization,
 		Category: flags.MetricsCategory,
+	}
+
+	// PoSA settings
+	PoSAEnableEventLoggingFlag = &cli.BoolFlag{
+		Name:     "posa.enable-event-logging",
+		Usage:    "Enable event logging for PoSA consensus engine",
+		Category: flags.MiscCategory,
 	}
 )
 
@@ -1850,6 +1859,12 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	if err := kzg4844.UseCKZG(ctx.String(CryptoKZGFlag.Name) == "ckzg"); err != nil {
 		Fatalf("Failed to set KZG library implementation to %s: %v", ctx.String(CryptoKZGFlag.Name), err)
 	}
+
+	// Set PoSA-specific configurations
+	if ctx.IsSet(PoSAEnableEventLoggingFlag.Name) {
+		cfg.PoSAEnableEventLogging = ctx.Bool(PoSAEnableEventLoggingFlag.Name)
+		log.Info("PoSA event logging flag set", "enabled", cfg.PoSAEnableEventLogging)
+	}
 }
 
 // SetDNSDiscoveryDefaults configures DNS discovery with the given URL if
@@ -1873,6 +1888,27 @@ func RegisterEthService(stack *node.Node, cfg *ethconfig.Config) (ethapi.Backend
 		Fatalf("Failed to register the MemeCore service: %v", err)
 	}
 	stack.RegisterAPIs(tracers.APIs(backend.APIBackend))
+
+	engine := backend.Engine()
+	log.Info("Engine type", "type", fmt.Sprintf("%T", engine))
+
+	// Apply PoSA-specific configurations
+	var posaEngine *posa.PoSA
+	if p, ok := engine.(*posa.PoSA); ok {
+		posaEngine = p
+	} else if b, ok := engine.(*beacon.Beacon); ok {
+		if p, ok := b.InnerEngine().(*posa.PoSA); ok {
+			posaEngine = p
+		}
+	}
+
+	if posaEngine != nil {
+		posaEngine.SetEventLoggingEnabled(cfg.PoSAEnableEventLogging)
+		log.Info("PoSA event logging configured", "enabled", cfg.PoSAEnableEventLogging)
+	} else {
+		log.Warn("No PoSA engine found", "engine", fmt.Sprintf("%T", engine))
+	}
+
 	return backend.APIBackend, backend
 }
 
