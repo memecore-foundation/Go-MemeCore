@@ -124,37 +124,41 @@ func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReade
 	vmenv.Reset(core.NewEVMTxContext(msg), state)
 	state.AddAddressToAccessList(toAddress)
 	ret, leftOverGas, err := vmenv.Call(vm.AccountRef(msg.From), *msg.To, msg.Data, msg.GasLimit, common.U2560)
-	if err != nil {
-		revertMsg, unpackErr := abi.UnpackRevert(ret)
-		if unpackErr == nil {
-			log.Error("Contract execution failed", "error", err, "revert_reason", revertMsg, "gas_used", msg.GasLimit-leftOverGas)
+	// Log execution result and events if enabled
+	if p.enableEventLogging {
+		if err != nil {
+			revertMsg, unpackErr := abi.UnpackRevert(ret)
+			if unpackErr == nil {
+				log.Error("Contract execution failed", "error", err, "revert_reason", revertMsg, "gas_used", msg.GasLimit-leftOverGas)
+			} else {
+				log.Error("Contract execution failed", "error", err, "hex_data", hexutil.Encode(ret), "gas_used", msg.GasLimit-leftOverGas)
+			}
 		} else {
-			log.Error("Contract execution failed", "error", err, "hex_data", hexutil.Encode(ret), "gas_used", msg.GasLimit-leftOverGas)
+			if len(ret) > 0 {
+				log.Info("Contract executed", "gas_used", msg.GasLimit-leftOverGas, "return_data", hexutil.Encode(ret))
+			} else {
+				log.Info("Contract executed", "gas_used", msg.GasLimit-leftOverGas)
+			}
 		}
-	} else {
-		if len(ret) > 0 {
-			log.Info("Contract executed", "gas_used", msg.GasLimit-leftOverGas, "return_data", hexutil.Encode(ret))
-		} else {
-			log.Info("Contract executed", "gas_used", msg.GasLimit-leftOverGas)
+		// Process emitted logs
+		logs := state.Logs()
+		if len(logs) > 0 {
+			log.Info("Transaction Logs", "tx_hash", logs[0].TxHash.String())
+			for i, evmLog := range logs {
+				log.Info(fmt.Sprintf("Log Entry[%d] Address=%s", i, evmLog.Address.String()))
+				for j, topic := range evmLog.Topics {
+					log.Info(fmt.Sprintf("Topic[%d] hex=%s", j, topic.Hex()))
+				}
+				if len(evmLog.Data) > 0 {
+					log.Info(fmt.Sprintf("Data hex=%s", "0x"+hex.EncodeToString(evmLog.Data)))
+				}
+				if i < len(logs)-1 {
+					log.Info("----------------------------------------")
+				}
+			}
 		}
 	}
-	// Process emitted logs
-	logs := state.Logs()
-	if len(logs) > 0 {
-		log.Info("Transaction Logs", "tx_hash", logs[0].TxHash.String())
-		for i, evmLog := range logs {
-			log.Info(fmt.Sprintf("Log Entry[%d] Address=%s", i, evmLog.Address.String()))
-			for j, topic := range evmLog.Topics {
-				log.Info(fmt.Sprintf("Topic[%d] hex=%s", j, topic.Hex()))
-			}
-			if len(evmLog.Data) > 0 {
-				log.Info(fmt.Sprintf("Data hex=%s", "0x"+hex.EncodeToString(evmLog.Data)))
-			}
-			if i < len(logs)-1 {
-				log.Info("----------------------------------------")
-			}
-		}
-	}
+
 	state.Finalise(true)
 	return nil
 }
