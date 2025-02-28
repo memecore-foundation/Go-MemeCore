@@ -487,40 +487,39 @@ func (g *Genesis) MustCommit(db ethdb.Database, triedb *triedb.Database) *types.
 
 // DefaultGenesisBlock returns the MemeCore main net genesis block.
 func DefaultGenesisBlock() *Genesis {
-        return &Genesis{
-                Config:     params.MainnetChainConfig,
-                Nonce:      0x0,
-                Timestamp:  0x677bac02,
-                ExtraData:  hexutil.MustDecode("0x0000000000000000000000000000000000000000000000000000000000000000da371e4be535eb88d299f93479402b05ec51eda76b2d2cca391845055e541ff718a067412bb40e5b19ff5842a6a19a0223042af0a82b2a4e3a06d0eba560b87795161e90012f1371b1e34917c99fab3e39829a23ea8df2fa55abe9dcf6b8df4faeb5eb4077b7dc151c87f67c98b5aab17496744d84537c7a560dae32f6932ec49929d8a3eec1111c7f2d0b1c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
-                GasLimit:   0x3938700,
-                Difficulty: big.NewInt(1),
+	return &Genesis{
+		Config:     params.MainnetChainConfig,
+		Nonce:      0x0,
+		Timestamp:  0x677bac02,
+		ExtraData:  hexutil.MustDecode("0x0000000000000000000000000000000000000000000000000000000000000000da371e4be535eb88d299f93479402b05ec51eda76b2d2cca391845055e541ff718a067412bb40e5b19ff5842a6a19a0223042af0a82b2a4e3a06d0eba560b87795161e90012f1371b1e34917c99fab3e39829a23ea8df2fa55abe9dcf6b8df4faeb5eb4077b7dc151c87f67c98b5aab17496744d84537c7a560dae32f6932ec49929d8a3eec1111c7f2d0b1c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		GasLimit:   0x3938700,
+		Difficulty: big.NewInt(1),
 		Mixhash:    common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
-                Alloc:      decodePrealloc(mainnetAllocData),
+		Alloc:      decodePrealloc(mainnetAllocData),
 		Number:     0x0,
 		GasUsed:    0x0,
 		ParentHash: common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
 		BaseFee:    big.NewInt(1500000000000),
-        }
+	}
 }
 
 // DefaultFormicariumGenesisBlock returns the Formicarium network genesis block.
 func DefaultFormicariumGenesisBlock() *Genesis {
-        return &Genesis{
-                Config:     params.FormicariumChainConfig,
-                Nonce:      0x0,
-                Timestamp:  0x6707a802,
-                ExtraData:  hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000003e3840a84c41d271927bc373f2d3b4667b98c4c2da25e759cad0bf694a1d909bd4b1f68a16774e33c8a747dfe1f40511fdfc259222dadf77ce69fce3135e3c4ee7246281212c6bfc77f0b05342ce111be8c84cb304f47d1c9f237e42920e8d90ee8d6487a7aa9b98ff70039e3b91c23bccc9a454d92dd552807c3049bef24c05de424adf22589046fa7d59250000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
-                GasLimit:   0x3938700,
-                Difficulty: big.NewInt(1),
+	return &Genesis{
+		Config:     params.FormicariumChainConfig,
+		Nonce:      0x0,
+		Timestamp:  0x6707a802,
+		ExtraData:  hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000003e3840a84c41d271927bc373f2d3b4667b98c4c2da25e759cad0bf694a1d909bd4b1f68a16774e33c8a747dfe1f40511fdfc259222dadf77ce69fce3135e3c4ee7246281212c6bfc77f0b05342ce111be8c84cb304f47d1c9f237e42920e8d90ee8d6487a7aa9b98ff70039e3b91c23bccc9a454d92dd552807c3049bef24c05de424adf22589046fa7d59250000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		GasLimit:   0x3938700,
+		Difficulty: big.NewInt(1),
 		Mixhash:    common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
-                Alloc:      decodePrealloc(FormicariumAllocData),
+		Alloc:      decodePrealloc(FormicariumAllocData),
 		Number:     0x0,
 		GasUsed:    0x0,
 		ParentHash: common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
 		BaseFee:    big.NewInt(1500000000000),
-        }
+	}
 }
-
 
 // DeveloperGenesisBlock returns the 'gmeme --dev' genesis block.
 func DeveloperGenesisBlock(gasLimit uint64, faucet *common.Address) *Genesis {

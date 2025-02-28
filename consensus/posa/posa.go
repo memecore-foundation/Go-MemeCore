@@ -160,8 +160,7 @@ func ecrecover(header *types.Header, sigcache *sigLRU) (common.Address, error) {
 	return signer, nil
 }
 
-// PoSA is the proof-of-authority consensus engine proposed to support the
-// Mimnetwork.
+// PoSA is the proof-of-authority consensus engine proposed to support the MemeCore.
 type PoSA struct {
 	config *params.PoSAConfig // Consensus engine configuration parameters
 	db     ethdb.Database     // Database to store and retrieve snapshot checkpoints

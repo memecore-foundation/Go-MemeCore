@@ -419,10 +419,10 @@ func doArchive(cmdline []string) {
 	}
 
 	var (
-		env      = build.Env()
+		env       = build.Env()
 		basegmeme = archiveBasename(*arch, params.ArchiveVersion(env.Commit))
 		gmeme     = "gmeme-" + basegmeme + ext
-		alltools = "gmeme-alltools-" + basegmeme + ext
+		alltools  = "gmeme-alltools-" + basegmeme + ext
 	)
 	maybeSkipArchive(env)
 	if err := build.WriteArchive(gmeme, gmemeArchiveFiles); err != nil {
@@ -993,8 +993,8 @@ func doWindowsInstaller(cmdline []string) {
 
 	// Aggregate binaries that are included in the installer
 	var (
-		devTools []string
-		allTools []string
+		devTools  []string
+		allTools  []string
 		gmemeTool string
 	)
 	for _, file := range allToolsArchiveFiles {
@@ -1013,7 +1013,7 @@ func doWindowsInstaller(cmdline []string) {
 	// first section contains the gmeme binary, second section holds the dev tools.
 	templateData := map[string]interface{}{
 		"License":  "COPYING",
-		"Gmeme":     gmemeTool,
+		"Gmeme":    gmemeTool,
 		"DevTools": devTools,
 	}
 	build.Render("build/nsis.gmeme.nsi", filepath.Join(*workdir, "gmeme.nsi"), 0644, nil)
