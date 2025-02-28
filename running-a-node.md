@@ -6,10 +6,10 @@ This document contains step-by-step instructions for running a gmeme node in Mem
 
 The following are the minimum hardware requirements:
 
-* CPU with 2+ cores
-* 4GB RAM
-* 200GB free storage space
-* 8 MBit/sec download Internet service
+- CPU with 2+ cores
+- 4GB RAM
+- 200GB free storage space
+- 8 MBit/sec download Internet service
 
 ## 1. Building or Downloading Gmeme Binary
 
@@ -51,7 +51,7 @@ Import your existing account with the private key and remember to replace the `.
 
 ## 3. Running Seed Node
 
-A seed node is a network member that does not participate in the consensus process. This node can be used to interact with the MimNetwork, including: creating accounts, transferring funds, deploying and interacting with contracts, and querying node APIs.
+A seed node is a network member that does not participate in the consensus process. This node can be used to interact with the MemeCore, including: creating accounts, transferring funds, deploying and interacting with contracts, and querying node APIs.
 
 Create the `startSeed.sh` file in the same folder of `gmeme`. You may need to change the `P2P/HTTP/RPC/WS` ports to avoid conflicts. Please note that the port configuration for the JSON-RPC interface should be set to httpport, not rpcport. Additionally, remember to change `extip` to your own IP address if you want other nodes to be able to find yours. You can refer to [https://geth.ethereum.org/docs/fundamentals/command-line-options](https://geth.ethereum.org/docs/fundamentals/command-line-options) for more details about start options.
 

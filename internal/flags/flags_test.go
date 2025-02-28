@@ -29,24 +29,24 @@ func TestPathExpansion(t *testing.T) {
 
 	if runtime.GOOS == "windows" {
 		tests = map[string]string{
-			`/home/someuser/tmp`:        `\home\someuser\tmp`,
-			`~/tmp`:                     user.HomeDir + `\tmp`,
-			`~thisOtherUser/b/`:         `~thisOtherUser\b`,
-			`$DDDXXX/a/b`:               `\tmp\a\b`,
-			`/a/b/`:                     `\a\b`,
-			`C:\Documents\Newsletters\`: `C:\Documents\Newsletters`,
-			`C:\`:                       `C:\`,
+			`/home/someuser/tmp`:         `\home\someuser\tmp`,
+			`~/tmp`:                      user.HomeDir + `\tmp`,
+			`~thisOtherUser/b/`:          `~thisOtherUser\b`,
+			`$DDDXXX/a/b`:                `\tmp\a\b`,
+			`/a/b/`:                      `\a\b`,
+			`C:\Documents\Newsletters\`:  `C:\Documents\Newsletters`,
+			`C:\`:                        `C:\`,
 			`\\.\pipe\\pipe\gmeme621383`: `\\.\pipe\\pipe\gmeme621383`,
 		}
 	} else {
 		tests = map[string]string{
-			`/home/someuser/tmp`:        `/home/someuser/tmp`,
-			`~/tmp`:                     user.HomeDir + `/tmp`,
-			`~thisOtherUser/b/`:         `~thisOtherUser/b`,
-			`$DDDXXX/a/b`:               `/tmp/a/b`,
-			`/a/b/`:                     `/a/b`,
-			`C:\Documents\Newsletters\`: `C:\Documents\Newsletters\`,
-			`C:\`:                       `C:\`,
+			`/home/someuser/tmp`:         `/home/someuser/tmp`,
+			`~/tmp`:                      user.HomeDir + `/tmp`,
+			`~thisOtherUser/b/`:          `~thisOtherUser/b`,
+			`$DDDXXX/a/b`:                `/tmp/a/b`,
+			`/a/b/`:                      `/a/b`,
+			`C:\Documents\Newsletters\`:  `C:\Documents\Newsletters\`,
+			`C:\`:                        `C:\`,
 			`\\.\pipe\\pipe\gmeme621383`: `\\.\pipe\\pipe\gmeme621383`,
 		}
 	}

@@ -180,9 +180,9 @@ func fuzzCrossG2Add(data []byte) int {
 func fuzzCrossG1MultiExp(data []byte) int {
 	var (
 		input        = bytes.NewReader(data)
-		gmemeScalars  []*big.Int
+		gmemeScalars []*big.Int
 		gnarkScalars []fr.Element
-		gmemePoints   []*bls12381.PointG1
+		gmemePoints  []*bls12381.PointG1
 		gnarkPoints  []gnark.G1Affine
 	)
 	// n random scalars (max 17)

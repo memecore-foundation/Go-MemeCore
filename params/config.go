@@ -26,8 +26,8 @@ import (
 
 // Genesis hashes to enforce below configs on.
 var (
-	MainnetGenesisHash = common.HexToHash("0x2ede7ea2e1feeba523f156c772d2189386a0e349b87a79327ad2c81c3bc6d9b8")
-	FormicariumGenesisHash  = common.HexToHash("0xce00b0874554d9ed1539bb02b5f261dfc2fa1f230aa37f88c66137af6d180114")
+	MainnetGenesisHash     = common.HexToHash("0x2ede7ea2e1feeba523f156c772d2189386a0e349b87a79327ad2c81c3bc6d9b8")
+	FormicariumGenesisHash = common.HexToHash("0xce00b0874554d9ed1539bb02b5f261dfc2fa1f230aa37f88c66137af6d180114")
 )
 
 func newUint64(val uint64) *uint64 { return &val }
@@ -35,55 +35,55 @@ func newUint64(val uint64) *uint64 { return &val }
 var (
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
-		ChainID:                       big.NewInt(4352),
-		HomesteadBlock:                big.NewInt(0),
-		DAOForkBlock:                  nil,
-		DAOForkSupport:                true,
-		EIP150Block:                   big.NewInt(0),
-		EIP155Block:                   big.NewInt(0),
-		EIP158Block:                   big.NewInt(0),
-		ByzantiumBlock:                big.NewInt(0),
-		ConstantinopleBlock:           big.NewInt(0),
-		PetersburgBlock:               big.NewInt(0),
-		IstanbulBlock:                 big.NewInt(0),
-		MuirGlacierBlock:              big.NewInt(0),
-		BerlinBlock:                   big.NewInt(0),
-		LondonBlock:                   big.NewInt(0),
-		ArrowGlacierBlock:             big.NewInt(0),
-		GrayGlacierBlock:              big.NewInt(0),
-		ShanghaiTime:                  newUint64(00),
-                CancunTime:                    nil,
-                PoSA: &PoSAConfig{
-                        Period: 7,
-                        Epoch:  12345,
-                },
-        }
+		ChainID:             big.NewInt(4352),
+		HomesteadBlock:      big.NewInt(0),
+		DAOForkBlock:        nil,
+		DAOForkSupport:      true,
+		EIP150Block:         big.NewInt(0),
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
+		ByzantiumBlock:      big.NewInt(0),
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock:     big.NewInt(0),
+		IstanbulBlock:       big.NewInt(0),
+		MuirGlacierBlock:    big.NewInt(0),
+		BerlinBlock:         big.NewInt(0),
+		LondonBlock:         big.NewInt(0),
+		ArrowGlacierBlock:   big.NewInt(0),
+		GrayGlacierBlock:    big.NewInt(0),
+		ShanghaiTime:        newUint64(00),
+		CancunTime:          nil,
+		PoSA: &PoSAConfig{
+			Period: 7,
+			Epoch:  12345,
+		},
+	}
 
 	// FormicariumChainConfig contains the chain parameters to run a node on the Görli test network.
 	FormicariumChainConfig = &ChainConfig{
-		ChainID:                       big.NewInt(43521),
-		HomesteadBlock:                big.NewInt(0),
-		DAOForkBlock:                  nil,
-		DAOForkSupport:                true,
-		EIP150Block:                   big.NewInt(0),
-		EIP155Block:                   big.NewInt(0),
-		EIP158Block:                   big.NewInt(0),
-		ByzantiumBlock:                big.NewInt(0),
-		ConstantinopleBlock:           big.NewInt(0),
-		PetersburgBlock:               big.NewInt(0),
-		IstanbulBlock:                 big.NewInt(0),
-		MuirGlacierBlock:              big.NewInt(0),
-		BerlinBlock:                   big.NewInt(0),
-		LondonBlock:                   big.NewInt(0),
-		ArrowGlacierBlock:             big.NewInt(0),
-		GrayGlacierBlock:              big.NewInt(0),
-		ShanghaiTime:                  newUint64(00),
-                CancunTime:                    nil,
-                PoSA: &PoSAConfig{
-                        Period: 7,
-                        Epoch:  12345,
-                },
-        }
+		ChainID:             big.NewInt(43521),
+		HomesteadBlock:      big.NewInt(0),
+		DAOForkBlock:        nil,
+		DAOForkSupport:      true,
+		EIP150Block:         big.NewInt(0),
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
+		ByzantiumBlock:      big.NewInt(0),
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock:     big.NewInt(0),
+		IstanbulBlock:       big.NewInt(0),
+		MuirGlacierBlock:    big.NewInt(0),
+		BerlinBlock:         big.NewInt(0),
+		LondonBlock:         big.NewInt(0),
+		ArrowGlacierBlock:   big.NewInt(0),
+		GrayGlacierBlock:    big.NewInt(0),
+		ShanghaiTime:        newUint64(00),
+		CancunTime:          nil,
+		PoSA: &PoSAConfig{
+			Period: 7,
+			Epoch:  12345,
+		},
+	}
 
 	// AllEthashProtocolChanges contains every protocol change (EIPs) introduced
 	// and accepted by the Ethereum core developers into the Ethash consensus.
@@ -293,7 +293,7 @@ var (
 
 // NetworkNames are user friendly names to use in the chain spec banner.
 var NetworkNames = map[string]string{
-	MainnetChainConfig.ChainID.String(): "mainnet",
+	MainnetChainConfig.ChainID.String():     "mainnet",
 	FormicariumChainConfig.ChainID.String(): "formicarium",
 }
 
