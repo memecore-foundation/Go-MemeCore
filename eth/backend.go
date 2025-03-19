@@ -274,7 +274,6 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	}
 	if pa != nil {
 		pa.WithEthAPI(ethapi.NewBlockChainAPI(eth.APIBackend))
-		pa.WithBlockchainConfig(eth.blockchain.Config())
 		pa.WithVMConfig(vmConfig)
 	}
 
