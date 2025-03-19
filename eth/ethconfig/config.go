@@ -176,7 +176,9 @@ func CreateConsensusEngine(config *params.ChainConfig, db ethdb.Database) (conse
 		return nil, errors.New("both posa and clique are configured")
 	}
 	if config.PoSA != nil {
-		return beacon.New(posa.New(config.PoSA, db)), nil
+		pa := posa.New(config.PoSA, db)
+		pa.WithBlockchainConfig(config)
+		return beacon.New(pa), nil
 	}
 	if config.Clique != nil {
 		return beacon.New(clique.New(config.Clique, db)), nil
