@@ -368,6 +368,8 @@ func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 		return params.MainnetChainConfig
 	case ghash == params.FormicariumGenesisHash:
 		return params.FormicariumChainConfig
+	case ghash == params.InsectariumGenesisHash:
+		return params.InsectariumChainConfig
 	default:
 		return params.AllEthashProtocolChanges
 	}
@@ -514,6 +516,24 @@ func DefaultFormicariumGenesisBlock() *Genesis {
 		Difficulty: big.NewInt(1),
 		Mixhash:    common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
 		Alloc:      decodePrealloc(FormicariumAllocData),
+		Number:     0x0,
+		GasUsed:    0x0,
+		ParentHash: common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+		BaseFee:    big.NewInt(1500000000000),
+	}
+}
+
+// DefaultInsectariumGenesisBlock returns the Insectarium network genesis block.
+func DefaultInsectariumGenesisBlock() *Genesis {
+	return &Genesis{
+		Config:     params.InsectariumChainConfig,
+		Nonce:      0x0,
+		Timestamp:  0x68058a80,
+		ExtraData:  hexutil.MustDecode("0x0000000000000000000000000000000000000000000000000000000000000000ba132464a56d3f4d5714a510b71a2c4de1bf706b66508ae92ff1d19eb80ce3155e5748968a346ef9647faee668fc0361262fca7009e2941bb3525269c80403d467c7807af6cb99132b027defe7686333a155d26ee7bf38126daab4ec6f99159cfe5003767c8cd04632670ec2b36c193e2d8fc032fb505a04e65bd3ca32f6682f1e75fd42ec395247c519314a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		GasLimit:   0x3938700,
+		Difficulty: big.NewInt(1),
+		Mixhash:    common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+		Alloc:      decodePrealloc(InsectariumAllocData),
 		Number:     0x0,
 		GasUsed:    0x0,
 		ParentHash: common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),

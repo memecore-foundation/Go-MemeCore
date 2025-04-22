@@ -59,6 +59,13 @@ var FormicariumBootnodes = []string{
 	"enode://7baf26de1efd7820bced95c89adc68e0aa4ac663f4c4f2d1a79aea253ce39663f1c330b530759acf134fd85933df2cc278e2de8b926ab6f170925b68cb31934c@18.141.252.100:30303",
 }
 
+var InsectariumBootnodes = []string{
+	"enode://86703c20f0272c99fd8d06089fbdbccf512c97b4fc2d1f0dcbd64ae29638e2a5b196e7940fd090c5b4297529463e1852fd5e94a62aad929025522b6bdec5e811@54.254.15.125:30303",
+	"enode://c68e83093bdba08f9682aa3e9c8ef9a749c9d3c07a1cfe7c6ebf9f5d8f311228a24bb1ae1dbbbc4cbc6630958faf57d2c8978615f31760270ebeaefb5ca5c6ce@52.76.153.215:30303",
+	"enode://50bfe3c69cffcc360eed7b84802e1888bf4ed4151c3b039513370ee5057c9477714c4aad79e258544f79692146f66ef8aa2b51501d43ea456e3241669e6a2d54@18.139.33.64:30303",
+	"enode://da655ba625d17965bc47759f84f3b1bbcc771d516307f647503f183e6cbbb9b799fb85fe2f70e4c2b07a3161e1a4badda2b29f4aadeee27715046891e1971fbc@13.214.74.128:30303",
+}
+
 const dnsPrefix = "enrtree://AKA3AM6LPBYEUDMVNU3BSVQJ5AD45Y7YPOHJLEF6W26QOE4VTUDPE@"
 
 // KnownDNSNetwork returns the address of a public DNS-based node list for the given
@@ -71,6 +78,8 @@ func KnownDNSNetwork(genesis common.Hash, protocol string) string {
 		net = "mainnet"
 	case FormicariumGenesisHash:
 		net = "formicarium"
+	case InsectariumGenesisHash:
+		net = "insectarium"
 	default:
 		return ""
 	}

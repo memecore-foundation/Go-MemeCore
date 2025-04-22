@@ -232,6 +232,8 @@ func ethFilter(args []string) (nodeFilter, error) {
 		filter = forkid.NewStaticFilter(params.MainnetChainConfig, core.DefaultGenesisBlock().ToBlock())
 	case "formicarium":
 		filter = forkid.NewStaticFilter(params.FormicariumChainConfig, core.DefaultFormicariumGenesisBlock().ToBlock())
+	case "insectarium":
+		filter = forkid.NewStaticFilter(params.InsectariumChainConfig, core.DefaultInsectariumGenesisBlock().ToBlock())
 	default:
 		return nil, fmt.Errorf("unknown network %q", args[0])
 	}

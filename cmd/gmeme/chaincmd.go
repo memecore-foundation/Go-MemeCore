@@ -431,6 +431,8 @@ func importHistory(ctx *cli.Context) error {
 			network = "mainnet"
 		case ctx.Bool(utils.FormicariumFlag.Name):
 			network = "formicarium"
+		case ctx.Bool(utils.InsectariumFlag.Name):
+			network = "insectarium"
 		}
 	} else {
 		// No network flag set, try to determine network based on files

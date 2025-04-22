@@ -287,6 +287,9 @@ func prepare(ctx *cli.Context) {
 	case ctx.IsSet(utils.FormicariumFlag.Name):
 		log.Info("Starting Gmeme on Formicarium testnet...")
 
+	case ctx.IsSet(utils.InsectariumFlag.Name):
+		log.Info("Starting Gmeme on Insectarium testnet...")
+
 	case ctx.IsSet(utils.DeveloperFlag.Name):
 		log.Info("Starting Gmeme in ephemeral dev mode...")
 		log.Warn(`You are running Gmeme in --dev mode. Please note the following:
@@ -312,6 +315,7 @@ func prepare(ctx *cli.Context) {
 	if !ctx.IsSet(utils.CacheFlag.Name) && !ctx.IsSet(utils.NetworkIdFlag.Name) {
 		// Make sure we're not on any supported preconfigured testnet either
 		if !ctx.IsSet(utils.FormicariumFlag.Name) &&
+			!ctx.IsSet(utils.InsectariumFlag.Name) &&
 			!ctx.IsSet(utils.DeveloperFlag.Name) {
 			// Nope, we're really on mainnet. Bump that cache up!
 			log.Info("Bumping default cache on mainnet", "provided", ctx.Int(utils.CacheFlag.Name), "updated", 4096)

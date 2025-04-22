@@ -148,6 +148,11 @@ var (
 		Usage:    "Formicarium network: pre-configured PoSA(Proof-of-Stake Authority) test network",
 		Category: flags.EthCategory,
 	}
+	InsectariumFlag = &cli.BoolFlag{
+		Name:     "insectarium",
+		Usage:    "Insectarium network: pre-configured PoSA(Proof-of-Stake Authority) test network",
+		Category: flags.EthCategory,
+	}
 	// Dev mode
 	DeveloperFlag = &cli.BoolFlag{
 		Name:     "dev",
@@ -938,6 +943,7 @@ var (
 	// TestnetFlags is the flag group of all built-in supported testnets.
 	TestnetFlags = []cli.Flag{
 		FormicariumFlag,
+		InsectariumFlag,
 	}
 	// NetworkFlags is the flag group of all built-in supported networks.
 	NetworkFlags = append([]cli.Flag{MainnetFlag}, TestnetFlags...)
@@ -960,6 +966,8 @@ func MakeDataDir(ctx *cli.Context) string {
 	if path := ctx.String(DataDirFlag.Name); path != "" {
 		if ctx.Bool(FormicariumFlag.Name) {
 			return filepath.Join(path, "formicarium")
+		} else if ctx.Bool(InsectariumFlag.Name) {
+			return filepath.Join(path, "insectarium")
 		}
 		return path
 	}
@@ -1019,6 +1027,8 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		switch {
 		case ctx.Bool(FormicariumFlag.Name):
 			urls = params.FormicariumBootnodes
+		case ctx.Bool(InsectariumFlag.Name):
+			urls = params.InsectariumBootnodes
 		}
 	}
 	cfg.BootstrapNodes = mustParseBootnodes(urls)
@@ -1463,6 +1473,8 @@ func SetDataDir(ctx *cli.Context, cfg *node.Config) {
 		cfg.DataDir = "" // unless explicitly requested, use memory databases
 	case ctx.Bool(FormicariumFlag.Name) && cfg.DataDir == node.DefaultDataDir():
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "formicarium")
+	case ctx.Bool(InsectariumFlag.Name) && cfg.DataDir == node.DefaultDataDir():
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "insectarium")
 	}
 }
 
@@ -1614,7 +1626,7 @@ func CheckExclusive(ctx *cli.Context, args ...interface{}) {
 // SetEthConfig applies eth-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	// Avoid conflicting network flags
-	CheckExclusive(ctx, MainnetFlag, DeveloperFlag, FormicariumFlag)
+	CheckExclusive(ctx, MainnetFlag, DeveloperFlag, FormicariumFlag, InsectariumFlag)
 	CheckExclusive(ctx, DeveloperFlag, ExternalSignerFlag) // Can't use both ephemeral unlocked and external signer
 
 	// Set configurations from CLI flags
@@ -1771,6 +1783,12 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 		}
 		cfg.Genesis = core.DefaultFormicariumGenesisBlock()
 		SetDNSDiscoveryDefaults(cfg, params.FormicariumGenesisHash)
+	case ctx.Bool(InsectariumFlag.Name):
+		if !ctx.IsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 43522
+		}
+		cfg.Genesis = core.DefaultInsectariumGenesisBlock()
+		SetDNSDiscoveryDefaults(cfg, params.InsectariumGenesisHash)
 	case ctx.Bool(DeveloperFlag.Name):
 		if !ctx.IsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 1337
@@ -2103,6 +2121,8 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 		genesis = core.DefaultGenesisBlock()
 	case ctx.Bool(FormicariumFlag.Name):
 		genesis = core.DefaultFormicariumGenesisBlock()
+	case ctx.Bool(InsectariumFlag.Name):
+		genesis = core.DefaultInsectariumGenesisBlock()
 	case ctx.Bool(DeveloperFlag.Name):
 		Fatalf("Developer chains are ephemeral")
 	}

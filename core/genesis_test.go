@@ -116,6 +116,17 @@ func testSetupGenesis(t *testing.T, scheme string) {
 			wantConfig: params.FormicariumChainConfig,
 		},
 		{
+			name: "custom block in DB, genesis == insectarium",
+			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
+				tdb := triedb.NewDatabase(db, newDbConfig(scheme))
+				customg.Commit(db, tdb)
+				return SetupGenesisBlock(db, tdb, DefaultInsectariumGenesisBlock())
+			},
+			wantErr:    &GenesisMismatchError{Stored: customghash, New: params.InsectariumGenesisHash},
+			wantHash:   params.InsectariumGenesisHash,
+			wantConfig: params.InsectariumChainConfig,
+		},
+		{
 			name: "compatible config in DB",
 			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
 				tdb := triedb.NewDatabase(db, newDbConfig(scheme))
