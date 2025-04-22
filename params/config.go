@@ -28,6 +28,7 @@ import (
 var (
 	MainnetGenesisHash     = common.HexToHash("0x2ede7ea2e1feeba523f156c772d2189386a0e349b87a79327ad2c81c3bc6d9b8")
 	FormicariumGenesisHash = common.HexToHash("0xce00b0874554d9ed1539bb02b5f261dfc2fa1f230aa37f88c66137af6d180114")
+	InsectariumGenesisHash = common.HexToHash("0x0bd28b7ee9b66a61fce0760d9d44c317e7f949cb6cb4b32e2f774b228dfacf52")
 )
 
 func newUint64(val uint64) *uint64 { return &val }
@@ -62,6 +63,32 @@ var (
 	// FormicariumChainConfig contains the chain parameters to run a node on the Görli test network.
 	FormicariumChainConfig = &ChainConfig{
 		ChainID:             big.NewInt(43521),
+		HomesteadBlock:      big.NewInt(0),
+		DAOForkBlock:        nil,
+		DAOForkSupport:      true,
+		EIP150Block:         big.NewInt(0),
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
+		ByzantiumBlock:      big.NewInt(0),
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock:     big.NewInt(0),
+		IstanbulBlock:       big.NewInt(0),
+		MuirGlacierBlock:    big.NewInt(0),
+		BerlinBlock:         big.NewInt(0),
+		LondonBlock:         big.NewInt(0),
+		ArrowGlacierBlock:   big.NewInt(0),
+		GrayGlacierBlock:    big.NewInt(0),
+		ShanghaiTime:        newUint64(00),
+		CancunTime:          nil,
+		PoSA: &PoSAConfig{
+			Period: 7,
+			Epoch:  12345,
+		},
+	}
+
+	// InsectariumChainConfig contains the chain parameters to run a node on the Görli test network.
+	InsectariumChainConfig = &ChainConfig{
+		ChainID:             big.NewInt(43522),
 		HomesteadBlock:      big.NewInt(0),
 		DAOForkBlock:        nil,
 		DAOForkSupport:      true,
@@ -295,6 +322,7 @@ var (
 var NetworkNames = map[string]string{
 	MainnetChainConfig.ChainID.String():     "mainnet",
 	FormicariumChainConfig.ChainID.String(): "formicarium",
+	InsectariumChainConfig.ChainID.String(): "insectarium",
 }
 
 // ChainConfig is the core config which determines the blockchain settings.
