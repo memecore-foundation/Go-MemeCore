@@ -54,6 +54,7 @@ var (
 		GrayGlacierBlock:    big.NewInt(0),
 		ShanghaiTime:        newUint64(00),
 		CancunTime:          nil,
+		RewardTreeForkBlock: big.NewInt(1700000),
 		PoSA: &PoSAConfig{
 			Period: 7,
 			Epoch:  12345,
@@ -80,6 +81,7 @@ var (
 		GrayGlacierBlock:    big.NewInt(0),
 		ShanghaiTime:        newUint64(00),
 		CancunTime:          nil,
+		RewardTreeForkBlock: big.NewInt(2300000),
 		PoSA: &PoSAConfig{
 			Period: 7,
 			Epoch:  12345,
@@ -106,6 +108,7 @@ var (
 		GrayGlacierBlock:    big.NewInt(0),
 		ShanghaiTime:        newUint64(00),
 		CancunTime:          nil,
+		RewardTreeForkBlock: big.NewInt(230000),
 		PoSA: &PoSAConfig{
 			Period: 7,
 			Epoch:  12345,
@@ -136,6 +139,7 @@ var (
 		CancunTime:                    nil,
 		PragueTime:                    nil,
 		VerkleTime:                    nil,
+		RewardTreeForkBlock:           nil,
 		TerminalTotalDifficulty:       nil,
 		TerminalTotalDifficultyPassed: true,
 		Ethash:                        new(EthashConfig),
@@ -159,6 +163,7 @@ var (
 		ArrowGlacierBlock:             big.NewInt(0),
 		GrayGlacierBlock:              big.NewInt(0),
 		ShanghaiTime:                  newUint64(0),
+		RewardTreeForkBlock:           big.NewInt(0),
 		TerminalTotalDifficulty:       big.NewInt(0),
 		TerminalTotalDifficultyPassed: true,
 	}
@@ -187,6 +192,7 @@ var (
 		CancunTime:                    nil,
 		PragueTime:                    nil,
 		VerkleTime:                    nil,
+		RewardTreeForkBlock:           nil,
 		TerminalTotalDifficulty:       nil,
 		TerminalTotalDifficultyPassed: false,
 		Ethash:                        nil,
@@ -218,6 +224,7 @@ var (
 		CancunTime:                    nil,
 		PragueTime:                    nil,
 		VerkleTime:                    nil,
+		RewardTreeForkBlock:           nil,
 		TerminalTotalDifficulty:       nil,
 		TerminalTotalDifficultyPassed: false,
 		Ethash:                        nil,
@@ -249,6 +256,7 @@ var (
 		CancunTime:                    nil,
 		PragueTime:                    nil,
 		VerkleTime:                    nil,
+		RewardTreeForkBlock:           nil,
 		TerminalTotalDifficulty:       nil,
 		TerminalTotalDifficultyPassed: false,
 		Ethash:                        new(EthashConfig),
@@ -280,6 +288,7 @@ var (
 		CancunTime:                    newUint64(0),
 		PragueTime:                    nil,
 		VerkleTime:                    nil,
+		RewardTreeForkBlock:           nil,
 		TerminalTotalDifficulty:       big.NewInt(0),
 		TerminalTotalDifficultyPassed: true,
 		Ethash:                        new(EthashConfig),
@@ -310,6 +319,7 @@ var (
 		CancunTime:                    nil,
 		PragueTime:                    nil,
 		VerkleTime:                    nil,
+		RewardTreeForkBlock:           nil,
 		TerminalTotalDifficulty:       nil,
 		TerminalTotalDifficultyPassed: false,
 		Ethash:                        new(EthashConfig),
@@ -361,6 +371,9 @@ type ChainConfig struct {
 	PragueTime   *uint64 `json:"pragueTime,omitempty"`   // Prague switch time (nil = no fork, 0 = already on prague)
 	VerkleTime   *uint64 `json:"verkleTime,omitempty"`   // Verkle switch time (nil = no fork, 0 = already on verkle)
 
+	// RewardTreeForkBlock specifies the block number for the reward reduction hard fork
+	RewardTreeForkBlock *big.Int `json:"rewardTreeForkBlock,omitempty"` // RewardTree switch time (nil = no fork, 0 = already on RewardTree)
+
 	// TerminalTotalDifficulty is the amount of total difficulty reached by
 	// the network that triggers the consensus upgrade.
 	TerminalTotalDifficulty *big.Int `json:"terminalTotalDifficulty,omitempty"`
@@ -404,6 +417,11 @@ type PoSAConfig struct {
 // String implements the stringer interface, returning the consensus engine details.
 func (c *PoSAConfig) String() string {
 	return "posa"
+}
+
+// RewardTreeFork returns whether num is either equal to the RewardTree fork block or greater.
+func (c *ChainConfig) IsRewardTreeFork(num *big.Int) bool {
+	return isBlockForked(c.RewardTreeForkBlock, num)
 }
 
 // Description returns a human-readable description of ChainConfig.
@@ -471,6 +489,9 @@ func (c *ChainConfig) Description() string {
 	}
 	if c.GrayGlacierBlock != nil {
 		banner += fmt.Sprintf(" - Gray Glacier:                #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/gray-glacier.md)\n", c.GrayGlacierBlock)
+	}
+	if c.RewardTreeForkBlock != nil {
+		banner += fmt.Sprintf(" - RewardTree:                  #%-8v (block reward reduction to 300 * 10^17 wei)\n", c.RewardTreeForkBlock)
 	}
 	banner += "\n"
 
