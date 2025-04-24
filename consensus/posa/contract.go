@@ -98,7 +98,14 @@ func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReade
 	vmenv := vm.NewEVM(context, vm.TxContext{}, state, p.chainConfig, p.vmConfig)
 	// Check potential overflow
 	contractBalance := state.GetBalance(common.HexToAddress(validatorSetAddr))
-	blockReward := Phase1BlockReward
+
+        blockReward := Phase1BlockReward
+
+        // Check if the RewardTreeFork is active for this block
+        if chain.Config().IsRewardTreeFork(header.Number) == true {
+                blockReward = RewardTreeForkBlockReward
+        }
+
 	_, overflow := new(uint256.Int).AddOverflow(contractBalance, blockReward)
 	if overflow {
 		log.Error("Balance overflow detected")

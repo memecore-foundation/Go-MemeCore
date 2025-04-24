@@ -15,6 +15,7 @@
     "arrowGlacierBlock": 0,
     "grayGlacierBlock": 0,
     "shanghaiTime": 0,
+    "rewardTreeForkBlock": 0,
     "posa": {
       "period": 7,
       "epoch": 10

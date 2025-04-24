@@ -59,7 +59,8 @@ var (
 	diffInTurn = big.NewInt(2) // Block difficulty for in-turn signatures
 	diffNoTurn = big.NewInt(1) // Block difficulty for out-of-turn signatures
 
-	Phase1BlockReward = new(uint256.Int).Mul(uint256.NewInt(1e+17), uint256.NewInt(1125)) // Block reward in wei for successfully mining a block
+	Phase1BlockReward         = new(uint256.Int).Mul(uint256.NewInt(1e+17), uint256.NewInt(1125)) // Block reward in wei for successfully mining a block
+	RewardTreeForkBlockReward = new(uint256.Int).Mul(uint256.NewInt(1e+17), uint256.NewInt(300))
 )
 
 // Various error messages to mark blocks invalid. These should be private to
@@ -858,5 +859,12 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header, uncles []*types.Header) {
 	// Select the correct block reward based on chain progression
 	blockReward := Phase1BlockReward
+
+	// Check if the RewardTreeFork is active for this block
+	if config.IsRewardTreeFork(header.Number) == true {
+		blockReward = RewardTreeForkBlockReward
+	}
+
+	// Add the block reward to the coinbase address
 	state.AddBalance(header.Coinbase, blockReward)
 }
