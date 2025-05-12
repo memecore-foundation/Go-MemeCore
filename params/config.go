@@ -54,7 +54,7 @@ var (
 		GrayGlacierBlock:    big.NewInt(0),
 		ShanghaiTime:        newUint64(00),
 		CancunTime:          nil,
-		RewardTreeForkBlock: big.NewInt(1700000),
+		RewardTreeForkBlock: big.NewInt(2_300_000),
 		PoSA: &PoSAConfig{
 			Period: 7,
 			Epoch:  12345,
@@ -81,7 +81,7 @@ var (
 		GrayGlacierBlock:    big.NewInt(0),
 		ShanghaiTime:        newUint64(00),
 		CancunTime:          nil,
-		RewardTreeForkBlock: big.NewInt(2300000),
+		RewardTreeForkBlock: big.NewInt(2_335_000),
 		PoSA: &PoSAConfig{
 			Period: 7,
 			Epoch:  12345,
@@ -108,7 +108,7 @@ var (
 		GrayGlacierBlock:    big.NewInt(0),
 		ShanghaiTime:        newUint64(00),
 		CancunTime:          nil,
-		RewardTreeForkBlock: big.NewInt(230000),
+		RewardTreeForkBlock: big.NewInt(270_000),
 		PoSA: &PoSAConfig{
 			Period: 7,
 			Epoch:  12345,
