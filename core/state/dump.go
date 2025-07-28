@@ -57,7 +57,6 @@ type DumpAccount struct {
 	Storage     map[common.Hash]string `json:"storage,omitempty"`
 	Address     *common.Address        `json:"address,omitempty"` // Address only present in iterative (line-by-line) mode
 	AddressHash hexutil.Bytes          `json:"key,omitempty"`     // If we don't have address, we can output the key
-
 }
 
 // Dump represents the full dump in a collected format, as one large map.
@@ -189,7 +188,7 @@ func (s *StateDB) DumpToCollector(c DumpCollector, conf *DumpConfig) (nextKey []
 		c.OnAccount(address, account)
 		accounts++
 		if time.Since(logged) > 8*time.Second {
-			log.Info("Trie dumping in progress", "at", it.Key, "accounts", accounts,
+			log.Info("Trie dumping in progress", "at", common.Bytes2Hex(it.Key), "accounts", accounts,
 				"elapsed", common.PrettyDuration(time.Since(start)))
 			logged = time.Now()
 		}

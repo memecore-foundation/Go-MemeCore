@@ -28,6 +28,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus/ethash"
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/filtermaps"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
@@ -42,19 +43,31 @@ func makeReceipt(addr common.Address) *types.Receipt {
 	receipt.Logs = []*types.Log{
 		{Address: addr},
 	}
-	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
+	receipt.Bloom = types.CreateBloom(receipt)
 	return receipt
 }
 
-func BenchmarkFilters(b *testing.B) {
+func BenchmarkFiltersIndexed(b *testing.B) {
+	benchmarkFilters(b, 0, false)
+}
+
+func BenchmarkFiltersHalfIndexed(b *testing.B) {
+	benchmarkFilters(b, 50000, false)
+}
+
+func BenchmarkFiltersUnindexed(b *testing.B) {
+	benchmarkFilters(b, 0, true)
+}
+
+func benchmarkFilters(b *testing.B, history uint64, noHistory bool) {
 	var (
-		db, _   = rawdb.NewLevelDBDatabase(b.TempDir(), 0, 0, "", false)
-		_, sys  = newTestFilterSystem(b, db, Config{})
-		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
-		addr2   = common.BytesToAddress([]byte("jeff"))
-		addr3   = common.BytesToAddress([]byte("ethereum"))
-		addr4   = common.BytesToAddress([]byte("random addresses please"))
+		db           = rawdb.NewMemoryDatabase()
+		backend, sys = newTestFilterSystem(db, Config{})
+		key1, _      = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+		addr1        = crypto.PubkeyToAddress(key1.PublicKey)
+		addr2        = common.BytesToAddress([]byte("jeff"))
+		addr3        = common.BytesToAddress([]byte("ethereum"))
+		addr4        = common.BytesToAddress([]byte("random addresses please"))
 
 		gspec = &core.Genesis{
 			Alloc:   types.GenesisAlloc{addr1: {Balance: big.NewInt(1000000)}},
@@ -94,9 +107,12 @@ func BenchmarkFilters(b *testing.B) {
 		rawdb.WriteHeadBlockHash(db, block.Hash())
 		rawdb.WriteReceipts(db, block.Hash(), block.NumberU64(), receipts[i])
 	}
+	backend.startFilterMaps(history, noHistory, filtermaps.DefaultParams)
+	defer backend.stopFilterMaps()
+
 	b.ResetTimer()
 
-	filter := sys.NewRangeFilter(0, -1, []common.Address{addr1, addr2, addr3, addr4}, nil)
+	filter := sys.NewRangeFilter(0, int64(rpc.LatestBlockNumber), []common.Address{addr1, addr2, addr3, addr4}, nil)
 
 	for i := 0; i < b.N; i++ {
 		filter.begin = 0
@@ -107,10 +123,22 @@ func BenchmarkFilters(b *testing.B) {
 	}
 }
 
-func TestFilters(t *testing.T) {
+func TestFiltersIndexed(t *testing.T) {
+	testFilters(t, 0, false)
+}
+
+func TestFiltersHalfIndexed(t *testing.T) {
+	testFilters(t, 500, false)
+}
+
+func TestFiltersUnindexed(t *testing.T) {
+	testFilters(t, 0, true)
+}
+
+func testFilters(t *testing.T, history uint64, noHistory bool) {
 	var (
-		db     = rawdb.NewMemoryDatabase()
-		_, sys = newTestFilterSystem(t, db, Config{})
+		db           = rawdb.NewMemoryDatabase()
+		backend, sys = newTestFilterSystem(db, Config{})
 		// Sender account
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		addr    = crypto.PubkeyToAddress(key1.PublicKey)
@@ -250,7 +278,7 @@ func TestFilters(t *testing.T) {
 		}
 	})
 	var l uint64
-	bc, err := core.NewBlockChain(db, nil, gspec, nil, ethash.NewFaker(), vm.Config{}, nil, &l)
+	bc, err := core.NewBlockChain(db, nil, gspec, nil, ethash.NewFaker(), vm.Config{}, &l)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -277,8 +305,10 @@ func TestFilters(t *testing.T) {
 		}), signer, key1)
 		gen.AddTx(tx)
 	})
-	sys.backend.(*testBackend).pendingBlock = pchain[0]
-	sys.backend.(*testBackend).pendingReceipts = preceipts[0]
+	backend.setPending(pchain[0], preceipts[0])
+
+	backend.startFilterMaps(history, noHistory, filtermaps.DefaultParams)
+	defer backend.stopFilterMaps()
 
 	for i, tc := range []struct {
 		f    *Filter
@@ -345,16 +375,16 @@ func TestFilters(t *testing.T) {
 			err: "safe header not found",
 		},
 		{
-			f:    sys.NewRangeFilter(int64(rpc.PendingBlockNumber), int64(rpc.PendingBlockNumber), nil, nil),
-			want: `[{"address":"0xfe00000000000000000000000000000000000000","topics":["0x0000000000000000000000000000000000000000000000000000746f70696335"],"data":"0x","blockNumber":"0x3e9","transactionHash":"0x4110587c1b8d86edc85dce929a34127f1cb8809515a9f177c91c866de3eb0638","transactionIndex":"0x0","blockHash":"0xd5e8d4e4eb51a2a2a6ec20ef68a4c2801240743c8deb77a6a1d118ac3eefb725","logIndex":"0x0","removed":false}]`,
+			f:   sys.NewRangeFilter(int64(rpc.PendingBlockNumber), int64(rpc.PendingBlockNumber), nil, nil),
+			err: errPendingLogsUnsupported.Error(),
 		},
 		{
-			f:    sys.NewRangeFilter(int64(rpc.LatestBlockNumber), int64(rpc.PendingBlockNumber), nil, nil),
-			want: `[{"address":"0xfe00000000000000000000000000000000000000","topics":["0x0000000000000000000000000000000000000000000000000000746f70696334"],"data":"0x","blockNumber":"0x3e8","transactionHash":"0x9a87842100a638dfa5da8842b4beda691d2fd77b0c84b57f24ecfa9fb208f747","transactionIndex":"0x0","blockHash":"0xb360bad5265261c075ece02d3bf0e39498a6a76310482cdfd90588748e6c5ee0","logIndex":"0x0","removed":false},{"address":"0xfe00000000000000000000000000000000000000","topics":["0x0000000000000000000000000000000000000000000000000000746f70696335"],"data":"0x","blockNumber":"0x3e9","transactionHash":"0x4110587c1b8d86edc85dce929a34127f1cb8809515a9f177c91c866de3eb0638","transactionIndex":"0x0","blockHash":"0xd5e8d4e4eb51a2a2a6ec20ef68a4c2801240743c8deb77a6a1d118ac3eefb725","logIndex":"0x0","removed":false}]`,
+			f:   sys.NewRangeFilter(int64(rpc.LatestBlockNumber), int64(rpc.PendingBlockNumber), nil, nil),
+			err: errPendingLogsUnsupported.Error(),
 		},
 		{
 			f:   sys.NewRangeFilter(int64(rpc.PendingBlockNumber), int64(rpc.LatestBlockNumber), nil, nil),
-			err: errInvalidBlockRange.Error(),
+			err: errPendingLogsUnsupported.Error(),
 		},
 	} {
 		logs, err := tc.f.Logs(context.Background())
@@ -376,7 +406,7 @@ func TestFilters(t *testing.T) {
 	}
 
 	t.Run("timeout", func(t *testing.T) {
-		f := sys.NewRangeFilter(0, -1, nil, nil)
+		f := sys.NewRangeFilter(0, rpc.LatestBlockNumber.Int64(), nil, nil)
 		ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Hour))
 		defer cancel()
 		_, err := f.Logs(ctx)
@@ -387,4 +417,188 @@ func TestFilters(t *testing.T) {
 			t.Fatalf("expected context.DeadlineExceeded, got %v", err)
 		}
 	})
+}
+
+func TestRangeLogs(t *testing.T) {
+	var (
+		db           = rawdb.NewMemoryDatabase()
+		backend, sys = newTestFilterSystem(db, Config{})
+		gspec        = &core.Genesis{
+			Config:  params.TestChainConfig,
+			Alloc:   types.GenesisAlloc{},
+			BaseFee: big.NewInt(params.InitialBaseFee),
+		}
+	)
+	_, err := gspec.Commit(db, triedb.NewDatabase(db, nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	chain, _ := core.GenerateChain(gspec.Config, gspec.ToBlock(), ethash.NewFaker(), db, 1000, func(i int, gen *core.BlockGen) {})
+	var l uint64
+	bc, err := core.NewBlockChain(db, nil, gspec, nil, ethash.NewFaker(), vm.Config{}, &l)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = bc.InsertChain(chain[:600])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	backend.startFilterMaps(200, false, filtermaps.RangeTestParams)
+	defer backend.stopFilterMaps()
+
+	var (
+		testCase, event int
+		filter          *Filter
+		addresses       = []common.Address{{}}
+	)
+
+	expEvent := func(expEvent int, expFirst, expAfterLast uint64) {
+		exp := rangeLogsTestEvent{expEvent, common.NewRange[uint64](expFirst, expAfterLast-expFirst)}
+		event++
+		ev := <-filter.rangeLogsTestHook
+		if ev != exp {
+			t.Fatalf("Test case #%d: wrong test event #%d received (got %v, expected %v)", testCase, event, ev, exp)
+		}
+	}
+
+	newFilter := func(begin, end int64) {
+		testCase++
+		event = 0
+		filter = sys.NewRangeFilter(begin, end, addresses, nil)
+		filter.rangeLogsTestHook = make(chan rangeLogsTestEvent)
+		go func(filter *Filter) {
+			filter.Logs(context.Background())
+			// ensure that filter will not be blocked if we exit early
+			for range filter.rangeLogsTestHook {
+			}
+		}(filter)
+	}
+
+	updateHead := func() {
+		head := bc.CurrentBlock()
+		backend.fm.SetTarget(filtermaps.NewChainView(backend, head.Number.Uint64(), head.Hash()), 0, 0)
+		backend.fm.WaitIdle()
+	}
+
+	// test case #1
+	newFilter(300, 500)
+	expEvent(rangeLogsTestIndexed, 401, 501)
+	expEvent(rangeLogsTestSync, 0, 0)
+	expEvent(rangeLogsTestSynced, 401, 601)
+	expEvent(rangeLogsTestResults, 401, 501)
+	expEvent(rangeLogsTestUnindexed, 300, 401)
+	if _, err := bc.InsertChain(chain[600:700]); err != nil {
+		t.Fatal(err)
+	}
+	updateHead()
+	expEvent(rangeLogsTestResults, 300, 501)
+	expEvent(rangeLogsTestDone, 0, 0)
+
+	// test case #2
+	newFilter(400, int64(rpc.LatestBlockNumber))
+	expEvent(rangeLogsTestIndexed, 501, 701)
+	if _, err := bc.InsertChain(chain[700:800]); err != nil {
+		t.Fatal(err)
+	}
+	updateHead()
+	expEvent(rangeLogsTestSync, 0, 0)
+	expEvent(rangeLogsTestSynced, 601, 699)
+	expEvent(rangeLogsTestResults, 601, 699)
+	expEvent(rangeLogsTestUnindexed, 400, 601)
+	expEvent(rangeLogsTestResults, 400, 699)
+	expEvent(rangeLogsTestIndexed, 699, 801)
+	if _, err := bc.SetCanonical(chain[749]); err != nil { // set head to block 750
+		t.Fatal(err)
+	}
+	updateHead()
+	expEvent(rangeLogsTestSync, 0, 0)
+	expEvent(rangeLogsTestSynced, 601, 749)
+	expEvent(rangeLogsTestResults, 400, 749)
+	expEvent(rangeLogsTestIndexed, 749, 751)
+	expEvent(rangeLogsTestSync, 0, 0)
+	expEvent(rangeLogsTestSynced, 551, 751)
+	expEvent(rangeLogsTestResults, 400, 751)
+	expEvent(rangeLogsTestDone, 0, 0)
+
+	// test case #3
+	newFilter(int64(rpc.LatestBlockNumber), int64(rpc.LatestBlockNumber))
+	expEvent(rangeLogsTestIndexed, 750, 751)
+	if _, err := bc.SetCanonical(chain[739]); err != nil {
+		t.Fatal(err)
+	}
+	updateHead()
+	expEvent(rangeLogsTestSync, 0, 0)
+	expEvent(rangeLogsTestSynced, 551, 739)
+	expEvent(rangeLogsTestResults, 0, 0)
+	expEvent(rangeLogsTestIndexed, 740, 741)
+	if _, err := bc.InsertChain(chain[740:750]); err != nil {
+		t.Fatal(err)
+	}
+	updateHead()
+	expEvent(rangeLogsTestSync, 0, 0)
+	expEvent(rangeLogsTestSynced, 551, 739)
+	expEvent(rangeLogsTestResults, 0, 0)
+	expEvent(rangeLogsTestIndexed, 750, 751)
+	expEvent(rangeLogsTestSync, 0, 0)
+	expEvent(rangeLogsTestSynced, 551, 751)
+	expEvent(rangeLogsTestResults, 750, 751)
+	expEvent(rangeLogsTestDone, 0, 0)
+
+	// test case #4
+	if _, err := bc.SetCanonical(chain[499]); err != nil {
+		t.Fatal(err)
+	}
+	updateHead()
+	newFilter(400, int64(rpc.LatestBlockNumber))
+	expEvent(rangeLogsTestIndexed, 400, 501)
+	if _, err := bc.InsertChain(chain[500:650]); err != nil {
+		t.Fatal(err)
+	}
+	updateHead()
+	expEvent(rangeLogsTestSync, 0, 0)
+	expEvent(rangeLogsTestSynced, 451, 499)
+	expEvent(rangeLogsTestResults, 451, 499)
+	expEvent(rangeLogsTestUnindexed, 400, 451)
+	expEvent(rangeLogsTestResults, 400, 499)
+	// indexed head extension seems possible
+	expEvent(rangeLogsTestIndexed, 499, 651)
+	// further head extension causes tail unindexing in searched range
+	if _, err := bc.InsertChain(chain[650:750]); err != nil {
+		t.Fatal(err)
+	}
+	updateHead()
+	expEvent(rangeLogsTestSync, 0, 0)
+	expEvent(rangeLogsTestSynced, 551, 649)
+	// tail trimmed to 551; cannot merge with existing results
+	expEvent(rangeLogsTestResults, 551, 649)
+	expEvent(rangeLogsTestUnindexed, 400, 551)
+	expEvent(rangeLogsTestResults, 400, 649)
+	expEvent(rangeLogsTestIndexed, 649, 751)
+	expEvent(rangeLogsTestSync, 0, 0)
+	expEvent(rangeLogsTestSynced, 551, 751)
+	expEvent(rangeLogsTestResults, 400, 751)
+	expEvent(rangeLogsTestDone, 0, 0)
+
+	// test case #5
+	newFilter(400, int64(rpc.LatestBlockNumber))
+	expEvent(rangeLogsTestIndexed, 551, 751)
+	expEvent(rangeLogsTestSync, 0, 0)
+	expEvent(rangeLogsTestSynced, 551, 751)
+	expEvent(rangeLogsTestResults, 551, 751)
+	expEvent(rangeLogsTestUnindexed, 400, 551)
+	if _, err := bc.InsertChain(chain[750:1000]); err != nil {
+		t.Fatal(err)
+	}
+	updateHead()
+	expEvent(rangeLogsTestResults, 400, 751)
+	// indexed tail already beyond results head; revert to unindexed head search
+	expEvent(rangeLogsTestUnindexed, 751, 1001)
+	if _, err := bc.SetCanonical(chain[899]); err != nil {
+		t.Fatal(err)
+	}
+	updateHead()
+	expEvent(rangeLogsTestResults, 400, 1001)
+	expEvent(rangeLogsTestReorg, 400, 901)
+	expEvent(rangeLogsTestDone, 0, 0)
 }

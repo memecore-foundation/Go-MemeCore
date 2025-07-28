@@ -275,7 +275,7 @@ func (s *skeleton) startup() {
 			for {
 				// If the sync cycle terminated or was terminated, propagate up when
 				// higher layers request termination. There's no fancy explicit error
-				// signalling as the sync loop should never terminate (TM).
+				// signaling as the sync loop should never terminate (TM).
 				newhead, err := s.sync(head)
 				switch {
 				case err == errSyncLinked:
@@ -1130,6 +1130,16 @@ func (s *skeleton) cleanStales(filled *types.Header) error {
 	}
 	// If nothing in subchain is filled, don't bother to do cleanup.
 	if number+1 == s.progress.Subchains[0].Tail {
+		return nil
+	}
+	// If the latest fill was on a different subchain, it means the backfiller
+	// was interrupted before it got to do any meaningful work, no cleanup
+	header := rawdb.ReadSkeletonHeader(s.db, filled.Number.Uint64())
+	if header == nil {
+		log.Debug("Filled header outside of skeleton range", "number", number, "head", s.progress.Subchains[0].Head, "tail", s.progress.Subchains[0].Tail)
+		return nil
+	} else if header.Hash() != filled.Hash() {
+		log.Debug("Filled header on different sidechain", "number", number, "filled", filled.Hash(), "skeleton", header.Hash())
 		return nil
 	}
 	var (

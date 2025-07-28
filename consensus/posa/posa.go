@@ -20,7 +20,9 @@ import (
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/consensus/misc"
 	"github.com/ethereum/go-ethereum/consensus/misc/eip1559"
+	"github.com/ethereum/go-ethereum/consensus/misc/eip4844"
 	"github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -335,17 +337,16 @@ func (p *PoSA) verifyHeader(chain consensus.ChainHeaderReader, header *types.Hea
 	if !shanghai && header.WithdrawalsHash != nil {
 		return fmt.Errorf("invalid withdrawalsHash: have %x, expected nil", header.WithdrawalsHash)
 	}
-	if chain.Config().IsCancun(header.Number, header.Time) {
-		return errors.New("posa does not support cancun fork")
+	// Verify existence / non-existence of requestsHash.
+	prague := chain.Config().IsPrague(header.Number, header.Time)
+	if prague && header.RequestsHash == nil {
+		return errors.New("missing requestsHash")
 	}
-	// Verify the non-existence of cancun-specific header fields
-	switch {
-	case header.ExcessBlobGas != nil:
-		return fmt.Errorf("invalid excessBlobGas: have %d, expected nil", header.ExcessBlobGas)
-	case header.BlobGasUsed != nil:
-		return fmt.Errorf("invalid blobGasUsed: have %d, expected nil", header.BlobGasUsed)
-	case header.ParentBeaconRoot != nil:
-		return fmt.Errorf("invalid parentBeaconRoot, have %#x, expected nil", header.ParentBeaconRoot)
+	if prague && header.RequestsHash.Cmp(types.EmptyRequestsHash) != 0 {
+		return fmt.Errorf("invalid requestsHash: have %x, expected %x", *header.RequestsHash, &types.EmptyRequestsHash)
+	}
+	if !prague && header.RequestsHash != nil {
+		return fmt.Errorf("invalid requestsHash, have %x, expected nil", header.RequestsHash)
 	}
 	// All basic checks passed, verify cascading fields
 	return p.verifyCascadingFields(chain, header, parents)
@@ -388,6 +389,19 @@ func (p *PoSA) verifyCascadingFields(chain consensus.ChainHeaderReader, header *
 		}
 	} else if err := eip1559.VerifyEIP1559Header(chain.Config(), parent, header); err != nil {
 		// Verify the header's EIP-1559 attributes.
+		return err
+	}
+	if !chain.Config().IsCancun(header.Number, header.Time) {
+		switch {
+		case header.ExcessBlobGas != nil:
+			return fmt.Errorf("invalid excessBlobGas: have %d, expected nil", header.ExcessBlobGas)
+		case header.BlobGasUsed != nil:
+			return fmt.Errorf("invalid blobGasUsed: have %d, expected nil", header.BlobGasUsed)
+		case header.ParentBeaconRoot != nil:
+			return fmt.Errorf("invalid parentBeaconRoot, have %#x, expected nil", header.ParentBeaconRoot)
+		}
+	} else if err := eip4844.VerifyEIP4844Header(chain.Config(), parent, header); err != nil {
+		// Verify cancun-specific header fields
 		return err
 	}
 	// Check the coinbase address
@@ -625,7 +639,7 @@ func (p *PoSA) prepareValidators(header *types.Header) error {
 
 // Finalize implements consensus.Engine, accumulating the block rewards and
 // beacon withdraws.
-func (p *PoSA) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, withdrawals []*types.Withdrawal) error {
+func (p *PoSA) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state vm.StateDB, body *types.Body) error {
 	// If the block is a checkpoint block, verify the signer listst
 	// The verification can only be done when the state is ready, it can't be done in VerifyHeader.
 	err := p.verifyValidators(header)
@@ -633,7 +647,7 @@ func (p *PoSA) Finalize(chain consensus.ChainHeaderReader, header *types.Header,
 		return err
 	}
 	// Accumulate any block rewards
-	accumulateRewards(chain.Config(), state, header, uncles)
+	accumulateRewards(chain.Config(), state, header, body.Uncles)
 	snap, err := p.snapshot(chain, header.Number.Uint64()-1, header.ParentHash, nil)
 	if err != nil {
 		return err
@@ -643,21 +657,21 @@ func (p *PoSA) Finalize(chain consensus.ChainHeaderReader, header *types.Header,
 
 // FinalizeAndAssemble implements consensus.Engine, ensuring no uncles are set,
 // but block rewards are given, and returns the final block.
-func (p *PoSA) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt, withdrawals []*types.Withdrawal) (*types.Block, error) {
+func (p *PoSA) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, body *types.Body, receipts []*types.Receipt) (*types.Block, error) {
 	shanghai := chain.Config().IsShanghai(header.Number, header.Time)
 	if shanghai {
 		// All blocks after Shanghai must include a withdrawals root.
-		if withdrawals == nil {
-			withdrawals = make([]*types.Withdrawal, 0)
+		if body.Withdrawals == nil {
+			body.Withdrawals = make([]*types.Withdrawal, 0)
 		}
 	} else {
-		if len(withdrawals) > 0 {
+		if len(body.Withdrawals) > 0 {
 			return nil, errors.New("withdrawals set before Shanghai activation")
 		}
 	}
 
 	// Finalize block
-	err := p.Finalize(chain, header, state, txs, uncles, withdrawals)
+	err := p.Finalize(chain, header, state, body)
 	if err != nil {
 		return nil, err
 	}
@@ -666,7 +680,7 @@ func (p *PoSA) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *ty
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 
 	// Assemble and return the final block for sealing.
-	return types.NewBlockWithWithdrawals(header, txs, nil, receipts, withdrawals, trie.NewStackTrie(nil)), nil
+	return types.NewBlock(header, &types.Body{Transactions: body.Transactions}, receipts, trie.NewStackTrie(nil)), nil
 }
 
 // Authorize injects a private key into the consensus engine to mint new blocks
@@ -856,7 +870,7 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 
 // AccumulateRewards credits the coinbase of the given block with the mining
 // reward. The total reward only consists of the static block reward.
-func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header, uncles []*types.Header) {
+func accumulateRewards(config *params.ChainConfig, stateDB vm.StateDB, header *types.Header, uncles []*types.Header) {
 	// Select the correct block reward based on chain progression
 	blockReward := Phase1BlockReward
 
@@ -866,5 +880,5 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 	}
 
 	// Add the block reward to the coinbase address
-	state.AddBalance(header.Coinbase, blockReward)
+	stateDB.AddBalance(header.Coinbase, blockReward, tracing.BalanceIncreaseRewardMineBlock)
 }

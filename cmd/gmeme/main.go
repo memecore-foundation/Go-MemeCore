@@ -21,29 +21,26 @@ package main
 import (
 	"fmt"
 	"os"
+	"slices"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/console/prompt"
-	"github.com/ethereum/go-ethereum/eth"
 	"github.com/ethereum/go-ethereum/eth/downloader"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/internal/debug"
-	"github.com/ethereum/go-ethereum/internal/ethapi"
 	"github.com/ethereum/go-ethereum/internal/flags"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/node"
 	"go.uber.org/automaxprocs/maxprocs"
 
 	// Force-load the tracer engines to trigger registration
 	_ "github.com/ethereum/go-ethereum/eth/tracers/js"
+	_ "github.com/ethereum/go-ethereum/eth/tracers/live"
 	_ "github.com/ethereum/go-ethereum/eth/tracers/native"
 
 	"github.com/urfave/cli/v2"
@@ -55,7 +52,7 @@ const (
 
 var (
 	// flags that configure the node
-	nodeFlags = flags.Merge([]cli.Flag{
+	nodeFlags = slices.Concat([]cli.Flag{
 		utils.IdentityFlag,
 		utils.UnlockedAccountFlag,
 		utils.PasswordFileFlag,
@@ -66,9 +63,9 @@ var (
 		utils.NoUSBFlag, // deprecated
 		utils.USBFlag,
 		utils.SmartCardDaemonPathFlag,
-		utils.OverrideCancun,
+		utils.OverridePrague,
 		utils.OverrideVerkle,
-		utils.EnablePersonal,
+		utils.EnablePersonal, // deprecated
 		utils.TxPoolLocalsFlag,
 		utils.TxPoolNoLocalsFlag,
 		utils.TxPoolJournalFlag,
@@ -90,6 +87,10 @@ var (
 		utils.SnapshotFlag,
 		utils.TxLookupLimitFlag, // deprecated
 		utils.TransactionHistoryFlag,
+		utils.ChainHistoryFlag,
+		utils.LogHistoryFlag,
+		utils.LogNoHistoryFlag,
+		utils.LogExportCheckpointsFlag,
 		utils.StateHistoryFlag,
 		utils.LightServeFlag,    // deprecated
 		utils.LightIngressFlag,  // deprecated
@@ -100,7 +101,6 @@ var (
 		utils.LightNoSyncServeFlag, // deprecated
 		utils.EthRequiredBlocksFlag,
 		utils.LegacyWhitelistFlag, // deprecated
-		utils.BloomFilterSizeFlag,
 		utils.CacheFlag,
 		utils.CacheDatabaseFlag,
 		utils.CacheTrieFlag,
@@ -117,13 +117,14 @@ var (
 		utils.DiscoveryPortFlag,
 		utils.MaxPeersFlag,
 		utils.MaxPendingPeersFlag,
-		utils.MiningEnabledFlag,
+		utils.MiningEnabledFlag, // deprecated
 		utils.MinerGasLimitFlag,
 		utils.MinerGasPriceFlag,
-		utils.MinerEtherbaseFlag,
+		utils.MinerEtherbaseFlag, // deprecated
 		utils.MinerExtraDataFlag,
 		utils.MinerRecommitIntervalFlag,
-		utils.MinerNewPayloadTimeout,
+		utils.MinerPendingFeeRecipientFlag,
+		utils.MinerNewPayloadTimeoutFlag, // deprecated
 		utils.NATFlag,
 		utils.NoDiscoverFlag,
 		utils.DiscoveryV4Flag,
@@ -137,9 +138,10 @@ var (
 		utils.DeveloperGasLimitFlag,
 		utils.DeveloperPeriodFlag,
 		utils.VMEnableDebugFlag,
+		utils.VMTraceFlag,
+		utils.VMTraceJsonConfigFlag,
 		utils.NetworkIdFlag,
 		utils.EthStatsURLFlag,
-		utils.NoCompactionFlag,
 		utils.GpoBlocksFlag,
 		utils.GpoPercentileFlag,
 		utils.GpoMaxGasPriceFlag,
@@ -147,6 +149,15 @@ var (
 		configFileFlag,
 		utils.LogDebugFlag,
 		utils.LogBacktraceAtFlag,
+		utils.BeaconApiFlag,
+		utils.BeaconApiHeaderFlag,
+		utils.BeaconThresholdFlag,
+		utils.BeaconNoFilterFlag,
+		utils.BeaconConfigFlag,
+		utils.BeaconGenesisRootFlag,
+		utils.BeaconGenesisTimeFlag,
+		utils.BeaconCheckpointFlag,
+		utils.BeaconCheckpointFileFlag,
 	}, utils.NetworkFlags, utils.DatabaseFlags)
 
 	rpcFlags = []cli.Flag{
@@ -219,6 +230,7 @@ func init() {
 		removedbCommand,
 		dumpCommand,
 		dumpGenesisCommand,
+		pruneCommand,
 		// See accountcmd.go:
 		accountCommand,
 		walletCommand,
@@ -246,7 +258,7 @@ func init() {
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 
-	app.Flags = flags.Merge(
+	app.Flags = slices.Concat(
 		nodeFlags,
 		rpcFlags,
 		consoleFlags,
@@ -322,12 +334,6 @@ func prepare(ctx *cli.Context) {
 			ctx.Set(utils.CacheFlag.Name, strconv.Itoa(4096))
 		}
 	}
-
-	// Start metrics export if enabled
-	utils.SetupMetrics(ctx)
-
-	// Start system runtime metrics collection
-	go metrics.CollectProcessMetrics(3 * time.Second)
 }
 
 // gmeme is the main entry point into the system if no special subcommand is run.
@@ -339,25 +345,23 @@ func gmeme(ctx *cli.Context) error {
 	}
 
 	prepare(ctx)
-	stack, backend := makeFullNode(ctx)
+	stack := makeFullNode(ctx)
 	defer stack.Close()
 
-	startNode(ctx, stack, backend, false)
+	startNode(ctx, stack, false)
 	stack.Wait()
 	return nil
 }
 
 // startNode boots up the system node and all registered protocols, after which
-// it unlocks any requested accounts, and starts the RPC/IPC interfaces and the
-// miner.
-func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend, isConsole bool) {
-	debug.Memsize.Add("node", stack)
-
+// it starts the RPC/IPC interfaces and the miner.
+func startNode(ctx *cli.Context, stack *node.Node, isConsole bool) {
 	// Start up the node itself
 	utils.StartNode(ctx, stack, isConsole)
 
-	// Unlock any account specifically requested
-	unlockAccounts(ctx, stack)
+	if ctx.IsSet(utils.UnlockedAccountFlag.Name) {
+		log.Warn(`The "unlock" flag has been deprecated and has no effect`)
+	}
 
 	// Register wallet event handlers to open and auto-derive wallets
 	events := make(chan accounts.WalletEvent, 16)
@@ -422,53 +426,5 @@ func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend, isCon
 				}
 			}
 		}()
-	}
-
-	// Start auxiliary services if enabled
-	if ctx.Bool(utils.MiningEnabledFlag.Name) {
-		// Mining only makes sense if a full Ethereum node is running
-		if ctx.String(utils.SyncModeFlag.Name) == "light" {
-			utils.Fatalf("Light clients do not support mining")
-		}
-		ethBackend, ok := backend.(*eth.EthAPIBackend)
-		if !ok {
-			utils.Fatalf("MemeCore service not running")
-		}
-		// Set the gas price to the limits from the CLI and start mining
-		gasprice := flags.GlobalBig(ctx, utils.MinerGasPriceFlag.Name)
-		ethBackend.TxPool().SetGasTip(gasprice)
-		if err := ethBackend.StartMining(); err != nil {
-			utils.Fatalf("Failed to start mining: %v", err)
-		}
-	}
-}
-
-// unlockAccounts unlocks any account specifically requested.
-func unlockAccounts(ctx *cli.Context, stack *node.Node) {
-	var unlocks []string
-	inputs := strings.Split(ctx.String(utils.UnlockedAccountFlag.Name), ",")
-	for _, input := range inputs {
-		if trimmed := strings.TrimSpace(input); trimmed != "" {
-			unlocks = append(unlocks, trimmed)
-		}
-	}
-	// Short circuit if there is no account to unlock.
-	if len(unlocks) == 0 {
-		return
-	}
-	// If insecure account unlocking is not allowed if node's APIs are exposed to external.
-	// Print warning log to user and skip unlocking.
-	if !stack.Config().InsecureUnlockAllowed && stack.Config().ExtRPCEnabled() {
-		utils.Fatalf("Account unlock with HTTP access is forbidden!")
-	}
-	backends := stack.AccountManager().Backends(keystore.KeyStoreType)
-	if len(backends) == 0 {
-		log.Warn("Failed to unlock accounts, keystore is not available")
-		return
-	}
-	ks := backends[0].(*keystore.KeyStore)
-	passwords := utils.MakePasswordList(ctx)
-	for i, account := range unlocks {
-		unlockAccount(ks, account, i, passwords)
 	}
 }
