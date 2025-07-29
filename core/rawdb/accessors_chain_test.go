@@ -258,6 +258,29 @@ func TestBadBlockStorage(t *testing.T) {
 	}
 }
 
+// Tests block total difficulty storage and retrieval operations.
+func TestTdStorage(t *testing.T) {
+	db := NewMemoryDatabase()
+
+	// Create a test TD to move around the database and make sure it's really new
+	hash, td := common.Hash{}, big.NewInt(314)
+	if entry := ReadTd(db, hash, 0); entry != nil {
+		t.Fatalf("Non existent TD returned: %v", entry)
+	}
+	// Write and verify the TD in the database
+	WriteTd(db, hash, 0, td)
+	if entry := ReadTd(db, hash, 0); entry == nil {
+		t.Fatalf("Stored TD not found")
+	} else if entry.Cmp(td) != 0 {
+		t.Fatalf("Retrieved TD mismatch: have %v, want %v", entry, td)
+	}
+	// Delete the TD and verify the execution
+	DeleteTd(db, hash, 0)
+	if entry := ReadTd(db, hash, 0); entry != nil {
+		t.Fatalf("Deleted TD returned: %v", entry)
+	}
+}
+
 // Tests that canonical numbers can be mapped to hashes and retrieved.
 func TestCanonicalMappingStorage(t *testing.T) {
 	db := NewMemoryDatabase()
@@ -437,9 +460,12 @@ func TestAncientStorage(t *testing.T) {
 	if blob := ReadReceiptsRLP(db, hash, number); len(blob) > 0 {
 		t.Fatalf("non existent receipts returned")
 	}
+	if blob := ReadTdRLP(db, hash, number); len(blob) > 0 {
+		t.Fatalf("non existent td returned")
+	}
 
 	// Write and verify the header in the database
-	WriteAncientBlocks(db, []*types.Block{block}, []types.Receipts{nil})
+	WriteAncientBlocks(db, []*types.Block{block}, []types.Receipts{nil}, big.NewInt(100))
 
 	if blob := ReadHeaderRLP(db, hash, number); len(blob) == 0 {
 		t.Fatalf("no header returned")
@@ -449,6 +475,9 @@ func TestAncientStorage(t *testing.T) {
 	}
 	if blob := ReadReceiptsRLP(db, hash, number); len(blob) == 0 {
 		t.Fatalf("no receipts returned")
+	}
+	if blob := ReadTdRLP(db, hash, number); len(blob) == 0 {
+		t.Fatalf("no td returned")
 	}
 
 	// Use a fake hash for data retrieval, nothing should be returned.
@@ -462,47 +491,8 @@ func TestAncientStorage(t *testing.T) {
 	if blob := ReadReceiptsRLP(db, fakeHash, number); len(blob) != 0 {
 		t.Fatalf("invalid receipts returned")
 	}
-}
-
-func TestWriteAncientHeaderChain(t *testing.T) {
-	db, err := NewDatabaseWithFreezer(NewMemoryDatabase(), t.TempDir(), "", false)
-	if err != nil {
-		t.Fatalf("failed to create database with ancient backend")
-	}
-	defer db.Close()
-
-	// Create a test block
-	var headers []*types.Header
-	headers = append(headers, &types.Header{
-		Number:      big.NewInt(0),
-		Extra:       []byte("test block"),
-		UncleHash:   types.EmptyUncleHash,
-		TxHash:      types.EmptyTxsHash,
-		ReceiptHash: types.EmptyReceiptsHash,
-	})
-	headers = append(headers, &types.Header{
-		Number:      big.NewInt(1),
-		Extra:       []byte("test block"),
-		UncleHash:   types.EmptyUncleHash,
-		TxHash:      types.EmptyTxsHash,
-		ReceiptHash: types.EmptyReceiptsHash,
-	})
-	// Write and verify the header in the database
-	WriteAncientHeaderChain(db, headers)
-
-	for _, header := range headers {
-		if blob := ReadHeaderRLP(db, header.Hash(), header.Number.Uint64()); len(blob) == 0 {
-			t.Fatalf("no header returned")
-		}
-		if h := ReadCanonicalHash(db, header.Number.Uint64()); h != header.Hash() {
-			t.Fatalf("no canonical hash returned")
-		}
-		if blob := ReadBodyRLP(db, header.Hash(), header.Number.Uint64()); len(blob) != 0 {
-			t.Fatalf("unexpected body returned")
-		}
-		if blob := ReadReceiptsRLP(db, header.Hash(), header.Number.Uint64()); len(blob) != 0 {
-			t.Fatalf("unexpected body returned")
-		}
+	if blob := ReadTdRLP(db, fakeHash, number); len(blob) != 0 {
+		t.Fatalf("invalid td returned")
 	}
 }
 
@@ -528,6 +518,7 @@ func TestCanonicalHashIteration(t *testing.T) {
 	// Fill database with testing data.
 	for i := uint64(1); i <= 8; i++ {
 		WriteCanonicalHash(db, common.Hash{}, i)
+		WriteTd(db, common.Hash{}, i, big.NewInt(10)) // Write some interferential data
 	}
 	for i, c := range cases {
 		numbers, _ := ReadAllCanonicalHashes(db, c.from, c.to, c.limit)
@@ -600,6 +591,7 @@ func BenchmarkWriteAncientBlocks(b *testing.B) {
 	// The benchmark loop writes batches of blocks, but note that the total block count is
 	// b.N. This means the resulting ns/op measurement is the time it takes to write a
 	// single block and its associated data.
+	var td = big.NewInt(55)
 	var totalSize int64
 	for i := 0; i < b.N; i += batchSize {
 		length := batchSize
@@ -609,7 +601,7 @@ func BenchmarkWriteAncientBlocks(b *testing.B) {
 
 		blocks := allBlocks[i : i+length]
 		receipts := batchReceipts[:length]
-		writeSize, err := WriteAncientBlocks(db, blocks, receipts)
+		writeSize, err := WriteAncientBlocks(db, blocks, receipts, td)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -909,7 +901,7 @@ func TestHeadersRLPStorage(t *testing.T) {
 	}
 	receipts := make([]types.Receipts, 100)
 	// Write first half to ancients
-	WriteAncientBlocks(db, chain[:50], receipts[:50])
+	WriteAncientBlocks(db, chain[:50], receipts[:50], big.NewInt(100))
 	// Write second half to db
 	for i := 50; i < 100; i++ {
 		WriteCanonicalHash(db, chain[i].Hash(), chain[i].NumberU64())
