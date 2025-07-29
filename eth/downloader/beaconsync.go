@@ -24,7 +24,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/eth/ethconfig"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -107,7 +106,7 @@ func (b *beaconBackfiller) resume() {
 		}()
 		// If the downloader fails, report an error as in beacon chain mode there
 		// should be no errors as long as the chain we're syncing to is valid.
-		if err := b.downloader.synchronise(mode, b.started); err != nil {
+		if err := b.downloader.synchronise("", common.Hash{}, nil, nil, mode, true, b.started); err != nil {
 			log.Error("Beacon backfilling failed", "err", err)
 			return
 		}
@@ -199,9 +198,9 @@ func (d *Downloader) findBeaconAncestor() (uint64, error) {
 	var chainHead *types.Header
 
 	switch d.getMode() {
-	case ethconfig.FullSync:
+	case FullSync:
 		chainHead = d.blockchain.CurrentBlock()
-	case ethconfig.SnapSync:
+	case SnapSync:
 		chainHead = d.blockchain.CurrentSnapBlock()
 	default:
 		panic("unknown sync mode")
@@ -219,9 +218,9 @@ func (d *Downloader) findBeaconAncestor() (uint64, error) {
 	}
 	var linked bool
 	switch d.getMode() {
-	case ethconfig.FullSync:
+	case FullSync:
 		linked = d.blockchain.HasBlock(beaconTail.ParentHash, beaconTail.Number.Uint64()-1)
-	case ethconfig.SnapSync:
+	case SnapSync:
 		linked = d.blockchain.HasFastBlock(beaconTail.ParentHash, beaconTail.Number.Uint64()-1)
 	default:
 		panic("unknown sync mode")
@@ -254,9 +253,9 @@ func (d *Downloader) findBeaconAncestor() (uint64, error) {
 
 		var known bool
 		switch d.getMode() {
-		case ethconfig.FullSync:
+		case FullSync:
 			known = d.blockchain.HasBlock(h.Hash(), n)
-		case ethconfig.SnapSync:
+		case SnapSync:
 			known = d.blockchain.HasFastBlock(h.Hash(), n)
 		default:
 			panic("unknown sync mode")
@@ -270,10 +269,11 @@ func (d *Downloader) findBeaconAncestor() (uint64, error) {
 	return start, nil
 }
 
-// fetchHeaders feeds skeleton headers to the downloader queue for scheduling
+// fetchBeaconHeaders feeds skeleton headers to the downloader queue for scheduling
 // until sync errors or is finished.
-func (d *Downloader) fetchHeaders(from uint64) error {
-	head, tail, _, err := d.skeleton.Bounds()
+func (d *Downloader) fetchBeaconHeaders(from uint64) error {
+	var head *types.Header
+	_, tail, _, err := d.skeleton.Bounds()
 	if err != nil {
 		return err
 	}
@@ -292,27 +292,6 @@ func (d *Downloader) fetchHeaders(from uint64) error {
 	}
 	fsHeaderContCheckTimer := time.NewTimer(fsHeaderContCheck)
 	defer fsHeaderContCheckTimer.Stop()
-
-	// Verify the header at configured chain cutoff, ensuring it's matched with
-	// the configured hash. Skip the check if the configured cutoff is even higher
-	// than the sync target, which is definitely not a common case.
-	if d.chainCutoffNumber != 0 && d.chainCutoffNumber >= from && d.chainCutoffNumber <= head.Number.Uint64() {
-		h := d.skeleton.Header(d.chainCutoffNumber)
-		if h == nil {
-			if d.chainCutoffNumber < tail.Number.Uint64() {
-				dist := tail.Number.Uint64() - d.chainCutoffNumber
-				if len(localHeaders) >= int(dist) {
-					h = localHeaders[dist-1]
-				}
-			}
-		}
-		if h == nil {
-			return fmt.Errorf("header at chain cutoff is not available, cutoff: %d", d.chainCutoffNumber)
-		}
-		if h.Hash() != d.chainCutoffHash {
-			return fmt.Errorf("header at chain cutoff mismatched, want: %v, got: %v", d.chainCutoffHash, h.Hash())
-		}
-	}
 
 	for {
 		// Some beacon headers might have appeared since the last cycle, make
