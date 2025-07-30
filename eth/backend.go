@@ -226,7 +226,10 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	if config.OverrideVerkle != nil {
 		overrides.OverrideVerkle = config.OverrideVerkle
 	}
-	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, config.Genesis, &overrides, eth.engine, vmConfig, &config.TransactionHistory)
+	shouldPreserve := func(header *types.Header) bool {
+		return false
+	}
+	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, config.Genesis, &overrides, eth.engine, vmConfig, shouldPreserve, &config.TransactionHistory)
 	if err != nil {
 		return nil, err
 	}
@@ -291,7 +294,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 
 	eth.dropper = newDropper(eth.p2pServer.MaxDialedConns(), eth.p2pServer.MaxInboundConns())
 
-	eth.miner = miner.New(eth, config.Miner, eth.engine)
+	eth.miner = miner.New(eth, config.Miner, eth.eventMux, eth.engine)
 	eth.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
 	eth.miner.SetPrioAddresses(config.TxPool.Locals)
 
