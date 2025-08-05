@@ -73,6 +73,7 @@ var (
 	allToolsArchiveFiles = []string{
 		"COPYING",
 		executablePath("abigen"),
+		executablePath("bootnode"),
 		executablePath("evm"),
 		executablePath("gmeme"),
 		executablePath("rlpdump"),
@@ -84,6 +85,10 @@ var (
 		{
 			BinaryName:  "abigen",
 			Description: "Source code generator to convert Ethereum contract definitions into easy to use, compile-time type-safe Go packages.",
+		},
+		{
+			BinaryName:  "bootnode",
+			Description: "Ethereum bootnode.",
 		},
 		{
 			BinaryName:  "evm",
