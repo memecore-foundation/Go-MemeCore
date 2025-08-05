@@ -32,9 +32,11 @@ import (
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/console/prompt"
+	"github.com/ethereum/go-ethereum/eth"
 	"github.com/ethereum/go-ethereum/eth/downloader"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/internal/debug"
+	"github.com/ethereum/go-ethereum/internal/ethapi"
 	"github.com/ethereum/go-ethereum/internal/flags"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
@@ -347,17 +349,17 @@ func gmeme(ctx *cli.Context) error {
 	}
 
 	prepare(ctx)
-	stack := makeFullNode(ctx)
+	stack, backend := makeFullNode(ctx)
 	defer stack.Close()
 
-	startNode(ctx, stack, false)
+	startNode(ctx, stack, backend, false)
 	stack.Wait()
 	return nil
 }
 
 // startNode boots up the system node and all registered protocols, after which
 // it starts the RPC/IPC interfaces and the miner.
-func startNode(ctx *cli.Context, stack *node.Node, isConsole bool) {
+func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend, isConsole bool) {
 	// Start up the node itself
 	utils.StartNode(ctx, stack, isConsole)
 
@@ -427,6 +429,24 @@ func startNode(ctx *cli.Context, stack *node.Node, isConsole bool) {
 				}
 			}
 		}()
+	}
+
+	// Start auxiliary services if enabled
+	if ctx.Bool(utils.MiningEnabledFlag.Name) {
+		// Mining only makes sense if a full Ethereum node is running
+		if ctx.String(utils.SyncModeFlag.Name) == "light" {
+			utils.Fatalf("Light clients do not support mining")
+		}
+		ethBackend, ok := backend.(*eth.EthAPIBackend)
+		if !ok {
+			utils.Fatalf("MemeCore service not running")
+		}
+		// Set the gas price to the limits from the CLI and start mining
+		gasprice := flags.GlobalBig(ctx, utils.MinerGasPriceFlag.Name)
+		ethBackend.TxPool().SetGasTip(gasprice)
+		if err := ethBackend.StartMining(); err != nil {
+			utils.Fatalf("Failed to start mining: %v", err)
+		}
 	}
 }
 
