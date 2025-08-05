@@ -19,6 +19,7 @@ package eth
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -191,6 +192,21 @@ func (ps *peerSet) peer(id string) *ethPeer {
 	return ps.peers[id]
 }
 
+// peersWithoutBlock retrieves a list of peers that do not have a given block in
+// their set of known hashes so it might be propagated to them.
+func (ps *peerSet) peersWithoutBlock(hash common.Hash) []*ethPeer {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	list := make([]*ethPeer, 0, len(ps.peers))
+	for _, p := range ps.peers {
+		if !p.KnownBlock(hash) {
+			list = append(list, p)
+		}
+	}
+	return list
+}
+
 // peersWithoutTransaction retrieves a list of peers that do not have a given
 // transaction in their set of known hashes.
 func (ps *peerSet) peersWithoutTransaction(hash common.Hash) []*ethPeer {
@@ -202,6 +218,37 @@ func (ps *peerSet) peersWithoutTransaction(hash common.Hash) []*ethPeer {
 		if !p.KnownTransaction(hash) {
 			list = append(list, p)
 		}
+	}
+	return list
+}
+
+// allPeers retrieves all of the peers.
+func (ps *peerSet) allPeers() []*ethPeer {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	list := make([]*ethPeer, 0, len(ps.peers))
+	for _, p := range ps.peers {
+		list = append(list, p)
+	}
+	return list
+}
+
+// headPeers retrieves a specified number list of peers.
+func (ps *peerSet) headPeers(num uint) []*ethPeer {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	if num > uint(len(ps.peers)) {
+		num = uint(len(ps.peers))
+	}
+
+	list := make([]*ethPeer, 0, num)
+	for _, p := range ps.peers {
+		if len(list) > int(num) {
+			break
+		}
+		list = append(list, p)
 	}
 	return list
 }
@@ -222,6 +269,24 @@ func (ps *peerSet) snapLen() int {
 	defer ps.lock.RUnlock()
 
 	return ps.snapPeers
+}
+
+// peerWithHighestTD retrieves the known peer with the currently highest total
+// difficulty, but below the given PoS switchover threshold.
+func (ps *peerSet) peerWithHighestTD() *eth.Peer {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	var (
+		bestPeer *eth.Peer
+		bestTd   *big.Int
+	)
+	for _, p := range ps.peers {
+		if _, td := p.Head(); bestPeer == nil || td.Cmp(bestTd) > 0 {
+			bestPeer, bestTd = p.Peer, td
+		}
+	}
+	return bestPeer
 }
 
 // close disconnects all peers.
