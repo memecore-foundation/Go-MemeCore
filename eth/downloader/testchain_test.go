@@ -41,7 +41,7 @@ var (
 
 	testGspec = &core.Genesis{
 		Config:  params.TestChainConfig,
-		Alloc:   types.GenesisAlloc{testAddress: {Balance: big.NewInt(1000000000000000)}},
+		Alloc:   types.GenesisAlloc{testAddress: {Balance: big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(1000000000000000000))}},
 		BaseFee: big.NewInt(params.InitialBaseFee),
 	}
 	testGenesis = testGspec.MustCommit(testDB, triedb.NewDatabase(testDB, triedb.HashDefaults))

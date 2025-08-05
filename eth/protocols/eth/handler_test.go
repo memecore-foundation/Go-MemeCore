@@ -117,7 +117,7 @@ func newTestBackendWithGenerator(blocks int, shanghai bool, cancun bool, generat
 
 	gspec := &core.Genesis{
 		Config:     config,
-		Alloc:      types.GenesisAlloc{testAddr: {Balance: big.NewInt(100_000_000_000_000_000)}},
+		Alloc:      types.GenesisAlloc{testAddr: {Balance: big.NewInt(1_000_000_000_000_000_000)}},
 		Difficulty: common.Big0,
 	}
 	chain, _ := core.NewBlockChain(db, nil, gspec, nil, engine, vm.Config{}, nil, nil)
@@ -496,7 +496,7 @@ func testGetBlockReceipts(t *testing.T, protocol uint) {
 		switch i {
 		case 0:
 			// In block 1, the test bank sends account #1 some ether.
-			tx, _ := types.SignTx(types.NewTransaction(block.TxNonce(testAddr), acc1Addr, big.NewInt(10_000_000_000_000_000), params.TxGas, block.BaseFee(), nil), signer, testKey)
+			tx, _ := types.SignTx(types.NewTransaction(block.TxNonce(testAddr), acc1Addr, big.NewInt(32_500_000_000_000_000), params.TxGas, block.BaseFee(), nil), signer, testKey)
 			block.AddTx(tx)
 		case 1:
 			// In block 2, the test bank sends some more ether to account #1.
@@ -582,7 +582,7 @@ func setup() (*testBackend, *testPeer) {
 		switch n {
 		case 0:
 			// In block 1, the test bank sends account #1 some ether.
-			tx, _ := types.SignTx(types.NewTransaction(block.TxNonce(testAddr), acc1Addr, big.NewInt(10_000_000_000_000_000), params.TxGas, block.BaseFee(), nil), signer, testKey)
+			tx, _ := types.SignTx(types.NewTransaction(block.TxNonce(testAddr), acc1Addr, big.NewInt(32_500_000_000_000_000), params.TxGas, block.BaseFee(), nil), signer, testKey)
 			block.AddTx(tx)
 		case 1:
 			// In block 2, the test bank sends some more ether to account #1.
@@ -656,11 +656,11 @@ func testGetPooledTransaction(t *testing.T, blobTx bool) {
 			ChainID:    uint256.MustFromBig(params.TestChainConfig.ChainID),
 			Nonce:      0,
 			GasTipCap:  uint256.NewInt(20_000_000_000),
-			GasFeeCap:  uint256.NewInt(21_000_000_000),
+			GasFeeCap:  uint256.NewInt(params.InitialBaseFee + 1),
 			Gas:        21000,
 			To:         testAddr,
 			BlobHashes: []common.Hash{emptyBlobHash},
-			BlobFeeCap: uint256.MustFromBig(common.Big1),
+			BlobFeeCap: uint256.NewInt(params.BlobTxMinBlobGasprice),
 			Sidecar: &types.BlobTxSidecar{
 				Blobs:       emptyBlobs,
 				Commitments: []kzg4844.Commitment{emptyBlobCommit},
@@ -672,7 +672,7 @@ func testGetPooledTransaction(t *testing.T, blobTx bool) {
 		}
 	} else {
 		tx, err = types.SignTx(
-			types.NewTransaction(0, testAddr, big.NewInt(10_000), params.TxGas, big.NewInt(1_000_000_000), nil),
+			types.NewTransaction(0, testAddr, big.NewInt(10_000), params.TxGas, big.NewInt(params.InitialBaseFee+1), nil),
 			signer,
 			testKey,
 		)

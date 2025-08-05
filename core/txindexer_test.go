@@ -74,7 +74,7 @@ func TestTxIndexer(t *testing.T) {
 	var (
 		testBankKey, _  = crypto.GenerateKey()
 		testBankAddress = crypto.PubkeyToAddress(testBankKey.PublicKey)
-		testBankFunds   = big.NewInt(1000000000000000000)
+		testBankFunds   = big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(1000000000000000000))
 
 		gspec = &Genesis{
 			Config:  params.TestChainConfig,
@@ -137,7 +137,7 @@ func TestTxIndexerRepair(t *testing.T) {
 	var (
 		testBankKey, _  = crypto.GenerateKey()
 		testBankAddress = crypto.PubkeyToAddress(testBankKey.PublicKey)
-		testBankFunds   = big.NewInt(1000000000000000000)
+		testBankFunds   = big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(1000000000000000000))
 
 		gspec = &Genesis{
 			Config:  params.TestChainConfig,
@@ -261,7 +261,7 @@ func TestTxIndexerReport(t *testing.T) {
 	var (
 		testBankKey, _  = crypto.GenerateKey()
 		testBankAddress = crypto.PubkeyToAddress(testBankKey.PublicKey)
-		testBankFunds   = big.NewInt(1000000000000000000)
+		testBankFunds   = big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(1000000000000000000))
 
 		gspec = &Genesis{
 			Config:  params.TestChainConfig,

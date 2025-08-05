@@ -28,7 +28,8 @@ import (
 
 // Genesis hashes to enforce below configs on.
 var (
-	MainnetGenesisHash     = common.HexToHash("0x2ede7ea2e1feeba523f156c772d2189386a0e349b87a79327ad2c81c3bc6d9b8")
+	MainnetGenesisHash     = common.HexToHash("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3")
+	MemeMainnetGenesisHash = common.HexToHash("0x2ede7ea2e1feeba523f156c772d2189386a0e349b87a79327ad2c81c3bc6d9b8")
 	FormicariumGenesisHash = common.HexToHash("0xce00b0874554d9ed1539bb02b5f261dfc2fa1f230aa37f88c66137af6d180114")
 	InsectariumGenesisHash = common.HexToHash("0x0bd28b7ee9b66a61fce0760d9d44c317e7f949cb6cb4b32e2f774b228dfacf52")
 )
@@ -36,8 +37,39 @@ var (
 func newUint64(val uint64) *uint64 { return &val }
 
 var (
+	MainnetTerminalTotalDifficulty, _ = new(big.Int).SetString("58_750_000_000_000_000_000_000", 0)
+
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
+		ChainID:                 big.NewInt(1),
+		HomesteadBlock:          big.NewInt(1_150_000),
+		DAOForkBlock:            big.NewInt(1_920_000),
+		DAOForkSupport:          true,
+		EIP150Block:             big.NewInt(2_463_000),
+		EIP155Block:             big.NewInt(2_675_000),
+		EIP158Block:             big.NewInt(2_675_000),
+		ByzantiumBlock:          big.NewInt(4_370_000),
+		ConstantinopleBlock:     big.NewInt(7_280_000),
+		PetersburgBlock:         big.NewInt(7_280_000),
+		IstanbulBlock:           big.NewInt(9_069_000),
+		MuirGlacierBlock:        big.NewInt(9_200_000),
+		BerlinBlock:             big.NewInt(12_244_000),
+		LondonBlock:             big.NewInt(12_965_000),
+		ArrowGlacierBlock:       big.NewInt(13_773_000),
+		GrayGlacierBlock:        big.NewInt(15_050_000),
+		TerminalTotalDifficulty: MainnetTerminalTotalDifficulty, // 58_750_000_000_000_000_000_000
+		ShanghaiTime:            newUint64(1681338455),
+		CancunTime:              newUint64(1710338135),
+		PragueTime:              newUint64(1746612311),
+		DepositContractAddress:  common.HexToAddress("0x00000000219ab540356cbb839cbe05303d7705fa"),
+		Ethash:                  new(EthashConfig),
+		BlobScheduleConfig: &BlobScheduleConfig{
+			Cancun: DefaultCancunBlobConfig,
+			Prague: DefaultPragueBlobConfig,
+		},
+	}
+
+	MemeMainnetChainConfig = &ChainConfig{
 		ChainID:                 big.NewInt(4352),
 		HomesteadBlock:          big.NewInt(0),
 		DAOForkBlock:            nil,
@@ -374,7 +406,8 @@ var (
 
 // NetworkNames are user friendly names to use in the chain spec banner.
 var NetworkNames = map[string]string{
-	MainnetChainConfig.ChainID.String():     "mainnet",
+	MainnetChainConfig.ChainID.String():     "ethereum",
+	MemeMainnetChainConfig.ChainID.String(): "mainnet",
 	FormicariumChainConfig.ChainID.String(): "formicarium",
 	InsectariumChainConfig.ChainID.String(): "insectarium",
 }

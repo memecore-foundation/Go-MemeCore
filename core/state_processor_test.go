@@ -116,11 +116,11 @@ func TestStateProcessorErrors(t *testing.T) {
 				Config: config,
 				Alloc: types.GenesisAlloc{
 					common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7"): types.Account{
-						Balance: big.NewInt(1000000000000000000), // 1 ether
+						Balance: big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(150)),
 						Nonce:   0,
 					},
 					common.HexToAddress("0xfd0810DD14796680f72adf1a371963d0745BCc64"): types.Account{
-						Balance: big.NewInt(1000000000000000000), // 1 ether
+						Balance: big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(150)),
 						Nonce:   math.MaxUint64,
 					},
 				},
@@ -139,40 +139,40 @@ func TestStateProcessorErrors(t *testing.T) {
 		}{
 			{ // ErrNonceTooLow
 				txs: []*types.Transaction{
-					makeTx(key1, 0, common.Address{}, big.NewInt(0), params.TxGas, big.NewInt(875000000), nil),
-					makeTx(key1, 0, common.Address{}, big.NewInt(0), params.TxGas, big.NewInt(875000000), nil),
+					makeTx(key1, 0, common.Address{}, big.NewInt(0), params.TxGas, big.NewInt(1500000000001), nil),
+					makeTx(key1, 0, common.Address{}, big.NewInt(0), params.TxGas, big.NewInt(1500000000001), nil),
 				},
-				want: "could not apply tx 1 [0x0026256b3939ed97e2c4a6f3fce8ecf83bdcfa6d507c47838c308a1fb0436f62]: nonce too low: address 0x71562b71999873DB5b286dF957af199Ec94617F7, tx: 0 state: 1",
+				want: "could not apply tx 1 [0x84bf9edd4acb005dd7573feaaa2792e4eda1bc37f62cc83bd7f8524135c73119]: nonce too low: address 0x71562b71999873DB5b286dF957af199Ec94617F7, tx: 0 state: 1",
 			},
 			{ // ErrNonceTooHigh
 				txs: []*types.Transaction{
-					makeTx(key1, 100, common.Address{}, big.NewInt(0), params.TxGas, big.NewInt(875000000), nil),
+					makeTx(key1, 100, common.Address{}, big.NewInt(0), params.TxGas, big.NewInt(1500000000001), nil),
 				},
-				want: "could not apply tx 0 [0xdebad714ca7f363bd0d8121c4518ad48fa469ca81b0a081be3d10c17460f751b]: nonce too high: address 0x71562b71999873DB5b286dF957af199Ec94617F7, tx: 100 state: 0",
+				want: "could not apply tx 0 [0x7c123a5c2d0e6cdbc1d57028170012019666585041a925b790f06cacff229565]: nonce too high: address 0x71562b71999873DB5b286dF957af199Ec94617F7, tx: 100 state: 0",
 			},
 			{ // ErrNonceMax
 				txs: []*types.Transaction{
-					makeTx(key2, math.MaxUint64, common.Address{}, big.NewInt(0), params.TxGas, big.NewInt(875000000), nil),
+					makeTx(key2, math.MaxUint64, common.Address{}, big.NewInt(0), params.TxGas, big.NewInt(1500000000001), nil),
 				},
-				want: "could not apply tx 0 [0x84ea18d60eb2bb3b040e3add0eb72f757727122cc257dd858c67cb6591a85986]: nonce has max value: address 0xfd0810DD14796680f72adf1a371963d0745BCc64, nonce: 18446744073709551615",
+				want: "could not apply tx 0 [0xb6046b092f64fd08e24a87a696b29016f10b52b6a5dbaf1d7e8899a99a634dd4]: nonce has max value: address 0xfd0810DD14796680f72adf1a371963d0745BCc64, nonce: 18446744073709551615",
 			},
 			{ // ErrGasLimitReached
 				txs: []*types.Transaction{
-					makeTx(key1, 0, common.Address{}, big.NewInt(0), 21000000, big.NewInt(875000000), nil),
+					makeTx(key1, 0, common.Address{}, big.NewInt(0), 21000000, big.NewInt(1500000000001), nil),
 				},
-				want: "could not apply tx 0 [0xbd49d8dadfd47fb846986695f7d4da3f7b2c48c8da82dbc211a26eb124883de9]: gas limit reached",
+				want: "could not apply tx 0 [0x2df59eb1dd634ab371defdd82cbd68300c59b6c36a1fd6f2e9b6791dd0efb914]: gas limit reached",
 			},
 			{ // ErrInsufficientFundsForTransfer
 				txs: []*types.Transaction{
-					makeTx(key1, 0, common.Address{}, big.NewInt(1000000000000000000), params.TxGas, big.NewInt(875000000), nil),
+					makeTx(key1, 0, common.Address{}, big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(150)), params.TxGas, big.NewInt(1500000000001), nil),
 				},
-				want: "could not apply tx 0 [0x98c796b470f7fcab40aaef5c965a602b0238e1034cce6fb73823042dd0638d74]: insufficient funds for gas * price + value: address 0x71562b71999873DB5b286dF957af199Ec94617F7 have 1000000000000000000 want 1000018375000000000",
+				want: "could not apply tx 0 [0xb1698ea4566a467843cdc292f82c0504dce8a18281327be02179b7199f53d728]: insufficient funds for gas * price + value: address 0x71562b71999873DB5b286dF957af199Ec94617F7 have 150000000000000000000 want 150031500000000021000",
 			},
 			{ // ErrInsufficientFunds
 				txs: []*types.Transaction{
 					makeTx(key1, 0, common.Address{}, big.NewInt(0), params.TxGas, big.NewInt(900000000000000000), nil),
 				},
-				want: "could not apply tx 0 [0x4a69690c4b0cd85e64d0d9ea06302455b01e10a83db964d60281739752003440]: insufficient funds for gas * price + value: address 0x71562b71999873DB5b286dF957af199Ec94617F7 have 1000000000000000000 want 18900000000000000000000",
+				want: "could not apply tx 0 [0x4a69690c4b0cd85e64d0d9ea06302455b01e10a83db964d60281739752003440]: insufficient funds for gas * price + value: address 0x71562b71999873DB5b286dF957af199Ec94617F7 have 150000000000000000000 want 18900000000000000000000",
 			},
 			// ErrGasUintOverflow
 			// One missing 'core' error is ErrGasUintOverflow: "gas uint64 overflow",
@@ -180,21 +180,21 @@ func TestStateProcessorErrors(t *testing.T) {
 			// multiplication len(data) +gas_per_byte overflows uint64. Not testable at the moment
 			{ // ErrIntrinsicGas
 				txs: []*types.Transaction{
-					makeTx(key1, 0, common.Address{}, big.NewInt(0), params.TxGas-1000, big.NewInt(875000000), nil),
+					makeTx(key1, 0, common.Address{}, big.NewInt(0), params.TxGas-1000, big.NewInt(1500000000001), nil),
 				},
-				want: "could not apply tx 0 [0xcf3b049a0b516cb4f9274b3e2a264359e2ba53b2fb64b7bda2c634d5c9d01fca]: intrinsic gas too low: have 20000, want 21000",
+				want: "could not apply tx 0 [0x75625128064f5ba9adde7fe23b21bc73899be94102e529d8309186094119d428]: intrinsic gas too low: have 20000, want 21000",
 			},
 			{ // ErrGasLimitReached
 				txs: []*types.Transaction{
-					makeTx(key1, 0, common.Address{}, big.NewInt(0), params.TxGas*1000, big.NewInt(875000000), nil),
+					makeTx(key1, 0, common.Address{}, big.NewInt(0), params.TxGas*1000, big.NewInt(1500000000001), nil),
 				},
-				want: "could not apply tx 0 [0xbd49d8dadfd47fb846986695f7d4da3f7b2c48c8da82dbc211a26eb124883de9]: gas limit reached",
+				want: "could not apply tx 0 [0x2df59eb1dd634ab371defdd82cbd68300c59b6c36a1fd6f2e9b6791dd0efb914]: gas limit reached",
 			},
 			{ // ErrFeeCapTooLow
 				txs: []*types.Transaction{
 					mkDynamicTx(0, common.Address{}, params.TxGas, big.NewInt(0), big.NewInt(0)),
 				},
-				want: "could not apply tx 0 [0xc4ab868fef0c82ae0387b742aee87907f2d0fc528fc6ea0a021459fb0fc4a4a8]: max fee per gas less than block base fee: address 0x71562b71999873DB5b286dF957af199Ec94617F7, maxFeePerGas: 0, baseFee: 875000000",
+				want: "could not apply tx 0 [0xc4ab868fef0c82ae0387b742aee87907f2d0fc528fc6ea0a021459fb0fc4a4a8]: max fee per gas less than block base fee: address 0x71562b71999873DB5b286dF957af199Ec94617F7, maxFeePerGas: 0, baseFee: 1500000000000",
 			},
 			{ // ErrTipVeryHigh
 				txs: []*types.Transaction{
@@ -221,9 +221,9 @@ func TestStateProcessorErrors(t *testing.T) {
 				// This test is designed to have the effective cost be covered by the balance, but
 				// the extended requirement on FeeCap*gas < balance to fail
 				txs: []*types.Transaction{
-					mkDynamicTx(0, common.Address{}, params.TxGas, big.NewInt(1), big.NewInt(50000000000000)),
+					mkDynamicTx(0, common.Address{}, params.TxGas, big.NewInt(1), big.NewInt(500000000000000000)),
 				},
-				want: "could not apply tx 0 [0x413603cd096a87f41b1660d3ed3e27d62e1da78eac138961c0a1314ed43bd129]: insufficient funds for gas * price + value: address 0x71562b71999873DB5b286dF957af199Ec94617F7 have 1000000000000000000 want 1050000000000000000",
+				want: "could not apply tx 0 [0xbb65dc65941cb753b0e3c15ac3fe9a1739125f3d3cb57f1163c58353a044d0af]: insufficient funds for gas * price + value: address 0x71562b71999873DB5b286dF957af199Ec94617F7 have 150000000000000000000 want 10500000000000000000000",
 			},
 			{ // Another ErrInsufficientFunds, this one to ensure that feecap/tip of max u256 is allowed
 				txs: []*types.Transaction{
@@ -235,25 +235,25 @@ func TestStateProcessorErrors(t *testing.T) {
 				txs: []*types.Transaction{
 					mkDynamicCreationTx(0, 520000, common.Big0, big.NewInt(params.InitialBaseFee), tooBigInitCode[:]),
 				},
-				want: "could not apply tx 0 [0x3a30404d42d6ccc843d7c391fd0c87b9b9795a0c174261b46d2ac95ca17b81cd]: max initcode size exceeded: code size 49153 limit 49152",
+				want: "could not apply tx 0 [0x5f919c8356e969954dd3a2f3766181ec810b44683cdf50703bd0d63fd86561d2]: max initcode size exceeded: code size 49153 limit 49152",
 			},
 			{ // ErrIntrinsicGas: Not enough gas to cover init code
 				txs: []*types.Transaction{
 					mkDynamicCreationTx(0, 54299, common.Big0, big.NewInt(params.InitialBaseFee), make([]byte, 320)),
 				},
-				want: "could not apply tx 0 [0xfd49536a9b323769d8472fcb3ebb3689b707a349379baee3e2ee3fe7baae06a1]: intrinsic gas too low: have 54299, want 54300",
+				want: "could not apply tx 0 [0xa2810e8da52840e2cc7b4fd4227c3529dbe59765a4d5631a00cfb620cca2923b]: intrinsic gas too low: have 54299, want 54300",
 			},
 			{ // ErrBlobFeeCapTooLow
 				txs: []*types.Transaction{
 					mkBlobTx(0, common.Address{}, params.TxGas, big.NewInt(1), big.NewInt(1), big.NewInt(0), []common.Hash{(common.Hash{1})}),
 				},
-				want: "could not apply tx 0 [0x6c11015985ce82db691d7b2d017acda296db88b811c3c60dc71449c76256c716]: max fee per gas less than block base fee: address 0x71562b71999873DB5b286dF957af199Ec94617F7, maxFeePerGas: 1, baseFee: 875000000",
+				want: "could not apply tx 0 [0x6c11015985ce82db691d7b2d017acda296db88b811c3c60dc71449c76256c716]: max fee per gas less than block base fee: address 0x71562b71999873DB5b286dF957af199Ec94617F7, maxFeePerGas: 1, baseFee: 1500000000000",
 			},
 			{ // ErrEmptyAuthList
 				txs: []*types.Transaction{
 					mkSetCodeTx(0, common.Address{}, params.TxGas, big.NewInt(params.InitialBaseFee), big.NewInt(params.InitialBaseFee), nil),
 				},
-				want: "could not apply tx 0 [0xc18d10f4c809dbdfa1a074c3300de9bc4b7f16a20f0ec667f6f67312b71b956a]: EIP-7702 transaction with empty auth list (sender 0x71562b71999873DB5b286dF957af199Ec94617F7)",
+				want: "could not apply tx 0 [0xfb7eb606415418bb158ec9ef6c007c8f77f99e2c19375c6754c9ae7d1fca05f7]: EIP-7702 transaction with empty auth list (sender 0x71562b71999873DB5b286dF957af199Ec94617F7)",
 			},
 			// ErrSetCodeTxCreate cannot be tested here: it is impossible to create a SetCode-tx with nil `to`.
 			// The EstimateGas API tests test this case.

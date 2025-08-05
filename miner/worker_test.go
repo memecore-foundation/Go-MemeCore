@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/consensus/clique"
@@ -57,7 +58,7 @@ var (
 	// Test accounts
 	testBankKey, _  = crypto.GenerateKey()
 	testBankAddress = crypto.PubkeyToAddress(testBankKey.PublicKey)
-	testBankFunds   = big.NewInt(1000000000000000000)
+	testBankFunds   = big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(1000000000000000000))
 
 	testUserKey, _  = crypto.GenerateKey()
 	testUserAddress = crypto.PubkeyToAddress(testUserKey.PublicKey)
@@ -91,7 +92,7 @@ func init() {
 		To:       &testUserAddress,
 		Value:    big.NewInt(1000),
 		Gas:      params.TxGas,
-		GasPrice: big.NewInt(params.InitialBaseFee),
+		GasPrice: big.NewInt(params.InitialBaseFee + 1),
 	})
 	pendingTxs = append(pendingTxs, tx1)
 
@@ -100,7 +101,7 @@ func init() {
 		To:       &testUserAddress,
 		Value:    big.NewInt(1000),
 		Gas:      params.TxGas,
-		GasPrice: big.NewInt(params.InitialBaseFee),
+		GasPrice: big.NewInt(params.InitialBaseFee + 1),
 	})
 	newTxs = append(newTxs, tx2)
 }
@@ -122,7 +123,9 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 	case *clique.Clique:
 		gspec.ExtraData = make([]byte, 32+common.AddressLength+crypto.SignatureLength)
 		copy(gspec.ExtraData[32:32+common.AddressLength], testBankAddress.Bytes())
-		e.Authorize(testBankAddress)
+		e.Authorize(testBankAddress, func(account accounts.Account, s string, data []byte) ([]byte, error) {
+			return crypto.Sign(crypto.Keccak256(data), testBankKey)
+		})
 	case *ethash.Ethash:
 	default:
 		t.Fatalf("unexpected consensus engine type: %T", engine)

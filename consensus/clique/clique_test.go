@@ -48,7 +48,7 @@ func TestReimportMirroredState(t *testing.T) {
 		Config:    params.AllCliqueProtocolChanges,
 		ExtraData: make([]byte, extraVanity+common.AddressLength+extraSeal),
 		Alloc: map[common.Address]types.Account{
-			addr: {Balance: big.NewInt(10000000000000000)},
+			addr: {Balance: big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(1000000000000000000))},
 		},
 		BaseFee: big.NewInt(params.InitialBaseFee),
 	}

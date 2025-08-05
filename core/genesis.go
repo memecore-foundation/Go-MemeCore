@@ -418,7 +418,7 @@ func LoadChainConfig(db ethdb.Database, genesis *Genesis) (cfg *params.ChainConf
 	}
 	// There is no stored chain config and no new config provided,
 	// In this case the default chain config(mainnet) will be used
-	return params.MainnetChainConfig, params.MainnetGenesisHash, nil
+	return params.MemeMainnetChainConfig, params.MemeMainnetGenesisHash, nil
 }
 
 // chainConfigOrDefault retrieves the attached chain configuration. If the genesis
@@ -428,8 +428,8 @@ func (g *Genesis) chainConfigOrDefault(ghash common.Hash, stored *params.ChainCo
 	switch {
 	case g != nil:
 		return g.Config
-	case ghash == params.MainnetGenesisHash:
-		return params.MainnetChainConfig
+	case ghash == params.MemeMainnetGenesisHash:
+		return params.MemeMainnetChainConfig
 	case ghash == params.FormicariumGenesisHash:
 		return params.FormicariumChainConfig
 	case ghash == params.InsectariumGenesisHash:
@@ -595,17 +595,29 @@ func EnableVerkleAtGenesis(db ethdb.Database, genesis *Genesis) (bool, error) {
 	return false, nil
 }
 
-// DefaultGenesisBlock returns the MemeCore main net genesis block.
+// DefaultGenesisBlock returns the Ethereum main net genesis block.
 func DefaultGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:     params.MainnetChainConfig,
+		Nonce:      66,
+		ExtraData:  hexutil.MustDecode("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
+		GasLimit:   5000,
+		Difficulty: big.NewInt(17179869184),
+		Alloc:      decodePrealloc(mainnetAllocData),
+	}
+}
+
+// DefaultMemeGenesisBlock returns the MemeCore main net genesis block.
+func DefaultMemeGenesisBlock() *Genesis {
+	return &Genesis{
+		Config:     params.MemeMainnetChainConfig,
 		Nonce:      0x0,
 		Timestamp:  0x677bac02,
 		ExtraData:  hexutil.MustDecode("0x0000000000000000000000000000000000000000000000000000000000000000da371e4be535eb88d299f93479402b05ec51eda76b2d2cca391845055e541ff718a067412bb40e5b19ff5842a6a19a0223042af0a82b2a4e3a06d0eba560b87795161e90012f1371b1e34917c99fab3e39829a23ea8df2fa55abe9dcf6b8df4faeb5eb4077b7dc151c87f67c98b5aab17496744d84537c7a560dae32f6932ec49929d8a3eec1111c7f2d0b1c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 		GasLimit:   0x3938700,
 		Difficulty: big.NewInt(1),
 		Mixhash:    common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
-		Alloc:      decodePrealloc(mainnetAllocData),
+		Alloc:      decodePrealloc(memeMainnetAllocData),
 		Number:     0x0,
 		GasUsed:    0x0,
 		ParentHash: common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
