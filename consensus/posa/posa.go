@@ -176,7 +176,6 @@ type PoSA struct {
 	lock   sync.RWMutex   // Protects the signer fields
 
 	ethAPI          *ethapi.BlockChainAPI // Blockchain API for contract calling
-	chainConfig     *params.ChainConfig   // Blockchain config for EVM initialization
 	vmConfig        vm.Config             // EVM config for EVM initialization
 	validatorSetABI abi.ABI               // System contract that maintains validator list
 	rewardABI       abi.ABI               // System contract that distribute rewards
@@ -228,10 +227,6 @@ func New(config *params.PoSAConfig, db ethdb.Database) *PoSA {
 // WithEthAPI initializes Eth blockchain API for proper consensus module work.
 func (p *PoSA) WithEthAPI(api *ethapi.BlockChainAPI) {
 	p.ethAPI = api
-}
-
-func (p *PoSA) WithBlockchainConfig(config *params.ChainConfig) {
-	p.chainConfig = config
 }
 
 func (p *PoSA) WithVMConfig(config vm.Config) {
@@ -647,7 +642,10 @@ func (p *PoSA) Finalize(chain consensus.ChainHeaderReader, header *types.Header,
 		return err
 	}
 	// Accumulate any block rewards
-	accumulateRewards(chain.Config(), state, header, body.Uncles)
+	err = accumulateRewards(chain.Config(), state, header, body.Uncles)
+	if err != nil {
+		return err
+	}
 	snap, err := p.snapshot(chain, header.Number.Uint64()-1, header.ParentHash, nil)
 	if err != nil {
 		return err
@@ -870,15 +868,24 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 
 // AccumulateRewards credits the coinbase of the given block with the mining
 // reward. The total reward only consists of the static block reward.
-func accumulateRewards(config *params.ChainConfig, stateDB vm.StateDB, header *types.Header, uncles []*types.Header) {
+func accumulateRewards(config *params.ChainConfig, stateDB vm.StateDB, header *types.Header, uncles []*types.Header) error {
 	// Select the correct block reward based on chain progression
 	blockReward := Phase1BlockReward
 
 	// Check if the RewardTreeFork is active for this block
-	if config.IsRewardTreeFork(header.Number) == true {
+	if config.IsRewardTreeFork(header.Number) {
 		blockReward = RewardTreeForkBlockReward
+	}
+
+	// Check potential overflow without changing any balance
+	balance := stateDB.GetBalance(header.Coinbase)
+	_, overflow := new(uint256.Int).AddOverflow(balance, blockReward)
+	if overflow {
+		log.Error("Balance overflow detected")
+		return errors.New("validator contract balance overflow")
 	}
 
 	// Add the block reward to the coinbase address
 	stateDB.AddBalance(header.Coinbase, blockReward, tracing.BalanceIncreaseRewardMineBlock)
+	return nil
 }

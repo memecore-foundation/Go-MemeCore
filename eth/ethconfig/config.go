@@ -180,9 +180,7 @@ func CreateConsensusEngine(config *params.ChainConfig, db ethdb.Database) (conse
 		return nil, errors.New("both posa and clique are configured")
 	}
 	if config.PoSA != nil {
-		pa := posa.New(config.PoSA, db)
-		pa.WithBlockchainConfig(config)
-		return beacon.New(pa), nil
+		return beacon.New(posa.New(config.PoSA, db)), nil
 	}
 	if config.TerminalTotalDifficulty == nil {
 		log.Error("Geth only supports PoS networks. Please transition legacy networks using Geth v1.13.x.")

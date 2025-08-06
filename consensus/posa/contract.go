@@ -19,7 +19,6 @@ import (
 	"github.com/ethereum/go-ethereum/internal/ethapi"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/holiman/uint256"
 )
 
 const validatorSetABI = `[ { "inputs": [], "stateMutability": "view", "type": "function", "name": "getValidators", "outputs": [ { "internalType": "address[]", "name": "", "type": "address[]" } ] } ]`
@@ -98,25 +97,11 @@ func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReade
 	chainContext := chainContext{
 		chain:  chain,
 		posa:   p,
-		config: p.chainConfig,
+		config: chain.Config(),
 	}
 	context := core.NewEVMBlockContext(header, chainContext, &sysCallAddr)
-	vmenv := vm.NewEVM(context, state, p.chainConfig, p.vmConfig)
-	// Check potential overflow
-	contractBalance := state.GetBalance(common.HexToAddress(validatorSetAddr))
+	vmenv := vm.NewEVM(context, state, chain.Config(), p.vmConfig)
 
-	blockReward := Phase1BlockReward
-
-	// Check if the RewardTreeFork is active for this block
-	if chain.Config().IsRewardTreeFork(header.Number) == true {
-		blockReward = RewardTreeForkBlockReward
-	}
-
-	_, overflow := new(uint256.Int).AddOverflow(contractBalance, blockReward)
-	if overflow {
-		log.Error("Balance overflow detected")
-		return errors.New("validator contract balance overflow")
-	}
 	// Do smart contract call
 	data, err := p.rewardABI.Pack(rewardMethodSet, signer, validatorList)
 	if err != nil {
