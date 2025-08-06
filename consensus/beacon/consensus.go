@@ -329,7 +329,12 @@ func (beacon *Beacon) verifyHeaders(chain consensus.ChainHeaderReader, headers [
 // Prepare implements consensus.Engine, initializing the difficulty field of a
 // header to conform to the beacon protocol. The changes are done inline.
 func (beacon *Beacon) Prepare(chain consensus.ChainHeaderReader, header *types.Header) error {
-	if !isPostMerge(chain.Config(), header.Number.Uint64(), header.Time) {
+	// Transition isn't triggered yet, use the legacy rules for preparation.
+	reached, err := IsTTDReached(chain, header.ParentHash, header.Number.Uint64()-1)
+	if err != nil {
+		return err
+	}
+	if !reached {
 		return beacon.ethone.Prepare(chain, header)
 	}
 	header.Difficulty = beaconDifficulty
@@ -482,4 +487,15 @@ func (beacon *Beacon) SetThreads(threads int) {
 	if th, ok := beacon.ethone.(threaded); ok {
 		th.SetThreads(threads)
 	}
+}
+
+// IsTTDReached checks if the TotalTerminalDifficulty has been surpassed on the `parentHash` block.
+// It depends on the parentHash already being stored in the database.
+// If the parentHash is not stored in the database a UnknownAncestor error is returned.
+func IsTTDReached(chain consensus.ChainHeaderReader, parentHash common.Hash, parentNumber uint64) (bool, error) {
+	td := chain.GetTd(parentHash, parentNumber)
+	if td == nil {
+		return false, consensus.ErrUnknownAncestor
+	}
+	return td.Cmp(chain.Config().TerminalTotalDifficulty) >= 0, nil
 }
