@@ -852,14 +852,17 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 	if header.WithdrawalsHash != nil {
 		enc = append(enc, header.WithdrawalsHash)
 	}
-	if header.ExcessBlobGas != nil {
-		panic("unexpected excess blob gas value in posa")
-	}
 	if header.BlobGasUsed != nil {
-		panic("unexpected blob gas used value in posa")
+		enc = append(enc, header.BlobGasUsed)
+	}
+	if header.ExcessBlobGas != nil {
+		enc = append(enc, header.ExcessBlobGas)
 	}
 	if header.ParentBeaconRoot != nil {
-		panic("unexpected parent beacon root value in posa")
+		enc = append(enc, header.ParentBeaconRoot)
+	}
+	if header.RequestsHash != nil {
+		enc = append(enc, header.RequestsHash)
 	}
 	if err := rlp.Encode(w, enc); err != nil {
 		panic("can't encode: " + err.Error())
