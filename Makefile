@@ -260,3 +260,24 @@ privnet_start_seven: $(SEVEN_DIR)/$(NODE1)/gmeme $(SEVEN_DIR)/$(NODE2)/gmeme $(S
 	$(call run_miner_node,$(SEVEN_DIR),$(NODE7),$(NODE7_PORT),$(NODE7_AUTH_PORT),$(NODE7_HTTP_PORT),$(NODE7_WS_PORT),$(NODE7))
 	$(call run_node,$(SEVEN_DIR),$(NODE8),$(NODE8_PORT),$(NODE8_AUTH_PORT),$(NODE8_HTTP_PORT),$(NODE8_WS_PORT))
 	@echo "OK! Check logs in $(SEVEN_DIR)/<node_dir>/gmeme_node.log"
+
+docker_privnet_start:
+	docker compose -f .docker/docker-compose.yml up -d
+
+docker_privnet_stop:
+	docker compose -f .docker/docker-compose.yml down
+
+docker_privnet_start_four:
+	docker compose -f .docker/docker-compose-four.yml up -d
+
+docker_privnet_stop_four:
+	docker compose -f .docker/docker-compose-four.yml down
+
+docker_privnet_start_seven:
+	docker compose -f .docker/docker-compose-seven.yml up -d
+
+docker_privnet_stop_seven:
+	docker compose -f .docker/docker-compose-seven.yml down
+
+docker_clean_node_img:
+	docker rmi gmeme_node

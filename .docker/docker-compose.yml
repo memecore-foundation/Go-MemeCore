@@ -1,0 +1,98 @@
+networks:
+  default:
+    name: gmeme_network
+    ipam:
+      config:
+        - subnet: 172.200.0.0/24
+          gateway: 172.200.0.254
+
+services:
+  bootnode:
+    image: gmeme_node
+    container_name: bootnode
+    env_file:
+      - .env
+    build:
+      context: ../
+      dockerfile: ./Dockerfile.alltools
+    command: "bootnode -nodekey ${SINGLE_DIR}/bootnode/bootnode.key -addr :30304 -verbosity 5"
+    volumes:
+      - ../privnet:/privnet
+    ports:
+      - 30304:30304
+  miner1:
+    image: gmeme_node
+    container_name: miner1
+    env_file:
+      - .env
+    command:
+      - sh
+      - -c
+      - |
+        gmeme init --datadir ${SINGLE_NODE1_DIR} ${SINGLE_DIR}/genesis_privnet.json
+        gmeme --datadir ${SINGLE_NODE1_DIR} \
+        --port 30306 \
+        --bootnodes "enode://$$(cat ${SINGLE_DIR}/bootnode/bootnode_address.txt)@127.0.0.1:0?discport=30304" \
+        --networkid "$$(cat ${SINGLE_DIR}/networkid.txt)" \
+        --unlock 0x"$$(cat ${SINGLE_NODE1_DIR}/node_address.txt)" \
+        --authrpc.port 8552 \
+        --http \
+        --http.port 8562 \
+        --http.addr 0.0.0.0 \
+        --http.vhosts "*" \
+        --ws \
+        --ws.addr 0.0.0.0 \
+        --ws.port 8572 \
+        --allow-insecure-unlock \
+        --password ${SINGLE_NODE1_DIR}/password.txt \
+        --metrics \
+        --nat none \
+        --netrestrict 172.200.0.0/24 \
+        --mine \
+        --miner.etherbase="0x$$(cat ${SINGLE_NODE1_DIR}/node_address.txt)"
+    volumes:
+      - ../privnet:/privnet
+    ports:
+      - 30306:30306
+      - 8552:8552
+      - 8562:8562
+      - 8572:8572
+    depends_on:
+      - bootnode
+  node0:
+    image: gmeme_node
+    container_name: node0
+    env_file:
+      - .env
+    command:
+      - sh
+      - -c
+      - |
+        gmeme init --datadir ${SINGLE_NODE2_DIR} ${SINGLE_DIR}/genesis_privnet.json
+        gmeme --datadir ${SINGLE_NODE2_DIR} \
+        --port 30307 \
+        --bootnodes "enode://$$(cat ${SINGLE_DIR}/bootnode/bootnode_address.txt)@127.0.0.1:0?discport=30304" \
+        --networkid "$$(cat ${SINGLE_DIR}/networkid.txt)" \
+        --unlock 0x"$$(cat ${SINGLE_NODE2_DIR}/node_address.txt)" \
+        --authrpc.port 8553 \
+        --http \
+        --http.port 8563 \
+        --http.addr 0.0.0.0 \
+        --http.vhosts "*" \
+        --ws \
+        --ws.addr 0.0.0.0 \
+        --ws.port 8573 \
+        --allow-insecure-unlock \
+        --password ${SINGLE_NODE2_DIR}/password.txt \
+        --metrics \
+        --nat none \
+        --netrestrict 172.200.0.0/24
+    volumes:
+      - ../privnet:/privnet
+    ports:
+      - 30307:30307
+      - 8553:8553
+      - 8563:8563
+      - 8573:8573
+    depends_on:
+      - bootnode
