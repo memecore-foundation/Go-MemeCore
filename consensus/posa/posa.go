@@ -332,6 +332,17 @@ func (p *PoSA) verifyHeader(chain consensus.ChainHeaderReader, header *types.Hea
 	if !shanghai && header.WithdrawalsHash != nil {
 		return fmt.Errorf("invalid withdrawalsHash: have %x, expected nil", header.WithdrawalsHash)
 	}
+	// Verify existence / non-existence of parentBeaconRoot.
+	cancun := chain.Config().IsCancun(header.Number, header.Time)
+	if cancun && header.ParentBeaconRoot == nil {
+		return errors.New("missing parentBeaconRoot")
+	}
+	if cancun && header.ParentBeaconRoot.Cmp(types.EmptyRootHash) != 0 {
+		return fmt.Errorf("invalid parentBeaconRoot: have %x, expected %x", *header.ParentBeaconRoot, &types.EmptyRootHash)
+	}
+	if !cancun && header.ParentBeaconRoot != nil {
+		return fmt.Errorf("invalid parentBeaconRoot, have %x, expected nil", header.ParentBeaconRoot)
+	}
 	// Verify existence / non-existence of requestsHash.
 	prague := chain.Config().IsPrague(header.Number, header.Time)
 	if prague && header.RequestsHash == nil {
@@ -665,6 +676,17 @@ func (p *PoSA) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *ty
 	} else {
 		if len(body.Withdrawals) > 0 {
 			return nil, errors.New("withdrawals set before Shanghai activation")
+		}
+	}
+	cancun := chain.Config().IsCancun(header.Number, header.Time)
+	if cancun {
+		// All headers after Cancun must include a beacon root.
+		if header.ParentBeaconRoot == nil {
+			header.ParentBeaconRoot = &types.EmptyRootHash
+		}
+	} else {
+		if header.ParentBeaconRoot != nil {
+			return nil, errors.New("parentBeaconRoot set before Cancun activation")
 		}
 	}
 	prague := chain.Config().IsPrague(header.Number, header.Time)
