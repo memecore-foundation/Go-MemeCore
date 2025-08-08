@@ -667,6 +667,17 @@ func (p *PoSA) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *ty
 			return nil, errors.New("withdrawals set before Shanghai activation")
 		}
 	}
+	prague := chain.Config().IsPrague(header.Number, header.Time)
+	if prague {
+		// All headers after Prague must include a requests hash.
+		if header.RequestsHash == nil {
+			header.RequestsHash = &types.EmptyRequestsHash
+		}
+	} else {
+		if header.RequestsHash != nil {
+			return nil, errors.New("requestsHash set before Prague activation")
+		}
+	}
 
 	// Finalize block
 	err := p.Finalize(chain, header, state, body)
