@@ -1607,9 +1607,6 @@ func setBlobPool(ctx *cli.Context, cfg *blobpool.Config) {
 }
 
 func setMiner(ctx *cli.Context, cfg *miner.Config) {
-	if ctx.Bool(MiningEnabledFlag.Name) {
-		log.Warn("The flag --mine is deprecated and will be removed")
-	}
 	if ctx.IsSet(MinerExtraDataFlag.Name) {
 		cfg.ExtraData = []byte(ctx.String(MinerExtraDataFlag.Name))
 	}
