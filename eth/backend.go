@@ -307,6 +307,20 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	}
 	eth.APIBackend.gpo = gasprice.NewOracle(eth.APIBackend, config.GPO, config.Miner.GasPrice)
 
+	// Set back things to consensus engine
+	var pa *posa.PoSA
+	if p, ok := eth.engine.(*posa.PoSA); ok {
+		pa = p
+	} else if b, ok := eth.engine.(*beacon.Beacon); ok {
+		if p, ok := b.InnerEngine().(*posa.PoSA); ok {
+			pa = p
+		}
+	}
+	if pa != nil {
+		pa.WithEthAPI(ethapi.NewBlockChainAPI(eth.APIBackend))
+		pa.WithVMConfig(vmConfig)
+	}
+
 	// Start the RPC service
 	eth.netRPCService = ethapi.NewNetAPI(eth.p2pServer, networkID)
 
