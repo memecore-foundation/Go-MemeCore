@@ -27,6 +27,8 @@ import (
 	"github.com/ethereum/go-ethereum/beacon/engine"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/consensus/beacon"
+	"github.com/ethereum/go-ethereum/consensus/posa"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/stateless"
@@ -1145,6 +1147,19 @@ func (api *ConsensusAPI) heartbeat() {
 
 	// If the network is not yet merged/merging, don't bother continuing.
 	if api.eth.BlockChain().Config().TerminalTotalDifficulty == nil {
+		return
+	}
+
+	// If the network is configured to PoSA, also abort.
+	var pa *posa.PoSA
+	if p, ok := api.eth.Engine().(*posa.PoSA); ok {
+		pa = p
+	} else if b, ok := api.eth.Engine().(*beacon.Beacon); ok {
+		if p, ok := b.InnerEngine().(*posa.PoSA); ok {
+			pa = p
+		}
+	}
+	if pa != nil {
 		return
 	}
 

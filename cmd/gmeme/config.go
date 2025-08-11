@@ -255,6 +255,7 @@ func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 			utils.Fatalf("failed to register catalyst service: %v", err)
 		}
 	}
+
 	if ctx.IsSet(utils.HTTPHealthEnabledFlag.Name) {
 		stack.RegisterHandler("health_sync", cfg.Node.HTTPHealthCheckPath+"/sync", health.NewHandler(eth, cfg.Node.HTTPCors, cfg.Node.HTTPVirtualHosts))
 	}
