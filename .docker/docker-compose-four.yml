@@ -1,6 +1,6 @@
 networks:
   default:
-    name: gmeme_network
+    name: memecore_network
     ipam:
       config:
         - subnet: 172.200.0.0/24
@@ -20,6 +20,9 @@ services:
       - ../privnet:/privnet
     ports:
       - 30304:30304
+    networks:
+      default:
+        ipv4_address: 172.200.0.1
   miner1:
     image: gmeme_node
     container_name: miner1
@@ -32,7 +35,7 @@ services:
         gmeme init --datadir ${FOUR_NODE1_DIR} ${FOUR_DIR}/genesis_privnet.json
         gmeme --datadir ${FOUR_NODE1_DIR} \
         --port 30306 \
-        --bootnodes "enode://$$(cat ${FOUR_DIR}/bootnode/bootnode_address.txt)@127.0.0.1:0?discport=30304" \
+        --bootnodes "enode://$$(cat ${FOUR_DIR}/bootnode/bootnode_address.txt)@172.200.0.1:0?discport=30304" \
         --networkid "$$(cat ${FOUR_DIR}/networkid.txt)" \
         --unlock 0x"$$(cat ${FOUR_NODE1_DIR}/node_address.txt)" \
         --authrpc.port 8552 \
@@ -71,7 +74,7 @@ services:
         gmeme init --datadir ${FOUR_NODE2_DIR} ${FOUR_DIR}/genesis_privnet.json
         gmeme --datadir ${FOUR_NODE2_DIR} \
         --port 30307 \
-        --bootnodes "enode://$$(cat ${FOUR_DIR}/bootnode/bootnode_address.txt)@127.0.0.1:0?discport=30304" \
+        --bootnodes "enode://$$(cat ${FOUR_DIR}/bootnode/bootnode_address.txt)@172.200.0.1:0?discport=30304" \
         --networkid "$$(cat ${FOUR_DIR}/networkid.txt)" \
         --unlock 0x"$$(cat ${FOUR_NODE2_DIR}/node_address.txt)" \
         --authrpc.port 8553 \
@@ -110,7 +113,7 @@ services:
         gmeme init --datadir ${FOUR_NODE3_DIR} ${FOUR_DIR}/genesis_privnet.json
         gmeme --datadir ${FOUR_NODE3_DIR} \
         --port 30308 \
-        --bootnodes "enode://$$(cat ${FOUR_DIR}/bootnode/bootnode_address.txt)@127.0.0.1:0?discport=30304" \
+        --bootnodes "enode://$$(cat ${FOUR_DIR}/bootnode/bootnode_address.txt)@172.200.0.1:0?discport=30304" \
         --networkid "$$(cat ${FOUR_DIR}/networkid.txt)" \
         --unlock 0x"$$(cat ${FOUR_NODE3_DIR}/node_address.txt)" \
         --authrpc.port 8554 \
@@ -149,7 +152,7 @@ services:
         gmeme init --datadir ${FOUR_NODE4_DIR} ${FOUR_DIR}/genesis_privnet.json
         gmeme --datadir ${FOUR_NODE4_DIR} \
         --port 30309 \
-        --bootnodes "enode://$$(cat ${FOUR_DIR}/bootnode/bootnode_address.txt)@127.0.0.1:0?discport=30304" \
+        --bootnodes "enode://$$(cat ${FOUR_DIR}/bootnode/bootnode_address.txt)@172.200.0.1:0?discport=30304" \
         --networkid "$$(cat ${FOUR_DIR}/networkid.txt)" \
         --unlock 0x"$$(cat ${FOUR_NODE4_DIR}/node_address.txt)" \
         --authrpc.port 8555 \
@@ -188,7 +191,7 @@ services:
         gmeme init --datadir ${FOUR_NODE5_DIR} ${FOUR_DIR}/genesis_privnet.json
         gmeme --datadir ${FOUR_NODE5_DIR} \
         --port 30310 \
-        --bootnodes "enode://$$(cat ${FOUR_DIR}/bootnode/bootnode_address.txt)@127.0.0.1:0?discport=30304" \
+        --bootnodes "enode://$$(cat ${FOUR_DIR}/bootnode/bootnode_address.txt)@172.200.0.1:0?discport=30304" \
         --networkid "$$(cat ${FOUR_DIR}/networkid.txt)" \
         --unlock 0x"$$(cat ${FOUR_NODE5_DIR}/node_address.txt)" \
         --authrpc.port 8556 \
