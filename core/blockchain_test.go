@@ -1226,7 +1226,7 @@ func testSideLogRebirth(t *testing.T, scheme string) {
 	}
 	checkLogEvents(t, newLogCh, rmLogsCh, 0, 0)
 
-	// Generate side chain with lower difficulty
+	// Generate side chain with lower difficulty, after the merge, the chain will be accepted even if it is lower difficulty
 	genDb, sideChain, _ := GenerateChainWithGenesis(gspec, ethash.NewFaker(), 2, func(i int, gen *BlockGen) {
 		if i == 1 {
 			tx, err := types.SignTx(types.NewContractCreation(gen.TxNonce(addr1), new(big.Int), 1000000, gen.header.BaseFee, logCode), signer, key1)
@@ -1239,14 +1239,14 @@ func testSideLogRebirth(t *testing.T, scheme string) {
 	if _, err := blockchain.InsertChain(sideChain); err != nil {
 		t.Fatalf("failed to insert forked chain: %v", err)
 	}
-	checkLogEvents(t, newLogCh, rmLogsCh, 0, 0)
+	checkLogEvents(t, newLogCh, rmLogsCh, 1, 0)
 
-	// Generate a new block based on side chain.
+	// Generate a new block based on side chain. Should not emit any events anymore.
 	newBlocks, _ := GenerateChain(gspec.Config, sideChain[len(sideChain)-1], ethash.NewFaker(), genDb, 1, func(i int, gen *BlockGen) {})
 	if _, err := blockchain.InsertChain(newBlocks); err != nil {
 		t.Fatalf("failed to insert forked chain: %v", err)
 	}
-	checkLogEvents(t, newLogCh, rmLogsCh, 1, 0)
+	checkLogEvents(t, newLogCh, rmLogsCh, 0, 0)
 }
 
 func checkLogEvents(t *testing.T, logsCh <-chan []*types.Log, rmLogsCh <-chan RemovedLogsEvent, wantNew, wantRemoved int) {
@@ -1663,18 +1663,15 @@ func testLargeReorgTrieGC(t *testing.T, scheme string) {
 	if chain.HasState(shared[len(shared)-1].Root()) {
 		t.Fatalf("common-but-old ancestor still cache")
 	}
-	// Import the competitor chain without exceeding the canonical's TD and ensure
-	// we have not processed any of the blocks (protection against malicious blocks)
+	// Import the competitor chain without exceeding the canonical's TD.
+	// Post-merge the side chain should be executed
 	if _, err := chain.InsertChain(competitor[:len(competitor)-2]); err != nil {
 		t.Fatalf("failed to insert competitor chain: %v", err)
 	}
-	for i, block := range competitor[:len(competitor)-2] {
-		if chain.HasState(block.Root()) {
-			t.Fatalf("competitor %d: low TD chain became processed", i)
-		}
+	if !chain.HasState(competitor[len(competitor)-3].Root()) {
+		t.Fatalf("failed to insert low-TD chain")
 	}
-	// Import the head of the competitor chain, triggering the reorg and ensure we
-	// successfully reprocess all the stashed away blocks.
+	// Import the head of the competitor chain.
 	if _, err := chain.InsertChain(competitor[len(competitor)-2:]); err != nil {
 		t.Fatalf("failed to finalize competitor chain: %v", err)
 	}
@@ -1943,7 +1940,6 @@ func TestPrunedImportSide(t *testing.T) {
 	testSideImport(t, 1, -10, -1)
 }
 
-// Error, but the merging is not gonna happen in our network.
 func TestPrunedImportSideWithMerging(t *testing.T) {
 	// glogger := log.NewGlogHandler(log.NewTerminalHandler(os.Stderr, false))
 	// glogger.Verbosity(3)
@@ -2081,8 +2077,13 @@ func testInsertKnownChainData(t *testing.T, typ string, scheme string) {
 	if err := inserter(append(blocks, blocks2...), append(receipts, receipts2...)); err != nil {
 		t.Fatalf("failed to insert chain data: %v", err)
 	}
-	// The head shouldn't change.
-	asserter(t, blocks3[len(blocks3)-1])
+	if typ == "headers" {
+		// The head shouldn't change.
+		asserter(t, blocks3[len(blocks3)-1])
+	} else {
+		// Post-merge the chain should change even if td is lower.
+		asserter(t, blocks2[len(blocks2)-1])
+	}
 
 	// Rollback the heavier chain and re-insert the longer chain again
 	chain.SetHead(rollback - 1)
@@ -2104,7 +2105,6 @@ func TestInsertKnownBlocksWithMerging(t *testing.T) {
 func TestInsertKnownHeadersAfterMerging(t *testing.T) {
 	testInsertKnownChainDataWithMerging(t, "headers", 1)
 }
-
 func TestInsertKnownReceiptChainAfterMerging(t *testing.T) {
 	testInsertKnownChainDataWithMerging(t, "receipts", 1)
 }
@@ -4205,8 +4205,6 @@ func TestEIP7702(t *testing.T) {
 // Tests the scenario that the synchronization target in snap sync has been changed
 // with a chain reorg at the tip. In this case the reorg'd segment should be unmarked
 // with canonical flags.
-// NOTE: This testing is new since v1.15, and it fails with v1.13 or v1.14 implementation.
-// It is regard as conflict with what we need, but let's take this carefully along update.
 func TestChainReorgSnapSync(t *testing.T) {
 	testChainReorgSnapSync(t, 0)
 	testChainReorgSnapSync(t, 32)
@@ -4256,8 +4254,22 @@ func testChainReorgSnapSync(t *testing.T, ancientLimit uint64) {
 	chain, _ := NewBlockChain(db, DefaultCacheConfigWithScheme(rawdb.PathScheme), gspec, nil, beacon.New(ethash.NewFaker()), vm.Config{}, nil, nil)
 	defer chain.Stop()
 
+	headers := make([]*types.Header, len(blocks))
+	for i, block := range blocks {
+		headers[i] = block.Header()
+	}
+	if n, err := chain.InsertHeaderChain(headers); err != nil {
+		t.Fatalf("failed to insert header %d: %v", n, err)
+	}
 	if n, err := chain.InsertReceiptChain(blocks, receipts, ancientLimit); err != nil {
 		t.Fatalf("failed to insert receipt %d: %v", n, err)
+	}
+	headers = make([]*types.Header, len(chainA))
+	for i, chainA := range chainA {
+		headers[i] = chainA.Header()
+	}
+	if n, err := chain.InsertHeaderChain(headers); err != nil {
+		t.Fatalf("failed to insert header %d: %v", n, err)
 	}
 	if n, err := chain.InsertReceiptChain(chainA, receiptsA, ancientLimit); err != nil {
 		t.Fatalf("failed to insert receipt %d: %v", n, err)
@@ -4268,6 +4280,13 @@ func testChainReorgSnapSync(t *testing.T, ancientLimit uint64) {
 	if ancestor < ancientLimit {
 		rawdb.WriteLastPivotNumber(db, ancestor)
 		chain.SetHead(ancestor)
+	}
+	headers = make([]*types.Header, len(chainB))
+	for i, chainB := range chainB {
+		headers[i] = chainB.Header()
+	}
+	if n, err := chain.InsertHeaderChain(headers); err != nil {
+		t.Fatalf("failed to insert header %d: %v", n, err)
 	}
 	if n, err := chain.InsertReceiptChain(chainB, receiptsB, ancientLimit); err != nil {
 		t.Fatalf("failed to insert receipt %d: %v", n, err)
@@ -4308,8 +4327,6 @@ func testChainReorgSnapSync(t *testing.T, ancientLimit uint64) {
 // chain cutoff point. In this case the chain segment before the cutoff should
 // be persisted without the receipts and bodies; chain after should be persisted
 // normally.
-// NOTE: This is a testing about an unused method. The proposal needs further
-// investigation, for now, we leave it as it is.
 func TestInsertChainWithCutoff(t *testing.T) {
 	const chainLength = 64
 
@@ -4388,6 +4405,13 @@ func testInsertChainWithCutoff(t *testing.T, cutoff uint64, ancientLimit uint64,
 	}
 	if n, err := chain.InsertHeadersBeforeCutoff(headersBefore); err != nil {
 		t.Fatalf("failed to insert headers before cutoff %d: %v", n, err)
+	}
+	headers := make([]*types.Header, len(blocks))
+	for i, block := range blocks {
+		headers[i] = block.Header()
+	}
+	if n, err := chain.InsertHeaderChain(headers); err != nil {
+		t.Fatalf("failed to insert header %d: %v", n, err)
 	}
 	if n, err := chain.InsertReceiptChain(blocksAfter, receiptsAfter, ancientLimit); err != nil {
 		t.Fatalf("failed to insert receipt %d: %v", n, err)
