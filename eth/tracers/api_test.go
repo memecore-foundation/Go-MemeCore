@@ -274,7 +274,7 @@ func TestStateHooks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to trace call: %v", err)
 	}
-	expected := `{"Balance":{"0x00000000000000000000000000000000deadbeef":"0x3e8","0x71562b71999873db5b286df957af199ec94617f7":"0xde0975924ed6f90"},"Nonce":{"0x71562b71999873db5b286df957af199ec94617f7":"0x3"},"Storage":{"0x00000000000000000000000000000000deadbeef":{"0x0000000000000000000000000000000000000000000000000000000000000000":"0x000000000000000000000000000000000000000000000000000000000000002a"}}}`
+	expected := `{"Balance":{"0x00000000000000000000000000000000deadbeef":"0x3e8","0x71562b71999873db5b286df957af199ec94617f7":"0xd00e4891a8a7c18"},"Nonce":{"0x71562b71999873db5b286df957af199ec94617f7":"0x3"},"Storage":{"0x00000000000000000000000000000000deadbeef":{"0x0000000000000000000000000000000000000000000000000000000000000000":"0x000000000000000000000000000000000000000000000000000000000000002a"}}}`
 	if expected != fmt.Sprintf("%s", res) {
 		t.Fatalf("unexpected trace result: have %s want %s", res, expected)
 	}
@@ -1062,9 +1062,9 @@ func TestTraceChain(t *testing.T) {
 	genesis := &core.Genesis{
 		Config: params.TestChainConfig,
 		Alloc: types.GenesisAlloc{
-			accounts[0].addr: {Balance: big.NewInt(params.Ether)},
-			accounts[1].addr: {Balance: big.NewInt(params.Ether)},
-			accounts[2].addr: {Balance: big.NewInt(params.Ether)},
+			accounts[0].addr: {Balance: big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(1000000000000000000))},
+			accounts[1].addr: {Balance: big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(1000000000000000000))},
+			accounts[2].addr: {Balance: big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(1000000000000000000))},
 		},
 	}
 	genBlocks := 50
@@ -1225,7 +1225,7 @@ func TestStandardTraceBlockToFile(t *testing.T) {
 		// A sender who makes transactions, has some funds
 		key, _  = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		address = crypto.PubkeyToAddress(key.PublicKey)
-		funds   = big.NewInt(1000000000000000)
+		funds   = big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(1000000000000000000))
 
 		// first contract the sender transacts with
 		aa     = common.HexToAddress("0x7217d81b76bdd8707601e959454e3d776aee5f43")

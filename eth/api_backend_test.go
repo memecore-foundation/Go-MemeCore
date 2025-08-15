@@ -43,7 +43,7 @@ import (
 var (
 	key, _  = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	address = crypto.PubkeyToAddress(key.PublicKey)
-	funds   = big.NewInt(1000_000_000_000_000)
+	funds   = big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(1000000000000000000))
 	gspec   = &core.Genesis{
 		Config: params.MergedTestChainConfig,
 		Alloc: types.GenesisAlloc{
@@ -84,7 +84,7 @@ func initBackend(withLocal bool) *EthAPIBackend {
 
 func makeTx(nonce uint64, gasPrice *big.Int, amount *big.Int, key *ecdsa.PrivateKey) *types.Transaction {
 	if gasPrice == nil {
-		gasPrice = big.NewInt(params.GWei)
+		gasPrice = big.NewInt(params.InitialBaseFee + 1)
 	}
 	if amount == nil {
 		amount = big.NewInt(1000)
@@ -134,7 +134,7 @@ func TestSendTx(t *testing.T) {
 func testSendTx(t *testing.T, withLocal bool) {
 	b := initBackend(withLocal)
 
-	txA := pricedSetCodeTx(0, 250000, uint256.NewInt(params.GWei), uint256.NewInt(params.GWei), key, []unsignedAuth{
+	txA := pricedSetCodeTx(0, 250000, uint256.NewInt(params.InitialBaseFee+1), uint256.NewInt(params.GWei), key, []unsignedAuth{
 		{
 			nonce: 0,
 			key:   key,

@@ -356,6 +356,8 @@ func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
 			return err
 		}
 	}
+	h.chainSync.handlePeerEvent()
+
 	// Propagate existing transactions. new transactions appearing
 	// after this will be sent via broadcasts.
 	h.syncTransactions(peer)
@@ -498,7 +500,7 @@ func (h *handler) Start(maxPeers int) {
 
 func (h *handler) Stop() {
 	h.txsSub.Unsubscribe() // quits txBroadcastLoop
-	h.txFetcher.Stop()
+	h.minedBlockSub.Unsubscribe()
 	h.downloader.Terminate()
 
 	// Quit chainSync and txsync64.
