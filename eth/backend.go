@@ -684,6 +684,7 @@ func (s *Ethereum) Stop() error {
 	<-ch
 	s.filterMaps.Stop()
 	s.txPool.Close()
+	s.miner.Close()
 	s.blockchain.Stop()
 	s.engine.Close()
 
