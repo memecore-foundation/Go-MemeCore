@@ -900,9 +900,9 @@ func TestOpenHeap(t *testing.T) {
 		key2, addr2, key3, addr3 = key3, addr3, key2, addr2
 	}
 	var (
-		tx1 = makeTx(0, 1, 1000, 90, key1)
-		tx2 = makeTx(0, 1, 800, 70, key2)
-		tx3 = makeTx(0, 1, 1500, 110, key3)
+		tx1 = makeTx(0, 1, params.InitialBaseFee-50, 90, key1)
+		tx2 = makeTx(0, 1, params.InitialBaseFee-250, 70, key2)
+		tx3 = makeTx(0, 1, params.InitialBaseFee+450, 110, key3)
 
 		blob1, _ = rlp.EncodeToBytes(tx1)
 		blob2, _ = rlp.EncodeToBytes(tx2)
@@ -925,7 +925,7 @@ func TestOpenHeap(t *testing.T) {
 
 	chain := &testBlockChain{
 		config:  params.MainnetChainConfig,
-		basefee: uint256.NewInt(1050),
+		basefee: uint256.NewInt(params.InitialBaseFee),
 		blobfee: uint256.NewInt(105),
 		statedb: statedb,
 	}
@@ -1004,7 +1004,7 @@ func TestOpenCap(t *testing.T) {
 
 		chain := &testBlockChain{
 			config:  params.MainnetChainConfig,
-			basefee: uint256.NewInt(1050),
+			basefee: uint256.NewInt(params.InitialBaseFee),
 			blobfee: uint256.NewInt(105),
 			statedb: statedb,
 		}
@@ -1105,7 +1105,7 @@ func TestChangingSlotterSize(t *testing.T) {
 		}
 		chain := &testBlockChain{
 			config:  config,
-			basefee: uint256.NewInt(1050),
+			basefee: uint256.NewInt(params.InitialBaseFee),
 			blobfee: uint256.NewInt(105),
 			statedb: statedb,
 		}
@@ -1174,35 +1174,35 @@ func TestAdd(t *testing.T) {
 		// be rejected.
 		{
 			seeds: map[string]seed{
-				"alice":  {balance: 21100 + blobSize},
-				"bob":    {balance: 21100 + blobSize, nonce: 1},
-				"claire": {balance: 21100 + blobSize},
-				"dave":   {balance: 21100 + blobSize, nonce: 1},
+				"alice":  {balance: 21100*1500000000001 + blobSize},
+				"bob":    {balance: 21100*1500000000001 + blobSize, nonce: 1},
+				"claire": {balance: 21100*1500000000001 + blobSize},
+				"dave":   {balance: 21100*1500000000001 + blobSize, nonce: 1},
 			},
 			adds: []addtx{
 				{ // New account, no previous txs: accept nonce 0
 					from: "alice",
-					tx:   makeUnsignedTx(0, 1, 1, 1),
+					tx:   makeUnsignedTx(0, 1, 1500000000001, 1),
 					err:  nil,
 				},
 				{ // Old account, 1 tx in chain, 0 pending: accept nonce 1
 					from: "bob",
-					tx:   makeUnsignedTx(1, 1, 1, 1),
+					tx:   makeUnsignedTx(1, 1, 1500000000001, 1),
 					err:  nil,
 				},
 				{ // New account, no previous txs: reject nonce 1
 					from: "claire",
-					tx:   makeUnsignedTx(1, 1, 1, 1),
+					tx:   makeUnsignedTx(1, 1, 1500000000001, 1),
 					err:  core.ErrNonceTooHigh,
 				},
 				{ // Old account, 1 tx in chain, 0 pending: reject nonce 0
 					from: "dave",
-					tx:   makeUnsignedTx(0, 1, 1, 1),
+					tx:   makeUnsignedTx(0, 1, 1500000000001, 1),
 					err:  core.ErrNonceTooLow,
 				},
 				{ // Old account, 1 tx in chain, 0 pending: reject nonce 2
 					from: "dave",
-					tx:   makeUnsignedTx(2, 1, 1, 1),
+					tx:   makeUnsignedTx(2, 1, 1500000000001, 1),
 					err:  core.ErrNonceTooHigh,
 				},
 			},
@@ -1212,58 +1212,58 @@ func TestAdd(t *testing.T) {
 		{
 			seeds: map[string]seed{
 				"alice": {
-					balance: 1000000,
+					balance: 1500000000000000000,
 					txs: []*types.BlobTx{
-						makeUnsignedTxWithTestBlob(0, 1, 1, 1, 0),
+						makeUnsignedTxWithTestBlob(0, 1, 1500000000001, 1, 0),
 					},
 				},
 				"bob": {
-					balance: 1000000,
+					balance: 1500000000000000000,
 					nonce:   1,
 					txs: []*types.BlobTx{
-						makeUnsignedTxWithTestBlob(1, 1, 1, 1, 1),
+						makeUnsignedTxWithTestBlob(1, 1, 1500000000001, 1, 1),
 					},
 				},
 			},
 			adds: []addtx{
 				{ // New account, 1 tx pending: reject duplicate nonce 0
 					from: "alice",
-					tx:   makeUnsignedTxWithTestBlob(0, 1, 1, 1, 0),
+					tx:   makeUnsignedTxWithTestBlob(0, 1, 1500000000001, 1, 0),
 					err:  txpool.ErrAlreadyKnown,
 				},
 				{ // New account, 1 tx pending: reject replacement nonce 0 (ignore price for now)
 					from: "alice",
-					tx:   makeUnsignedTx(0, 1, 1, 2),
+					tx:   makeUnsignedTx(0, 1, 1500000000001, 2),
 					err:  txpool.ErrReplaceUnderpriced,
 				},
 				{ // New account, 1 tx pending: accept nonce 1
 					from: "alice",
-					tx:   makeUnsignedTx(1, 1, 1, 1),
+					tx:   makeUnsignedTx(1, 1, 1500000000001, 1),
 					err:  nil,
 				},
 				{ // New account, 2 txs pending: reject nonce 3
 					from: "alice",
-					tx:   makeUnsignedTx(3, 1, 1, 1),
+					tx:   makeUnsignedTx(3, 1, 1500000000001, 1),
 					err:  core.ErrNonceTooHigh,
 				},
 				{ // New account, 2 txs pending: accept nonce 2
 					from: "alice",
-					tx:   makeUnsignedTx(2, 1, 1, 1),
+					tx:   makeUnsignedTx(2, 1, 1500000000001, 1),
 					err:  nil,
 				},
 				{ // New account, 3 txs pending: accept nonce 3 now
 					from: "alice",
-					tx:   makeUnsignedTx(3, 1, 1, 1),
+					tx:   makeUnsignedTx(3, 1, 1500000000001, 1),
 					err:  nil,
 				},
 				{ // Old account, 1 tx in chain, 1 tx pending: reject duplicate nonce 1
 					from: "bob",
-					tx:   makeUnsignedTxWithTestBlob(1, 1, 1, 1, 1),
+					tx:   makeUnsignedTxWithTestBlob(1, 1, 1500000000001, 1, 1),
 					err:  txpool.ErrAlreadyKnown,
 				},
 				{ // Old account, 1 tx in chain, 1 tx pending: accept nonce 2 (ignore price for now)
 					from: "bob",
-					tx:   makeUnsignedTx(2, 1, 1, 1),
+					tx:   makeUnsignedTx(2, 1, 1500000000001, 1),
 					err:  nil,
 				},
 			},
@@ -1272,22 +1272,22 @@ func TestAdd(t *testing.T) {
 		// expenditure doesn't overflow the account balance
 		{
 			seeds: map[string]seed{
-				"alice": {balance: 63299 + 3*blobSize}, // 3 tx - 1 wei
+				"alice": {balance: 60000*1500000000001 + 3*blobSize}, // 3 tx - 1 wei
 			},
 			adds: []addtx{
 				{ // New account, no previous txs: accept nonce 0 with 21100 wei spend
 					from: "alice",
-					tx:   makeUnsignedTx(0, 1, 1, 1),
+					tx:   makeUnsignedTx(0, 1, 1500000000001, 1),
 					err:  nil,
 				},
 				{ // New account, 1 pooled tx with 21100 wei spent: accept nonce 1 with 21100 wei spend
 					from: "alice",
-					tx:   makeUnsignedTx(1, 1, 1, 1),
+					tx:   makeUnsignedTx(1, 1, 1500000000001, 1),
 					err:  nil,
 				},
 				{ // New account, 2 pooled tx with 42200 wei spent: reject nonce 2 with 21100 wei spend (1 wei overflow)
 					from: "alice",
-					tx:   makeUnsignedTx(2, 1, 1, 1),
+					tx:   makeUnsignedTx(2, 1, 1500000000001, 1),
 					err:  core.ErrInsufficientFunds,
 				},
 			},
@@ -1296,97 +1296,97 @@ func TestAdd(t *testing.T) {
 		// from the same account doesn't overflow the pool limits
 		{
 			seeds: map[string]seed{
-				"alice": {balance: 10000000},
+				"alice": {balance: 15000000000000000000},
 			},
 			adds: []addtx{
 				{ // New account, no previous txs, 16 slots left: accept nonce 0
 					from: "alice",
-					tx:   makeUnsignedTx(0, 1, 1, 1),
+					tx:   makeUnsignedTx(0, 1, 1500000000001, 1),
 					err:  nil,
 				},
 				{ // New account, 1 pooled tx, 15 slots left: accept nonce 1
 					from: "alice",
-					tx:   makeUnsignedTx(1, 1, 1, 1),
+					tx:   makeUnsignedTx(1, 1, 1500000000001, 1),
 					err:  nil,
 				},
 				{ // New account, 2 pooled tx, 14 slots left: accept nonce 2
 					from: "alice",
-					tx:   makeUnsignedTx(2, 1, 1, 1),
+					tx:   makeUnsignedTx(2, 1, 1500000000001, 1),
 					err:  nil,
 				},
 				{ // New account, 3 pooled tx, 13 slots left: accept nonce 3
 					from: "alice",
-					tx:   makeUnsignedTx(3, 1, 1, 1),
+					tx:   makeUnsignedTx(3, 1, 1500000000001, 1),
 					err:  nil,
 				},
 				{ // New account, 4 pooled tx, 12 slots left: accept nonce 4
 					from: "alice",
-					tx:   makeUnsignedTx(4, 1, 1, 1),
+					tx:   makeUnsignedTx(4, 1, 1500000000001, 1),
 					err:  nil,
 				},
 				{ // New account, 5 pooled tx, 11 slots left: accept nonce 5
 					from: "alice",
-					tx:   makeUnsignedTx(5, 1, 1, 1),
+					tx:   makeUnsignedTx(5, 1, 1500000000001, 1),
 					err:  nil,
 				},
 				{ // New account, 6 pooled tx, 10 slots left: accept nonce 6
 					from: "alice",
-					tx:   makeUnsignedTx(6, 1, 1, 1),
+					tx:   makeUnsignedTx(6, 1, 1500000000001, 1),
 					err:  nil,
 				},
 				{ // New account, 7 pooled tx, 9 slots left: accept nonce 7
 					from: "alice",
-					tx:   makeUnsignedTx(7, 1, 1, 1),
+					tx:   makeUnsignedTx(7, 1, 1500000000001, 1),
 					err:  nil,
 				},
 				{ // New account, 8 pooled tx, 8 slots left: accept nonce 8
 					from: "alice",
-					tx:   makeUnsignedTx(8, 1, 1, 1),
+					tx:   makeUnsignedTx(8, 1, 1500000000001, 1),
 					err:  nil,
 				},
 				{ // New account, 9 pooled tx, 7 slots left: accept nonce 9
 					from: "alice",
-					tx:   makeUnsignedTx(9, 1, 1, 1),
+					tx:   makeUnsignedTx(9, 1, 1500000000001, 1),
 					err:  nil,
 				},
 				{ // New account, 10 pooled tx, 6 slots left: accept nonce 10
 					from: "alice",
-					tx:   makeUnsignedTx(10, 1, 1, 1),
+					tx:   makeUnsignedTx(10, 1, 1500000000001, 1),
 					err:  nil,
 				},
 				{ // New account, 11 pooled tx, 5 slots left: accept nonce 11
 					from: "alice",
-					tx:   makeUnsignedTx(11, 1, 1, 1),
+					tx:   makeUnsignedTx(11, 1, 1500000000001, 1),
 					err:  nil,
 				},
 				{ // New account, 12 pooled tx, 4 slots left: accept nonce 12
 					from: "alice",
-					tx:   makeUnsignedTx(12, 1, 1, 1),
+					tx:   makeUnsignedTx(12, 1, 1500000000001, 1),
 					err:  nil,
 				},
 				{ // New account, 13 pooled tx, 3 slots left: accept nonce 13
 					from: "alice",
-					tx:   makeUnsignedTx(13, 1, 1, 1),
+					tx:   makeUnsignedTx(13, 1, 1500000000001, 1),
 					err:  nil,
 				},
 				{ // New account, 14 pooled tx, 2 slots left: accept nonce 14
 					from: "alice",
-					tx:   makeUnsignedTx(14, 1, 1, 1),
+					tx:   makeUnsignedTx(14, 1, 1500000000001, 1),
 					err:  nil,
 				},
 				{ // New account, 15 pooled tx, 1 slots left: accept nonce 15
 					from: "alice",
-					tx:   makeUnsignedTx(15, 1, 1, 1),
+					tx:   makeUnsignedTx(15, 1, 1500000000001, 1),
 					err:  nil,
 				},
 				{ // New account, 16 pooled tx, 0 slots left: accept nonce 15 replacement
 					from: "alice",
-					tx:   makeUnsignedTx(15, 10, 10, 10),
+					tx:   makeUnsignedTx(15, 10, 3000000000010, 10),
 					err:  nil,
 				},
 				{ // New account, 16 pooled tx, 0 slots left: reject nonce 16 with overcap
 					from: "alice",
-					tx:   makeUnsignedTx(16, 1, 1, 1),
+					tx:   makeUnsignedTx(16, 1, 1500000000001, 1),
 					err:  txpool.ErrAccountLimitExceeded,
 				},
 			},
@@ -1396,47 +1396,47 @@ func TestAdd(t *testing.T) {
 		// prices are bumped all around (no percentage check here).
 		{
 			seeds: map[string]seed{
-				"alice": {balance: 2*100 + 5*21000 + 3*blobSize},
+				"alice": {balance: (2*100+5*21000)*1500000000001 + 3*blobSize},
 			},
 			adds: []addtx{
 				{ // New account, no previous txs: reject nonce 0 with 341172 wei spend
 					from: "alice",
-					tx:   makeUnsignedTx(0, 1, 20, 1),
+					tx:   makeUnsignedTx(0, 1, 150000000000020, 1),
 					err:  core.ErrInsufficientFunds,
 				},
 				{ // New account, no previous txs: accept nonce 0 with 173172 wei spend
 					from: "alice",
-					tx:   makeUnsignedTx(0, 1, 2, 1),
+					tx:   makeUnsignedTx(0, 1, 1500000000002, 1),
 					err:  nil,
 				},
 				{ // New account, 1 pooled tx with 173172 wei spent: accept nonce 1 with 152172 wei spend
 					from: "alice",
-					tx:   makeUnsignedTx(1, 1, 1, 1),
+					tx:   makeUnsignedTx(1, 1, 1500000000001, 1),
 					err:  nil,
 				},
 				{ // New account, 2 pooled tx with 325344 wei spent: reject nonce 0 with 599684 wei spend (173072 extra) (would overflow balance at nonce 1)
 					from: "alice",
-					tx:   makeUnsignedTx(0, 2, 5, 2),
+					tx:   makeUnsignedTx(0, 2, 150000000000005, 2),
 					err:  core.ErrInsufficientFunds,
 				},
 				{ // New account, 2 pooled tx with 325344 wei spent: reject nonce 0 with no-gastip-bump
 					from: "alice",
-					tx:   makeUnsignedTx(0, 1, 3, 2),
+					tx:   makeUnsignedTx(0, 1, 3000000000003, 2),
 					err:  txpool.ErrReplaceUnderpriced,
 				},
 				{ // New account, 2 pooled tx with 325344 wei spent: reject nonce 0 with no-gascap-bump
 					from: "alice",
-					tx:   makeUnsignedTx(0, 2, 2, 2),
+					tx:   makeUnsignedTx(0, 2, 3000000000002, 2),
 					err:  txpool.ErrReplaceUnderpriced,
 				},
 				{ // New account, 2 pooled tx with 325344 wei spent: reject nonce 0 with no-blobcap-bump
 					from: "alice",
-					tx:   makeUnsignedTx(0, 2, 4, 1),
+					tx:   makeUnsignedTx(0, 2, 3000000000004, 1),
 					err:  txpool.ErrReplaceUnderpriced,
 				},
 				{ // New account, 2 pooled tx with 325344 wei spent: accept nonce 0 with 84100 wei spend (42000 extra)
 					from: "alice",
-					tx:   makeUnsignedTx(0, 2, 4, 2),
+					tx:   makeUnsignedTx(0, 2, 3000000000004, 2),
 					err:  nil,
 				},
 			},
@@ -1445,32 +1445,32 @@ func TestAdd(t *testing.T) {
 		// the new prices are bumped by a sufficient amount.
 		{
 			seeds: map[string]seed{
-				"alice": {balance: 100 + 8*21000 + 4*blobSize},
+				"alice": {balance: (100+8*21000)*1500000000001 + 4*blobSize*1500},
 			},
 			adds: []addtx{
 				{ // New account, no previous txs: accept nonce 0
 					from: "alice",
-					tx:   makeUnsignedTx(0, 2, 4, 2),
+					tx:   makeUnsignedTx(0, 2, 1500000000004, 2),
 					err:  nil,
 				},
 				{ // New account, 1 pooled tx: reject nonce 0 with low-gastip-bump
 					from: "alice",
-					tx:   makeUnsignedTx(0, 3, 8, 4),
+					tx:   makeUnsignedTx(0, 3, 3000000000008, 4),
 					err:  txpool.ErrReplaceUnderpriced,
 				},
 				{ // New account, 1 pooled tx: reject nonce 0 with low-gascap-bump
 					from: "alice",
-					tx:   makeUnsignedTx(0, 4, 6, 4),
+					tx:   makeUnsignedTx(0, 4, 1500000000006, 4),
 					err:  txpool.ErrReplaceUnderpriced,
 				},
 				{ // New account, 1 pooled tx: reject nonce 0 with low-blobcap-bump
 					from: "alice",
-					tx:   makeUnsignedTx(0, 4, 8, 3),
+					tx:   makeUnsignedTx(0, 4, 3000000000008, 3),
 					err:  txpool.ErrReplaceUnderpriced,
 				},
 				{ // New account, 1 pooled tx: accept nonce 0 with all-bumps
 					from: "alice",
-					tx:   makeUnsignedTx(0, 4, 8, 4),
+					tx:   makeUnsignedTx(0, 4, 3000000000008, 4),
 					err:  nil,
 				},
 			},
@@ -1478,17 +1478,17 @@ func TestAdd(t *testing.T) {
 		// Blob transactions that don't meet the min blob gas price should be rejected
 		{
 			seeds: map[string]seed{
-				"alice": {balance: 10000000},
+				"alice": {balance: 15000000000000000000},
 			},
 			adds: []addtx{
 				{ // New account, no previous txs, nonce 0, but blob fee cap too low
 					from: "alice",
-					tx:   makeUnsignedTx(0, 1, 1, 0),
+					tx:   makeUnsignedTx(0, 1, 1500000000001, 0),
 					err:  txpool.ErrTxGasPriceTooLow,
 				},
 				{ // Same as above but blob fee cap equals minimum, should be accepted
 					from: "alice",
-					tx:   makeUnsignedTx(0, 1, 1, params.BlobTxMinBlobGasprice),
+					tx:   makeUnsignedTx(0, 1, 1500000000001, params.BlobTxMinBlobGasprice),
 					err:  nil,
 				},
 			},
@@ -1499,16 +1499,16 @@ func TestAdd(t *testing.T) {
 		{
 			seeds: map[string]seed{
 				"alice": {
-					balance: 1000000,
+					balance: 1500000000000000000,
 					txs: []*types.BlobTx{
-						makeUnsignedTx(0, 1, 1, 1),
+						makeUnsignedTx(0, 1, 1500000000001, 1),
 					},
 				},
 			},
 			block: []addtx{
 				{
 					from: "alice",
-					tx:   makeUnsignedTx(0, 1, 1, 1),
+					tx:   makeUnsignedTx(0, 1, 1500000000001, 1),
 				},
 			},
 		},
