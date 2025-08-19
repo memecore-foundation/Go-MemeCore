@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"reflect"
 	"testing"
 	"time"
 
@@ -60,7 +59,7 @@ var (
 var (
 	testKey, _         = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	testAddr           = crypto.PubkeyToAddress(testKey.PublicKey)
-	testBalance        = big.NewInt(2e15)
+	testBalance        = big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(1000000000000000000))
 	revertContractAddr = common.HexToAddress("290f1b36649a61e369c6276f6d29463335b4400c")
 	revertCode         = common.FromHex("7f08c379a0000000000000000000000000000000000000000000000000000000006000526020600452600a6024527f75736572206572726f7200000000000000000000000000000000000000000000604452604e6000fd")
 )
@@ -397,7 +396,7 @@ func testStatusFunctions(t *testing.T, client *rpc.Client) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if gasPrice.Cmp(big.NewInt(1000000000)) != 0 {
+	if gasPrice.Cmp(big.NewInt(1501000000000)) != 0 {
 		t.Fatalf("unexpected gas price: %v", gasPrice)
 	}
 
@@ -406,7 +405,7 @@ func testStatusFunctions(t *testing.T, client *rpc.Client) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if gasTipCap.Cmp(big.NewInt(234375000)) != 0 {
+	if gasTipCap.Cmp(big.NewInt(1000000000)) != 0 {
 		t.Fatalf("unexpected gas tip cap: %v", gasTipCap)
 	}
 
@@ -428,19 +427,49 @@ func testStatusFunctions(t *testing.T, client *rpc.Client) {
 		OldestBlock: big.NewInt(2),
 		Reward: [][]*big.Int{
 			{
-				big.NewInt(234375000),
-				big.NewInt(234375000),
+				big.NewInt(0),
+				big.NewInt(0),
 			},
 		},
 		BaseFee: []*big.Int{
-			big.NewInt(765625000),
-			big.NewInt(671627818),
+			big.NewInt(1500000000000),
+			big.NewInt(1500000000000),
 		},
 		GasUsedRatio: []float64{0.008912678667376286},
 	}
-	if !reflect.DeepEqual(history, want) {
+	if !cmpFeeHistory(history, want) {
 		t.Fatalf("FeeHistory result doesn't match expected: (got: %v, want: %v)", history, want)
 	}
+}
+
+func cmpFeeHistory(a, b *ethereum.FeeHistory) bool {
+	if a.OldestBlock.Cmp(b.OldestBlock) != 0 {
+		return false
+	}
+	if len(a.Reward) != len(b.Reward) || len(a.BaseFee) != len(b.BaseFee) || len(a.GasUsedRatio) != len(b.GasUsedRatio) {
+		return false
+	}
+	for i := range a.Reward {
+		if len(a.Reward[i]) != len(b.Reward[i]) {
+			return false
+		}
+		for j := range a.Reward[i] {
+			if a.Reward[i][j].Cmp(b.Reward[i][j]) != 0 {
+				return false
+			}
+		}
+	}
+	for i := range a.BaseFee {
+		if a.BaseFee[i].Cmp(b.BaseFee[i]) != 0 {
+			return false
+		}
+	}
+	for i := range a.GasUsedRatio {
+		if a.GasUsedRatio[i] != b.GasUsedRatio[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func testCallContractAtHash(t *testing.T, client *rpc.Client) {

@@ -47,7 +47,7 @@ var (
 func simTestBackend(testAddr common.Address) *Backend {
 	return NewBackend(
 		types.GenesisAlloc{
-			testAddr: {Balance: big.NewInt(10000000000000000)},
+			testAddr: {Balance: big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(1000000000000000000))},
 		},
 	)
 }

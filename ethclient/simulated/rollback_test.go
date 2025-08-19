@@ -31,8 +31,8 @@ import (
 func TestTransactionRollbackBehavior(t *testing.T) {
 	sim := NewBackend(
 		types.GenesisAlloc{
-			testAddr:  {Balance: big.NewInt(10000000000000000)},
-			testAddr2: {Balance: big.NewInt(10000000000000000)},
+			testAddr:  {Balance: big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(1000000000000000000))},
+			testAddr2: {Balance: big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(1000000000000000000))},
 		},
 	)
 	defer sim.Close()

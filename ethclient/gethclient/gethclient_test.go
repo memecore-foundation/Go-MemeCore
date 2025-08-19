@@ -46,7 +46,7 @@ var (
 	testEmpty    = common.HexToAddress("0xeeee")
 	testSlot     = common.HexToHash("0xdeadbeef")
 	testValue    = crypto.Keccak256Hash(testSlot[:])
-	testBalance  = big.NewInt(2e15)
+	testBalance  = big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(1000000000000000000))
 )
 
 func newTestBackend(t *testing.T) (*node.Node, []*types.Block) {
@@ -178,7 +178,7 @@ func testAccessList(t *testing.T, client *rpc.Client) {
 				From:     testAddr,
 				To:       &common.Address{},
 				Gas:      21000,
-				GasPrice: big.NewInt(875000000),
+				GasPrice: big.NewInt(1500000000000),
 				Value:    big.NewInt(1),
 			},
 			wantGas: 21000,
@@ -189,7 +189,7 @@ func testAccessList(t *testing.T, client *rpc.Client) {
 				From:     testAddr,
 				To:       nil,
 				Gas:      100000,
-				GasPrice: big.NewInt(1000000000),
+				GasPrice: big.NewInt(1500000000000),
 				Value:    big.NewInt(1),
 				Data:     common.FromHex("0x608060806080608155fd"),
 			},
@@ -398,7 +398,7 @@ func testSubscribePendingTransactions(t *testing.T, client *rpc.Client) {
 		t.Fatal(err)
 	}
 	// Create transaction
-	tx := types.NewTransaction(0, common.Address{1}, big.NewInt(1), 22000, big.NewInt(1), nil)
+	tx := types.NewTransaction(0, common.Address{1}, big.NewInt(1), 22000, big.NewInt(1500000000000), nil)
 	signer := types.LatestSignerForChainID(chainID)
 	signature, err := crypto.Sign(signer.Hash(tx).Bytes(), testKey)
 	if err != nil {
@@ -432,7 +432,7 @@ func testSubscribeFullPendingTransactions(t *testing.T, client *rpc.Client) {
 		t.Fatal(err)
 	}
 	// Create transaction
-	tx := types.NewTransaction(1, common.Address{1}, big.NewInt(1), 22000, big.NewInt(1), nil)
+	tx := types.NewTransaction(1, common.Address{1}, big.NewInt(1), 22000, big.NewInt(1500000000000), nil)
 	signer := types.LatestSignerForChainID(chainID)
 	signature, err := crypto.Sign(signer.Hash(tx).Bytes(), testKey)
 	if err != nil {
@@ -460,7 +460,7 @@ func testCallContract(t *testing.T, client *rpc.Client) {
 		From:     testAddr,
 		To:       &common.Address{},
 		Gas:      21000,
-		GasPrice: big.NewInt(1000000000),
+		GasPrice: big.NewInt(1500000000000),
 		Value:    big.NewInt(1),
 	}
 	// CallContract without override
@@ -570,7 +570,7 @@ func testCallContractWithBlockOverrides(t *testing.T, client *rpc.Client) {
 		From:     testAddr,
 		To:       &common.Address{},
 		Gas:      50000,
-		GasPrice: big.NewInt(1000000000),
+		GasPrice: big.NewInt(1500000000000),
 		Value:    big.NewInt(1),
 	}
 	override := OverrideAccount{
