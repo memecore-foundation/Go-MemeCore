@@ -50,7 +50,7 @@ func TestHistoryImportAndExport(t *testing.T) {
 		address = crypto.PubkeyToAddress(key.PublicKey)
 		genesis = &core.Genesis{
 			Config: params.TestChainConfig,
-			Alloc:  types.GenesisAlloc{address: {Balance: big.NewInt(1000000000000000000)}},
+			Alloc:  types.GenesisAlloc{address: {Balance: big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(1000000000000000000))}},
 		}
 		signer = types.LatestSigner(genesis.Config)
 	)
@@ -102,7 +102,7 @@ func TestHistoryImportAndExport(t *testing.T) {
 	checksums := strings.Split(string(b), "\n")
 
 	// Verify each Era.
-	entries, _ := era.ReadDir(dir, "mainnet")
+	entries, _ := era.ReadDir(dir, "ethereum")
 	for i, filename := range entries {
 		func() {
 			f, err := os.Open(filepath.Join(dir, filename))
@@ -171,7 +171,7 @@ func TestHistoryImportAndExport(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to initialize chain: %v", err)
 	}
-	if err := ImportHistory(imported, dir, "mainnet"); err != nil {
+	if err := ImportHistory(imported, dir, "ethereum"); err != nil {
 		t.Fatalf("failed to import chain: %v", err)
 	}
 	if have, want := imported.CurrentHeader(), chain.CurrentHeader(); have.Hash() != want.Hash() {
