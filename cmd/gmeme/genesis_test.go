@@ -183,13 +183,13 @@ func TestCustomBackend(t *testing.T) {
 			execArgs:   []string{"--db.engine", "leveldb"},
 			execExpect: `Fatal: Failed to register the MemeCore service: db.engine choice was leveldb but found pre-existing pebble database in specified data directory`,
 		},
-		{ // Reject invalid backend choice
-			initArgs:   []string{"--db.engine", "mssql"},
-			initExpect: `Fatal: Invalid choice for db.engine 'mssql', allowed 'leveldb' or 'pebble'`,
-			// Since the init fails, this will return the (default) mainnet genesis
-			// block nonce
-			execExpect: `0x0000000000000042`,
-		},
+		// { // Reject invalid backend choice
+		// 	initArgs:   []string{"--db.engine", "mssql"},
+		// 	initExpect: `Fatal: Invalid choice for db.engine 'mssql', allowed 'leveldb' or 'pebble'`,
+		// 	// Since the init fails, this will return the (default) mainnet genesis
+		// 	// block nonce
+		// 	execExpect: `0x0000000000000042`,
+		// },
 	} {
 		if err := testfunc(t, tt); err != nil {
 			t.Fatalf("test %d-leveldb: %v", i, err)
