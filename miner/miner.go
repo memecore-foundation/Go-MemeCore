@@ -187,22 +187,7 @@ func (miner *Miner) Mining() bool {
 // and statedb. The returned values can be nil in case the pending block is
 // not initialized.
 func (miner *Miner) Pending() (*types.Block, types.Receipts, *state.StateDB) {
-	if miner.worker.isRunning() {
-		pendingBlock, pendingReceipts, pendingState := miner.worker.pending()
-		if pendingState != nil && pendingBlock != nil {
-			return pendingBlock, pendingReceipts, pendingState
-		}
-	}
-	// fallback to latest block
-	block := miner.worker.chain.CurrentBlock()
-	if block == nil {
-		return nil, nil, nil
-	}
-	stateDb, err := miner.worker.chain.StateAt(block.Root)
-	if err != nil {
-		return nil, nil, nil
-	}
-	return miner.worker.chain.GetBlockByHash(block.Hash()), miner.worker.chain.GetReceiptsByHash(block.Hash()), stateDb
+	return miner.worker.pending()
 }
 
 // SetExtra sets the content used to initialize the block extra field.
