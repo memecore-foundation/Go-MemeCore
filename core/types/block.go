@@ -178,6 +178,11 @@ func (h *Header) EmptyReceipts() bool {
 	return h.ReceiptHash == EmptyReceiptsHash
 }
 
+// EmptyWithdrawalsHash returns true if the WithdrawalsHash is EmptyWithdrawalsHash.
+func (h *Header) EmptyWithdrawalsHash() bool {
+	return h.WithdrawalsHash != nil && *h.WithdrawalsHash == EmptyWithdrawalsHash
+}
+
 // Body is a simple (mutable, non-safe) data container for storing and moving
 // a block's data contents (transactions and uncles) together.
 type Body struct {
@@ -510,6 +515,21 @@ func (b *Block) WithBody(body Body) *Block {
 	}
 	for i := range body.Uncles {
 		block.uncles[i] = CopyHeader(body.Uncles[i])
+	}
+	return block
+}
+
+// WithWithdrawals returns a copy of the block containing the given withdrawals.
+func (b *Block) WithWithdrawals(withdrawals []*Withdrawal) *Block {
+	block := &Block{
+		header:       b.header,
+		transactions: b.transactions,
+		uncles:       b.uncles,
+		witness:      b.witness,
+	}
+	if withdrawals != nil {
+		block.withdrawals = make([]*Withdrawal, len(withdrawals))
+		copy(block.withdrawals, withdrawals)
 	}
 	return block
 }
