@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/history"
 	"github.com/ethereum/go-ethereum/core/txpool/blobpool"
 	"github.com/ethereum/go-ethereum/core/txpool/legacypool"
+	"github.com/ethereum/go-ethereum/eth/downloader"
 	"github.com/ethereum/go-ethereum/eth/gasprice"
 	"github.com/ethereum/go-ethereum/miner"
 )
@@ -19,7 +20,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	type Config struct {
 		Genesis                 *core.Genesis `toml:",omitempty"`
 		NetworkId               uint64
-		SyncMode                SyncMode
+		SyncMode                downloader.SyncMode
 		HistoryMode             history.HistoryMode
 		EthDiscoveryURLs        []string
 		SnapDiscoveryURLs       []string
@@ -103,7 +104,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	type Config struct {
 		Genesis                 *core.Genesis `toml:",omitempty"`
 		NetworkId               *uint64
-		SyncMode                *SyncMode
+		SyncMode                *downloader.SyncMode
 		HistoryMode             *history.HistoryMode
 		EthDiscoveryURLs        []string
 		SnapDiscoveryURLs       []string

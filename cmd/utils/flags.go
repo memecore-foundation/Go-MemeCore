@@ -52,6 +52,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto/kzg4844"
 	"github.com/ethereum/go-ethereum/eth"
 	"github.com/ethereum/go-ethereum/eth/catalyst"
+	"github.com/ethereum/go-ethereum/eth/downloader"
 	"github.com/ethereum/go-ethereum/eth/ethconfig"
 	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/eth/gasprice"
@@ -1699,7 +1700,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	godebug.SetGCPercent(int(gogc))
 
 	if ctx.IsSet(SyncTargetFlag.Name) {
-		cfg.SyncMode = ethconfig.FullSync // dev sync target forces full sync
+		cfg.SyncMode = downloader.FullSync // dev sync target forces full sync
 	} else if ctx.IsSet(SyncModeFlag.Name) {
 		value := ctx.String(SyncModeFlag.Name)
 		if err = cfg.SyncMode.UnmarshalText([]byte(value)); err != nil {
@@ -1792,7 +1793,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	}
 	if !ctx.Bool(SnapshotFlag.Name) || cfg.SnapshotCache == 0 {
 		// If snap-sync is requested, this flag is also required
-		if cfg.SyncMode == ethconfig.SnapSync {
+		if cfg.SyncMode == downloader.SnapSync {
 			if !ctx.Bool(SnapshotFlag.Name) {
 				log.Warn("Snap sync requested, enabling --snapshot")
 			}
@@ -1858,7 +1859,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 		if !ctx.IsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 1337
 		}
-		cfg.SyncMode = ethconfig.FullSync
+		cfg.SyncMode = downloader.FullSync
 		// Create new developer account or reuse existing one
 		var (
 			developer  accounts.Account
