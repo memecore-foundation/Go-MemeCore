@@ -628,6 +628,14 @@ web3._extend({
 	property: 'miner',
 	methods: [
 		new web3._extend.Method({
+			name: 'start',
+			call: 'miner_start',
+		}),
+		new web3._extend.Method({
+			name: 'stop',
+			call: 'miner_stop'
+		}),
+		new web3._extend.Method({
 			name: 'setExtra',
 			call: 'miner_setExtra',
 			params: 1
