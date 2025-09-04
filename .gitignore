@@ -4,16 +4,11 @@
 # or operating system, you probably want to add a global ignore instead:
 #   git config --global core.excludesfile ~/.gitignore_global
 
-/tmp
 */**/*un~
 */**/*.test
 *un~
 .DS_Store
 */**/.DS_Store
-.ethtest
-*/**/*tx_database*
-*/**/*dapps*
-build/_vendor/pkg
 
 #*
 .#*
@@ -26,7 +21,15 @@ build/_vendor/pkg
 /build/_workspace/
 /build/cache/
 /build/bin/
-/geth*.zip
+/gmeme*.zip
+
+# used by the build/ci.go archive + upload tool
+/gmeme*.tar.gz
+/gmeme*.tar.gz.sig
+/gmeme*.tar.gz.asc
+/gmeme*.zip.sig
+/gmeme*.zip.asc
+
 
 # travis
 profile.tmp
@@ -34,19 +37,26 @@ profile.cov
 
 # IdeaIDE
 .idea
+*.iml
 
 # VS Code
 .vscode
 
-# dashboard
-/dashboard/assets/flow-typed
-/dashboard/assets/node_modules
-/dashboard/assets/stats.json
-/dashboard/assets/bundle.js
-/dashboard/assets/bundle.js.map
-/dashboard/assets/package-lock.json
-
-**/yarn-error.log
-logs/
-
 tests/spec-tests/
+
+# binaries
+cmd/abidump/abidump
+cmd/abigen/abigen
+cmd/blsync/blsync
+cmd/clef/clef
+cmd/devp2p/devp2p
+cmd/era/era
+cmd/ethkey/ethkey
+cmd/evm/evm
+cmd/gmeme/gmeme
+cmd/rlpdump/rlpdump
+cmd/workload/workload
+
+# privnet
+/privnet/**/*.log
+/privnet/**/gmeme/

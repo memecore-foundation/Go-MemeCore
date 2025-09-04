@@ -100,7 +100,7 @@ func (ps *peerSet) registerSnapExtension(peer *snap.Peer) error {
 	return nil
 }
 
-// waitExtensions blocks until all satellite protocols are connected and tracked
+// waitSnapExtension blocks until all satellite protocols are connected and tracked
 // by the peerset.
 func (ps *peerSet) waitSnapExtension(peer *eth.Peer) (*snap.Peer, error) {
 	// If the peer does not support a compatible `snap`, don't wait
@@ -218,6 +218,37 @@ func (ps *peerSet) peersWithoutTransaction(hash common.Hash) []*ethPeer {
 		if !p.KnownTransaction(hash) {
 			list = append(list, p)
 		}
+	}
+	return list
+}
+
+// allPeers retrieves all of the peers.
+func (ps *peerSet) allPeers() []*ethPeer {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	list := make([]*ethPeer, 0, len(ps.peers))
+	for _, p := range ps.peers {
+		list = append(list, p)
+	}
+	return list
+}
+
+// headPeers retrieves a specified number list of peers.
+func (ps *peerSet) headPeers(num uint) []*ethPeer {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	if num > uint(len(ps.peers)) {
+		num = uint(len(ps.peers))
+	}
+
+	list := make([]*ethPeer, 0, num)
+	for _, p := range ps.peers {
+		if len(list) > int(num) {
+			break
+		}
+		list = append(list, p)
 	}
 	return list
 }

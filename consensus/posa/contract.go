@@ -8,18 +8,17 @@ import (
 	"encoding/hex"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/params"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/internal/ethapi"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/holiman/uint256"
 )
 
 const validatorSetABI = `[ { "inputs": [], "stateMutability": "view", "type": "function", "name": "getValidators", "outputs": [ { "internalType": "address[]", "name": "", "type": "address[]" } ] } ]`
@@ -66,8 +65,9 @@ func (p *PoSA) getCurrentValidators(blockHash common.Hash) ([]common.Address, er
 }
 
 type chainContext struct {
-	chain consensus.ChainHeaderReader
-	posa  consensus.Engine
+	chain  consensus.ChainHeaderReader
+	posa   consensus.Engine
+	config *params.ChainConfig
 }
 
 func (c chainContext) Engine() consensus.Engine {
@@ -78,7 +78,11 @@ func (c chainContext) GetHeader(hash common.Hash, number uint64) *types.Header {
 	return c.chain.GetHeader(hash, number)
 }
 
-func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, validators map[common.Address]struct{}) error {
+func (c chainContext) Config() *params.ChainConfig {
+	return c.config
+}
+
+func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReader, header *types.Header, state vm.StateDB, validators map[common.Address]struct{}) error {
 	// Get the block signer
 	signer, err := ecrecover(header, p.signatures)
 	// If there is no signature, then the block is preparing
@@ -91,26 +95,13 @@ func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReade
 		validatorList = append(validatorList, validator)
 	}
 	chainContext := chainContext{
-		chain: chain,
-		posa:  p,
+		chain:  chain,
+		posa:   p,
+		config: chain.Config(),
 	}
 	context := core.NewEVMBlockContext(header, chainContext, &sysCallAddr)
-	vmenv := vm.NewEVM(context, vm.TxContext{}, state, p.chainConfig, p.vmConfig)
-	// Check potential overflow
-	contractBalance := state.GetBalance(common.HexToAddress(validatorSetAddr))
+	vmenv := vm.NewEVM(context, state, chain.Config(), p.vmConfig)
 
-        blockReward := Phase1BlockReward
-
-        // Check if the RewardTreeFork is active for this block
-        if chain.Config().IsRewardTreeFork(header.Number) == true {
-                blockReward = RewardTreeForkBlockReward
-        }
-
-	_, overflow := new(uint256.Int).AddOverflow(contractBalance, blockReward)
-	if overflow {
-		log.Error("Balance overflow detected")
-		return errors.New("validator contract balance overflow")
-	}
 	// Do smart contract call
 	data, err := p.rewardABI.Pack(rewardMethodSet, signer, validatorList)
 	if err != nil {
@@ -128,9 +119,9 @@ func (p *PoSA) settleRewardsAndUpdateValidators(chain consensus.ChainHeaderReade
 		To:        &toAddress,
 		Data:      data,
 	}
-	vmenv.Reset(core.NewEVMTxContext(msg), state)
+	vmenv.SetTxContext(core.NewEVMTxContext(msg))
 	state.AddAddressToAccessList(toAddress)
-	ret, leftOverGas, err := vmenv.Call(vm.AccountRef(msg.From), *msg.To, msg.Data, msg.GasLimit, common.U2560)
+	ret, leftOverGas, err := vmenv.Call(msg.From, *msg.To, msg.Data, msg.GasLimit, common.U2560)
 	// Log execution result and events if enabled
 	if p.enableEventLogging {
 		if err != nil {

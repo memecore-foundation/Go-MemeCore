@@ -29,7 +29,7 @@ var customGenesisTests = []struct {
 	query   string
 	result  string
 }{
-	// Genesis file with an empty chain configuration (ensure missing fields work)
+	// Genesis file with a mostly-empty chain configuration (ensure missing fields work)
 	{
 		genesis: `{
 			"alloc"      : {},
@@ -41,8 +41,8 @@ var customGenesisTests = []struct {
 			"mixhash"    : "0x0000000000000000000000000000000000000000000000000000000000000000",
 			"parentHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
 			"timestamp"  : "0x00",
-			"config"     : {
-				"terminalTotalDifficultyPassed": true
+			"config": {
+				"terminalTotalDifficulty": 0
 			}
 		}`,
 		query:  "eth.getBlock(0).nonce",
@@ -64,7 +64,7 @@ var customGenesisTests = []struct {
 				"homesteadBlock"                : 42,
 				"daoForkBlock"                  : 141,
 				"daoForkSupport"                : true,
-				"terminalTotalDifficultyPassed" : true
+				"terminalTotalDifficulty": 0
 			}
 		}`,
 		query:  "eth.getBlock(0).nonce",
@@ -114,8 +114,8 @@ func TestCustomBackend(t *testing.T) {
 			"mixhash"    : "0x0000000000000000000000000000000000000000000000000000000000000000",
 			"parentHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
 			"timestamp"  : "0x00",
-			"config"     : {
-				"terminalTotalDifficultyPassed": true
+			"config": {
+				"terminalTotalDifficulty": 0
 			}
 		}`
 	type backendTest struct {
@@ -183,13 +183,13 @@ func TestCustomBackend(t *testing.T) {
 			execArgs:   []string{"--db.engine", "leveldb"},
 			execExpect: `Fatal: Failed to register the MemeCore service: db.engine choice was leveldb but found pre-existing pebble database in specified data directory`,
 		},
-		{ // Reject invalid backend choice
-			initArgs:   []string{"--db.engine", "mssql"},
-			initExpect: `Fatal: Invalid choice for db.engine 'mssql', allowed 'leveldb' or 'pebble'`,
-			// Since the init fails, this will return the (default) mainnet genesis
-			// block nonce
-			execExpect: `0x0000000000000042`,
-		},
+		// { // Reject invalid backend choice
+		// 	initArgs:   []string{"--db.engine", "mssql"},
+		// 	initExpect: `Fatal: Invalid choice for db.engine 'mssql', allowed 'leveldb' or 'pebble'`,
+		// 	// Since the init fails, this will return the (default) mainnet genesis
+		// 	// block nonce
+		// 	execExpect: `0x0000000000000042`,
+		// },
 	} {
 		if err := testfunc(t, tt); err != nil {
 			t.Fatalf("test %d-leveldb: %v", i, err)

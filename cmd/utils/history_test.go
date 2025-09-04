@@ -22,7 +22,7 @@ import (
 	"io"
 	"math/big"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -50,7 +50,7 @@ func TestHistoryImportAndExport(t *testing.T) {
 		address = crypto.PubkeyToAddress(key.PublicKey)
 		genesis = &core.Genesis{
 			Config: params.TestChainConfig,
-			Alloc:  types.GenesisAlloc{address: {Balance: big.NewInt(1000000000000000000)}},
+			Alloc:  types.GenesisAlloc{address: {Balance: big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(1000000000000000000))}},
 		}
 		signer = types.LatestSigner(genesis.Config)
 	)
@@ -83,15 +83,11 @@ func TestHistoryImportAndExport(t *testing.T) {
 		t.Fatalf("unable to initialize chain: %v", err)
 	}
 	if _, err := chain.InsertChain(blocks); err != nil {
-		t.Fatalf("error insterting chain: %v", err)
+		t.Fatalf("error inserting chain: %v", err)
 	}
 
 	// Make temp directory for era files.
-	dir, err := os.MkdirTemp("", "history-export-test")
-	if err != nil {
-		t.Fatalf("error creating temp test directory: %v", err)
-	}
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	// Export history to temp directory.
 	if err := ExportHistory(chain, dir, 0, count, step); err != nil {
@@ -99,17 +95,17 @@ func TestHistoryImportAndExport(t *testing.T) {
 	}
 
 	// Read checksums.
-	b, err := os.ReadFile(path.Join(dir, "checksums.txt"))
+	b, err := os.ReadFile(filepath.Join(dir, "checksums.txt"))
 	if err != nil {
 		t.Fatalf("failed to read checksums: %v", err)
 	}
 	checksums := strings.Split(string(b), "\n")
 
 	// Verify each Era.
-	entries, _ := era.ReadDir(dir, "mainnet")
+	entries, _ := era.ReadDir(dir, "ethereum")
 	for i, filename := range entries {
 		func() {
-			f, err := os.Open(path.Join(dir, filename))
+			f, err := os.Open(filepath.Join(dir, filename))
 			if err != nil {
 				t.Fatalf("error opening era file: %v", err)
 			}
@@ -162,8 +158,7 @@ func TestHistoryImportAndExport(t *testing.T) {
 	}
 
 	// Now import Era.
-	freezer := t.TempDir()
-	db2, err := rawdb.NewDatabaseWithFreezer(rawdb.NewMemoryDatabase(), freezer, "", false)
+	db2, err := rawdb.NewDatabaseWithFreezer(rawdb.NewMemoryDatabase(), "", "", false)
 	if err != nil {
 		panic(err)
 	}
@@ -171,12 +166,12 @@ func TestHistoryImportAndExport(t *testing.T) {
 		db2.Close()
 	})
 
-	genesis.MustCommit(db2, triedb.NewDatabase(db, triedb.HashDefaults))
+	genesis.MustCommit(db2, triedb.NewDatabase(db2, triedb.HashDefaults))
 	imported, err := core.NewBlockChain(db2, nil, genesis, nil, ethash.NewFaker(), vm.Config{}, nil, nil)
 	if err != nil {
 		t.Fatalf("unable to initialize chain: %v", err)
 	}
-	if err := ImportHistory(imported, db2, dir, "mainnet"); err != nil {
+	if err := ImportHistory(imported, dir, "ethereum"); err != nil {
 		t.Fatalf("failed to import chain: %v", err)
 	}
 	if have, want := imported.CurrentHeader(), chain.CurrentHeader(); have.Hash() != want.Hash() {

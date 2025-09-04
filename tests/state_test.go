@@ -25,7 +25,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -99,15 +98,19 @@ func TestExecutionSpecState(t *testing.T) {
 }
 
 func execStateTest(t *testing.T, st *testMatcher, test *StateTest) {
-	if runtime.GOARCH == "386" && runtime.GOOS == "windows" && rand.Int63()%2 == 0 {
-		t.Skip("test (randomly) skipped on 32-bit windows")
-		return
-	}
 	for _, subtest := range test.Subtests() {
-		subtest := subtest
 		key := fmt.Sprintf("%s/%d", subtest.Fork, subtest.Index)
 
+		// If -short flag is used, we don't execute all four permutations, only
+		// one.
+		executionMask := 0xf
+		if testing.Short() {
+			executionMask = (1 << (rand.Int63() & 4))
+		}
 		t.Run(key+"/hash/trie", func(t *testing.T) {
+			if executionMask&0x1 == 0 {
+				t.Skip("test (randomly) skipped due to short-tag")
+			}
 			withTrace(t, test.gasLimit(subtest), func(vmconfig vm.Config) error {
 				var result error
 				test.Run(subtest, vmconfig, false, rawdb.HashScheme, func(err error, state *StateTestState) {
@@ -117,6 +120,9 @@ func execStateTest(t *testing.T, st *testMatcher, test *StateTest) {
 			})
 		})
 		t.Run(key+"/hash/snap", func(t *testing.T) {
+			if executionMask&0x2 == 0 {
+				t.Skip("test (randomly) skipped due to short-tag")
+			}
 			withTrace(t, test.gasLimit(subtest), func(vmconfig vm.Config) error {
 				var result error
 				test.Run(subtest, vmconfig, true, rawdb.HashScheme, func(err error, state *StateTestState) {
@@ -132,6 +138,9 @@ func execStateTest(t *testing.T, st *testMatcher, test *StateTest) {
 			})
 		})
 		t.Run(key+"/path/trie", func(t *testing.T) {
+			if executionMask&0x4 == 0 {
+				t.Skip("test (randomly) skipped due to short-tag")
+			}
 			withTrace(t, test.gasLimit(subtest), func(vmconfig vm.Config) error {
 				var result error
 				test.Run(subtest, vmconfig, false, rawdb.PathScheme, func(err error, state *StateTestState) {
@@ -141,6 +150,9 @@ func execStateTest(t *testing.T, st *testMatcher, test *StateTest) {
 			})
 		})
 		t.Run(key+"/path/snap", func(t *testing.T) {
+			if executionMask&0x8 == 0 {
+				t.Skip("test (randomly) skipped due to short-tag")
+			}
 			withTrace(t, test.gasLimit(subtest), func(vmconfig vm.Config) error {
 				var result error
 				test.Run(subtest, vmconfig, true, rawdb.PathScheme, func(err error, state *StateTestState) {
@@ -226,14 +238,12 @@ func runBenchmarkFile(b *testing.B, path string) {
 		return
 	}
 	for _, t := range m {
-		t := t
 		runBenchmark(b, &t)
 	}
 }
 
 func runBenchmark(b *testing.B, t *StateTest) {
 	for _, subtest := range t.Subtests() {
-		subtest := subtest
 		key := fmt.Sprintf("%s/%d", subtest.Fork, subtest.Index)
 
 		b.Run(key, func(b *testing.B) {
@@ -284,14 +294,14 @@ func runBenchmark(b *testing.B, t *StateTest) {
 
 			// Prepare the EVM.
 			txContext := core.NewEVMTxContext(msg)
-			context := core.NewEVMBlockContext(block.Header(), nil, &t.json.Env.Coinbase)
+			context := core.NewEVMBlockContext(block.Header(), &dummyChain{config: config}, &t.json.Env.Coinbase)
 			context.GetHash = vmTestBlockHash
 			context.BaseFee = baseFee
-			evm := vm.NewEVM(context, txContext, state.StateDB, config, vmconfig)
+			evm := vm.NewEVM(context, state.StateDB, config, vmconfig)
+			evm.SetTxContext(txContext)
 
 			// Create "contract" for sender to cache code analysis.
-			sender := vm.NewContract(vm.AccountRef(msg.From), vm.AccountRef(msg.From),
-				nil, 0)
+			sender := vm.NewContract(msg.From, msg.From, nil, 0, nil)
 
 			var (
 				gasUsed uint64
@@ -306,7 +316,7 @@ func runBenchmark(b *testing.B, t *StateTest) {
 				start := time.Now()
 
 				// Execute the message.
-				_, leftOverGas, err := evm.Call(sender, *msg.To, msg.Data, msg.GasLimit, uint256.MustFromBig(msg.Value))
+				_, leftOverGas, err := evm.Call(sender.Address(), *msg.To, msg.Data, msg.GasLimit, uint256.MustFromBig(msg.Value))
 				if err != nil {
 					b.Error(err)
 					return

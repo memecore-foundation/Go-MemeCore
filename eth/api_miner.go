@@ -18,9 +18,7 @@ package eth
 
 import (
 	"math/big"
-	"time"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
@@ -72,15 +70,4 @@ func (api *MinerAPI) SetGasPrice(gasPrice hexutil.Big) bool {
 func (api *MinerAPI) SetGasLimit(gasLimit hexutil.Uint64) bool {
 	api.e.Miner().SetGasCeil(uint64(gasLimit))
 	return true
-}
-
-// SetEtherbase sets the etherbase of the miner.
-func (api *MinerAPI) SetEtherbase(etherbase common.Address) bool {
-	api.e.SetEtherbase(etherbase)
-	return true
-}
-
-// SetRecommitInterval updates the interval for miner sealing work recommitting.
-func (api *MinerAPI) SetRecommitInterval(interval int) {
-	api.e.Miner().SetRecommitInterval(time.Duration(interval) * time.Millisecond)
 }

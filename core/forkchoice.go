@@ -19,11 +19,11 @@ package core
 import (
 	crand "crypto/rand"
 	"errors"
+	"math"
 	"math/big"
 	mrand "math/rand"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
@@ -107,7 +107,10 @@ func (f *ForkChoice) ReorgNeeded(current *types.Header, extern *types.Header) (b
 		if f.preserve != nil {
 			currentPreserve, externPreserve = f.preserve(current), f.preserve(extern)
 		}
-		reorg = !currentPreserve && (externPreserve || f.rand.Float64() < 0.5)
+		choiceRules := func() bool {
+			return !(extern.Coinbase == current.Coinbase)
+		}
+		reorg = !currentPreserve && (externPreserve || choiceRules())
 	}
 	return reorg, nil
 }

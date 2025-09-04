@@ -28,8 +28,7 @@ import (
 // TestExport does a basic test of "gmeme export", exporting the test-genesis.
 func TestExport(t *testing.T) {
 	t.Parallel()
-	outfile := fmt.Sprintf("%v/testExport.out", os.TempDir())
-	defer os.Remove(outfile)
+	outfile := fmt.Sprintf("%v/testExport.out", t.TempDir())
 	gmeme := runGmeme(t, "--datadir", initGmeme(t), "export", outfile)
 	gmeme.WaitExit()
 	if have, want := gmeme.ExitStatus(), 0; have != want {

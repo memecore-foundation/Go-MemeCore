@@ -58,7 +58,7 @@ var (
 	// Test accounts
 	testBankKey, _  = crypto.GenerateKey()
 	testBankAddress = crypto.PubkeyToAddress(testBankKey.PublicKey)
-	testBankFunds   = big.NewInt(1000000000000000000)
+	testBankFunds   = big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(1000000000000000000))
 
 	testUserKey, _  = crypto.GenerateKey()
 	testUserAddress = crypto.PubkeyToAddress(testUserKey.PublicKey)
@@ -92,7 +92,7 @@ func init() {
 		To:       &testUserAddress,
 		Value:    big.NewInt(1000),
 		Gas:      params.TxGas,
-		GasPrice: big.NewInt(params.InitialBaseFee),
+		GasPrice: big.NewInt(params.InitialBaseFee + 1),
 	})
 	pendingTxs = append(pendingTxs, tx1)
 
@@ -101,7 +101,7 @@ func init() {
 		To:       &testUserAddress,
 		Value:    big.NewInt(1000),
 		Gas:      params.TxGas,
-		GasPrice: big.NewInt(params.InitialBaseFee),
+		GasPrice: big.NewInt(params.InitialBaseFee + 1),
 	})
 	newTxs = append(newTxs, tx2)
 }
@@ -161,8 +161,8 @@ func (b *testWorkerBackend) newRandomTx(creation bool) *types.Transaction {
 
 func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, engine consensus.Engine, db ethdb.Database, blocks int) (*worker, *testWorkerBackend) {
 	backend := newTestWorkerBackend(t, chainConfig, engine, db, blocks)
-	backend.txPool.Add(pendingTxs, true, false)
-	w := newWorker(testConfig, chainConfig, engine, backend, new(event.TypeMux), nil, false)
+	backend.txPool.Add(pendingTxs, false)
+	w := newWorker(testConfig, engine, backend, new(event.TypeMux), false)
 	w.setEtherbase(testBankAddress)
 	return w, backend
 }
@@ -196,8 +196,8 @@ func TestGenerateAndImportBlock(t *testing.T) {
 	w.start()
 
 	for i := 0; i < 5; i++ {
-		b.txPool.Add([]*types.Transaction{b.newRandomTx(true)}, true, false)
-		b.txPool.Add([]*types.Transaction{b.newRandomTx(false)}, true, false)
+		b.txPool.Add([]*types.Transaction{b.newRandomTx(true)}, false)
+		b.txPool.Add([]*types.Transaction{b.newRandomTx(false)}, false)
 
 		select {
 		case ev := <-sub.Chan():

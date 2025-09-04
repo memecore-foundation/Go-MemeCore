@@ -41,6 +41,9 @@ func handleGetBlockHeaders(backend Backend, msg Decoder, peer *Peer) error {
 // ServiceGetBlockHeadersQuery assembles the response to a header query. It is
 // exposed to allow external packages to test protocol behavior.
 func ServiceGetBlockHeadersQuery(chain *core.BlockChain, query *GetBlockHeadersRequest, peer *Peer) []rlp.RawValue {
+	if query.Amount == 0 {
+		return nil
+	}
 	if query.Skip == 0 {
 		// The fast path: when the request is for a contiguous segment of headers.
 		return serviceContiguousBlockHeaderQuery(chain, query)
@@ -124,15 +127,22 @@ func serviceNonContiguousBlockHeaderQuery(chain *core.BlockChain, query *GetBloc
 			}
 		case query.Reverse:
 			// Number based traversal towards the genesis block
-			if query.Origin.Number >= query.Skip+1 {
-				query.Origin.Number -= query.Skip + 1
-			} else {
+			current := query.Origin.Number
+			ancestor := current - (query.Skip + 1)
+			if ancestor >= current { // check for underflow
 				unknown = true
+			} else {
+				query.Origin.Number = ancestor
 			}
 
 		case !query.Reverse:
-			// Number based traversal towards the leaf block
-			query.Origin.Number += query.Skip + 1
+			current := query.Origin.Number
+			next := current + query.Skip + 1
+			if next <= current { // check for overflow
+				unknown = true
+			} else {
+				query.Origin.Number = next
+			}
 		}
 	}
 	return headers
@@ -189,7 +199,7 @@ func serviceContiguousBlockHeaderQuery(chain *core.BlockChain, query *GetBlockHe
 		return headers
 	}
 	{ // Last mode: deliver ancestors of H
-		for i := uint64(1); header != nil && i < count; i++ {
+		for i := uint64(1); i < count; i++ {
 			header = chain.GetHeaderByHash(header.ParentHash)
 			if header == nil {
 				break
@@ -425,18 +435,13 @@ func answerGetPooledTransactions(backend Backend, query GetPooledTransactionsReq
 			break
 		}
 		// Retrieve the requested transaction, skipping if unknown to us
-		tx := backend.TxPool().Get(hash)
-		if tx == nil {
+		encoded := backend.TxPool().GetRLP(hash)
+		if len(encoded) == 0 {
 			continue
 		}
-		// If known, encode and queue for response packet
-		if encoded, err := rlp.EncodeToBytes(tx); err != nil {
-			log.Error("Failed to encode transaction", "err", err)
-		} else {
-			hashes = append(hashes, hash)
-			txs = append(txs, encoded)
-			bytes += len(encoded)
-		}
+		hashes = append(hashes, hash)
+		txs = append(txs, encoded)
+		bytes += len(encoded)
 	}
 	return hashes, txs
 }

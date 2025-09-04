@@ -2,7 +2,7 @@
 # with Go source code. If you know what GOPATH is then you probably
 # don't need to bother with make.
 
-.PHONY: gmeme android ios evm all test clean privnet_nodes_stop privnet_bootnode_stop privnet_stop privnet_clean privnet_start privnet_start_four privnet_start_seven
+.PHONY: gmeme all test lint fmt clean devtools help privnet_nodes_stop privnet_bootnode_stop privnet_stop privnet_clean privnet_start privnet_start_four privnet_start_seven
 
 GMEMEBIN = ./build/bin
 GO ?= latest
@@ -107,20 +107,29 @@ define init_node
     @$(GMEMEBIN)/gmeme init --datadir $(1)/$(2) $(1)/$(GENESIS_WORK_JSON) > $(1)/$(2)/gmeme_init.log 2>&1
 endef
 
+#? gmeme: Build gmeme.
 gmeme:
 	$(GORUN) build/ci.go install ./cmd/gmeme
 	@echo "Done building."
 	@echo "Run \"$(GMEMEBIN)/gmeme\" to launch gmeme."
 
+#? all: Build all packages and executables.
 all:
 	$(GORUN) build/ci.go install
 
+#? test: Run the tests.
 test: all
 	$(GORUN) build/ci.go test
 
+#? lint: Run certain pre-selected linters.
 lint: ## Run linters.
 	$(GORUN) build/ci.go lint
 
+#? fmt: Ensure consistent code formatting.
+fmt:
+	gofmt -s -w $(shell find . -name "*.go")
+
+#? clean: Clean go cache, built executables, and the auto generated folder.
 clean:
 	go clean -cache
 	rm -fr build/_workspace/pkg/ $(GMEMEBIN)/*
@@ -128,16 +137,25 @@ clean:
 # The devtools target installs tools required for 'go generate'.
 # You need to put $GOBIN (or $GOPATH/bin) in your PATH to use 'go generate'.
 
+#? devtools: Install recommended developer tools.
 devtools:
 	env GOBIN= go install golang.org/x/tools/cmd/stringer@latest
 	env GOBIN= go install github.com/fjl/gencodec@latest
-	env GOBIN= go install github.com/golang/protobuf/protoc-gen-go@latest
+	env GOBIN= go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 	env GOBIN= go install ./cmd/abigen
 	@type "solc" 2> /dev/null || echo 'Please install solc'
 	@type "protoc" 2> /dev/null || echo 'Please install protoc'
 
-# Privnet targets
+#? help: Get more info on make commands.
+help: Makefile
+	@echo ''
+	@echo 'Usage:'
+	@echo '  make [target]'
+	@echo ''
+	@echo 'Targets:'
+	@sed -n 's/^#?//p' $< | column -t -s ':' |  sort | sed -e 's/^/ /'
 
+# Privnet targets
 privnet_nodes_stop:
 	@echo "Killing nodes processes"
 	@killall -w -v -INT gmeme || :
@@ -242,3 +260,24 @@ privnet_start_seven: $(SEVEN_DIR)/$(NODE1)/gmeme $(SEVEN_DIR)/$(NODE2)/gmeme $(S
 	$(call run_miner_node,$(SEVEN_DIR),$(NODE7),$(NODE7_PORT),$(NODE7_AUTH_PORT),$(NODE7_HTTP_PORT),$(NODE7_WS_PORT),$(NODE7))
 	$(call run_node,$(SEVEN_DIR),$(NODE8),$(NODE8_PORT),$(NODE8_AUTH_PORT),$(NODE8_HTTP_PORT),$(NODE8_WS_PORT))
 	@echo "OK! Check logs in $(SEVEN_DIR)/<node_dir>/gmeme_node.log"
+
+docker_privnet_start:
+	docker compose -f .docker/docker-compose.yml up -d
+
+docker_privnet_stop:
+	docker compose -f .docker/docker-compose.yml down
+
+docker_privnet_start_four:
+	docker compose -f .docker/docker-compose-four.yml up -d
+
+docker_privnet_stop_four:
+	docker compose -f .docker/docker-compose-four.yml down
+
+docker_privnet_start_seven:
+	docker compose -f .docker/docker-compose-seven.yml up -d
+
+docker_privnet_stop_seven:
+	docker compose -f .docker/docker-compose-seven.yml down
+
+docker_clean_node_img:
+	docker rmi gmeme_node

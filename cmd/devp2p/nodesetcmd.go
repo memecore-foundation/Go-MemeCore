@@ -19,7 +19,7 @@ package main
 import (
 	"errors"
 	"fmt"
-	"net"
+	"net/netip"
 	"sort"
 	"strconv"
 	"strings"
@@ -205,11 +205,11 @@ func trueFilter(args []string) (nodeFilter, error) {
 }
 
 func ipFilter(args []string) (nodeFilter, error) {
-	_, cidr, err := net.ParseCIDR(args[0])
+	prefix, err := netip.ParsePrefix(args[0])
 	if err != nil {
 		return nil, err
 	}
-	f := func(n nodeJSON) bool { return cidr.Contains(n.N.IP()) }
+	f := func(n nodeJSON) bool { return prefix.Contains(n.N.IPAddr()) }
 	return f, nil
 }
 
@@ -229,7 +229,7 @@ func ethFilter(args []string) (nodeFilter, error) {
 	var filter forkid.Filter
 	switch args[0] {
 	case "mainnet":
-		filter = forkid.NewStaticFilter(params.MainnetChainConfig, core.DefaultGenesisBlock().ToBlock())
+		filter = forkid.NewStaticFilter(params.MemeMainnetChainConfig, core.DefaultMemeGenesisBlock().ToBlock())
 	case "formicarium":
 		filter = forkid.NewStaticFilter(params.FormicariumChainConfig, core.DefaultFormicariumGenesisBlock().ToBlock())
 	case "insectarium":
