@@ -72,7 +72,6 @@ var DefaultConfig = Config{
 // engine and gathering the sealing result.
 type Miner struct {
 	mux     *event.TypeMux
-	eth     Backend
 	engine  consensus.Engine
 	exitCh  chan struct{}
 	startCh chan struct{}
