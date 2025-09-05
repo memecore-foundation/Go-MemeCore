@@ -1284,14 +1284,14 @@ func testSideLogRebirth(t *testing.T, scheme string) {
 	if _, err := blockchain.InsertChain(sideChain); err != nil {
 		t.Fatalf("failed to insert forked chain: %v", err)
 	}
-	checkLogEvents(t, newLogCh, rmLogsCh, 1, 0)
+	checkLogEvents(t, newLogCh, rmLogsCh, 0, 0)
 
 	// Generate a new block based on side chain. Should not emit any events anymore.
 	newBlocks, _ := GenerateChain(gspec.Config, sideChain[len(sideChain)-1], ethash.NewFaker(), genDb, 1, func(i int, gen *BlockGen) {})
 	if _, err := blockchain.InsertChain(newBlocks); err != nil {
 		t.Fatalf("failed to insert forked chain: %v", err)
 	}
-	checkLogEvents(t, newLogCh, rmLogsCh, 0, 0)
+	checkLogEvents(t, newLogCh, rmLogsCh, 1, 0)
 }
 
 func checkLogEvents(t *testing.T, logsCh <-chan []*types.Log, rmLogsCh <-chan RemovedLogsEvent, wantNew, wantRemoved int) {
@@ -1713,8 +1713,10 @@ func testLargeReorgTrieGC(t *testing.T, scheme string) {
 	if _, err := chain.InsertChain(competitor[:len(competitor)-2]); err != nil {
 		t.Fatalf("failed to insert competitor chain: %v", err)
 	}
-	if !chain.HasState(competitor[len(competitor)-3].Root()) {
-		t.Fatalf("failed to insert low-TD chain")
+	for i, block := range competitor[:len(competitor)-2] {
+		if chain.HasState(block.Root()) {
+			t.Fatalf("competitor %d: low TD chain became processed", i)
+		}
 	}
 	// Import the head of the competitor chain.
 	if _, err := chain.InsertChain(competitor[len(competitor)-2:]); err != nil {
@@ -2122,13 +2124,8 @@ func testInsertKnownChainData(t *testing.T, typ string, scheme string) {
 	if err := inserter(append(blocks, blocks2...), append(receipts, receipts2...)); err != nil {
 		t.Fatalf("failed to insert chain data: %v", err)
 	}
-	if typ == "headers" {
-		// The head shouldn't change.
-		asserter(t, blocks3[len(blocks3)-1])
-	} else {
-		// Post-merge the chain should change even if td is lower.
-		asserter(t, blocks2[len(blocks2)-1])
-	}
+	// The head shouldn't change.
+	asserter(t, blocks3[len(blocks3)-1])
 
 	// Rollback the heavier chain and re-insert the longer chain again
 	chain.SetHead(rollback - 1)
@@ -4299,22 +4296,8 @@ func testChainReorgSnapSync(t *testing.T, ancientLimit uint64) {
 	chain, _ := NewBlockChain(db, DefaultCacheConfigWithScheme(rawdb.PathScheme), gspec, nil, beacon.New(ethash.NewFaker()), vm.Config{}, nil, nil)
 	defer chain.Stop()
 
-	headers := make([]*types.Header, len(blocks))
-	for i, block := range blocks {
-		headers[i] = block.Header()
-	}
-	if n, err := chain.InsertHeaderChain(headers); err != nil {
-		t.Fatalf("failed to insert header %d: %v", n, err)
-	}
 	if n, err := chain.InsertReceiptChain(blocks, receipts, ancientLimit); err != nil {
 		t.Fatalf("failed to insert receipt %d: %v", n, err)
-	}
-	headers = make([]*types.Header, len(chainA))
-	for i, chainA := range chainA {
-		headers[i] = chainA.Header()
-	}
-	if n, err := chain.InsertHeaderChain(headers); err != nil {
-		t.Fatalf("failed to insert header %d: %v", n, err)
 	}
 	if n, err := chain.InsertReceiptChain(chainA, receiptsA, ancientLimit); err != nil {
 		t.Fatalf("failed to insert receipt %d: %v", n, err)
@@ -4325,13 +4308,6 @@ func testChainReorgSnapSync(t *testing.T, ancientLimit uint64) {
 	if ancestor < ancientLimit {
 		rawdb.WriteLastPivotNumber(db, ancestor)
 		chain.SetHead(ancestor)
-	}
-	headers = make([]*types.Header, len(chainB))
-	for i, chainB := range chainB {
-		headers[i] = chainB.Header()
-	}
-	if n, err := chain.InsertHeaderChain(headers); err != nil {
-		t.Fatalf("failed to insert header %d: %v", n, err)
 	}
 	if n, err := chain.InsertReceiptChain(chainB, receiptsB, ancientLimit); err != nil {
 		t.Fatalf("failed to insert receipt %d: %v", n, err)
