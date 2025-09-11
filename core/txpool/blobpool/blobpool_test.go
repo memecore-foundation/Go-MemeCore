@@ -975,9 +975,9 @@ func TestOpenCap(t *testing.T) {
 		addr2 = crypto.PubkeyToAddress(key2.PublicKey)
 		addr3 = crypto.PubkeyToAddress(key3.PublicKey)
 
-		tx1 = makeTx(0, 1, 1000, 100, key1)
-		tx2 = makeTx(0, 1, 800, 70, key2)
-		tx3 = makeTx(0, 1, 1500, 110, key3)
+		tx1 = makeTx(0, 1, params.InitialBaseFee+1000, 100, key1)
+		tx2 = makeTx(0, 1, params.InitialBaseFee+800, 70, key2)
+		tx3 = makeTx(0, 1, params.InitialBaseFee+1500, 110, key3)
 
 		blob1, _ = rlp.EncodeToBytes(tx1)
 		blob2, _ = rlp.EncodeToBytes(tx2)
@@ -997,9 +997,9 @@ func TestOpenCap(t *testing.T) {
 	for _, datacap := range []uint64{2 * (txAvgSize + blobSize), 100 * (txAvgSize + blobSize)} {
 		// Create a blob pool out of the pre-seeded data, but cap it to 2 blob transaction
 		statedb, _ := state.New(types.EmptyRootHash, state.NewDatabaseForTesting())
-		statedb.AddBalance(addr1, uint256.NewInt(1_000_000_000), tracing.BalanceChangeUnspecified)
-		statedb.AddBalance(addr2, uint256.NewInt(1_000_000_000), tracing.BalanceChangeUnspecified)
-		statedb.AddBalance(addr3, uint256.NewInt(1_000_000_000), tracing.BalanceChangeUnspecified)
+		statedb.AddBalance(addr1, uint256.NewInt(15000000000000000000), tracing.BalanceChangeUnspecified)
+		statedb.AddBalance(addr2, uint256.NewInt(15000000000000000000), tracing.BalanceChangeUnspecified)
+		statedb.AddBalance(addr3, uint256.NewInt(15000000000000000000), tracing.BalanceChangeUnspecified)
 		statedb.Commit(0, true, false)
 
 		chain := &testBlockChain{
