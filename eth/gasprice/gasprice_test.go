@@ -162,6 +162,7 @@ func newTestBackend(t *testing.T, londonBlock *big.Int, cancunBlock *big.Int, pe
 	}
 
 	// Generate testing blocks
+	td := params.GenesisDifficulty.Uint64()
 	db, blocks, _ := core.GenerateChainWithGenesis(gspec, engine, testHead+1, func(i int, b *core.BlockGen) {
 		b.SetCoinbase(common.Address{1})
 
@@ -209,9 +210,11 @@ func newTestBackend(t *testing.T, londonBlock *big.Int, cancunBlock *big.Int, pe
 				b.AddTx(types.MustSignNewTx(key, signer, blobTx))
 			}
 		}
+		td += b.Difficulty().Uint64()
 	})
 
 	// Construct testing chain
+	gspec.Config.TerminalTotalDifficulty = new(big.Int).SetUint64(td)
 	chain, err := core.NewBlockChain(db, &core.CacheConfig{TrieCleanNoPrefetch: true}, gspec, nil, engine, vm.Config{}, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create local chain, %v", err)
