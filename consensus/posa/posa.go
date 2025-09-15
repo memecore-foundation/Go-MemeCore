@@ -42,8 +42,8 @@ const (
 	inmemorySnapshots  = 128  // Number of recent vote snapshots to keep in memory
 	inmemorySignatures = 4096 // Number of recent block signatures to keep in memory
 
-	wiggleTime         = 500 * time.Millisecond // Random delay (per signer) to allow concurrent signers
-	noturnMinimumDelay = 500 * time.Millisecond // Min value of delay for no turn signers. It makes time for syncing signed block.
+	wiggleTime         = 500 * time.Millisecond  // Random delay (per signer) to allow concurrent signers
+	noturnMinimumDelay = 1000 * time.Millisecond // Min value of delay for no turn signers. It makes time for syncing signed block.
 )
 
 // PoSA protocol constants.
