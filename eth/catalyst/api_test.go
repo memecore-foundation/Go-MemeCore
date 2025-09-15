@@ -57,7 +57,7 @@ var (
 	// testAddr is the Ethereum address of the tester account.
 	testAddr = crypto.PubkeyToAddress(testKey.PublicKey)
 
-	testBalance = big.NewInt(2e18)
+	testBalance = big.NewInt(0).Mul(big.NewInt(2e18), big.NewInt(1e18))
 )
 
 func generateMergeChain(n int, merged bool) (*core.Genesis, []*types.Block) {
@@ -115,7 +115,7 @@ func TestEth2AssembleBlock(t *testing.T) {
 
 	api := NewConsensusAPI(ethservice)
 	signer := types.NewEIP155Signer(ethservice.BlockChain().Config().ChainID)
-	tx, err := types.SignTx(types.NewTransaction(uint64(10), blocks[9].Coinbase(), big.NewInt(1000), params.TxGas, big.NewInt(params.InitialBaseFee), nil), signer, testKey)
+	tx, err := types.SignTx(types.NewTransaction(uint64(10), blocks[9].Coinbase(), big.NewInt(1000), params.TxGas, big.NewInt(params.InitialBaseFee*2), nil), signer, testKey)
 	if err != nil {
 		t.Fatalf("error signing transaction, err=%v", err)
 	}
