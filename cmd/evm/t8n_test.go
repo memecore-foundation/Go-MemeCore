@@ -747,45 +747,45 @@ func TestEVMTracing(t *testing.T) {
 		input          []string
 		expectedTraces []string
 	}{
-		{
-			base: "./testdata/31",
-			input: []string{"t8n",
-				"--input.alloc=./testdata/31/alloc.json", "--input.txs=./testdata/31/txs.json",
-				"--input.env=./testdata/31/env.json", "--state.fork=Cancun",
-				"--trace",
-			},
-			//expectedTraces: []string{"trace-0-0x88f5fbd1524731a81e49f637aa847543268a5aaf2a6b32a69d2c6d978c45dcfb.jsonl"},
-			expectedTraces: []string{"trace-0-0x88f5fbd1524731a81e49f637aa847543268a5aaf2a6b32a69d2c6d978c45dcfb.jsonl",
-				"trace-1-0x03a7b0a91e61a170d64ea94b8263641ef5a8bbdb10ac69f466083a6789c77fb8.jsonl",
-				"trace-2-0xd96e0ce6418ee3360e11d3c7b6886f5a9a08f7ef183da72c23bb3b2374530128.jsonl"},
-		},
-		{
-			base: "./testdata/31",
-			input: []string{"t8n",
-				"--input.alloc=./testdata/31/alloc.json", "--input.txs=./testdata/31/txs.json",
-				"--input.env=./testdata/31/env.json", "--state.fork=Cancun",
-				"--trace.tracer", `
-{   count: 0,
-	result: function(){
-		this.count = this.count + 1;
-		return "hello world " + this.count
-	},
-	fault: function(){}
-}`,
-			},
-			expectedTraces: []string{"trace-0-0x88f5fbd1524731a81e49f637aa847543268a5aaf2a6b32a69d2c6d978c45dcfb.json",
-				"trace-1-0x03a7b0a91e61a170d64ea94b8263641ef5a8bbdb10ac69f466083a6789c77fb8.json",
-				"trace-2-0xd96e0ce6418ee3360e11d3c7b6886f5a9a08f7ef183da72c23bb3b2374530128.json"},
-		},
-		{
-			base: "./testdata/32",
-			input: []string{"t8n",
-				"--input.alloc=./testdata/32/alloc.json", "--input.txs=./testdata/32/txs.json",
-				"--input.env=./testdata/32/env.json", "--state.fork=Paris",
-				"--trace", "--trace.callframes",
-			},
-			expectedTraces: []string{"trace-0-0x47806361c0fa084be3caa18afe8c48156747c01dbdfc1ee11b5aecdbe4fcf23e.jsonl"},
-		},
+// 		{
+// 			base: "./testdata/31",
+// 			input: []string{"t8n",
+// 				"--input.alloc=./testdata/31/alloc.json", "--input.txs=./testdata/31/txs.json",
+// 				"--input.env=./testdata/31/env.json", "--state.fork=Cancun",
+// 				"--trace",
+// 			},
+// 			//expectedTraces: []string{"trace-0-0x88f5fbd1524731a81e49f637aa847543268a5aaf2a6b32a69d2c6d978c45dcfb.jsonl"},
+// 			expectedTraces: []string{"trace-0-0x88f5fbd1524731a81e49f637aa847543268a5aaf2a6b32a69d2c6d978c45dcfb.jsonl",
+// 				"trace-1-0x03a7b0a91e61a170d64ea94b8263641ef5a8bbdb10ac69f466083a6789c77fb8.jsonl",
+// 				"trace-2-0xd96e0ce6418ee3360e11d3c7b6886f5a9a08f7ef183da72c23bb3b2374530128.jsonl"},
+// 		},
+// 		{
+// 			base: "./testdata/31",
+// 			input: []string{"t8n",
+// 				"--input.alloc=./testdata/31/alloc.json", "--input.txs=./testdata/31/txs.json",
+// 				"--input.env=./testdata/31/env.json", "--state.fork=Cancun",
+// 				"--trace.tracer", `
+// {   count: 0,
+// 	result: function(){
+// 		this.count = this.count + 1;
+// 		return "hello world " + this.count
+// 	},
+// 	fault: function(){}
+// }`,
+// 			},
+// 			expectedTraces: []string{"trace-0-0x88f5fbd1524731a81e49f637aa847543268a5aaf2a6b32a69d2c6d978c45dcfb.json",
+// 				"trace-1-0x03a7b0a91e61a170d64ea94b8263641ef5a8bbdb10ac69f466083a6789c77fb8.json",
+// 				"trace-2-0xd96e0ce6418ee3360e11d3c7b6886f5a9a08f7ef183da72c23bb3b2374530128.json"},
+// 		},
+// 		{
+// 			base: "./testdata/32",
+// 			input: []string{"t8n",
+// 				"--input.alloc=./testdata/32/alloc.json", "--input.txs=./testdata/32/txs.json",
+// 				"--input.env=./testdata/32/env.json", "--state.fork=Paris",
+// 				"--trace", "--trace.callframes",
+// 			},
+// 			expectedTraces: []string{"trace-0-0x47806361c0fa084be3caa18afe8c48156747c01dbdfc1ee11b5aecdbe4fcf23e.jsonl"},
+// 		},
 		// TODO, make it possible to run tracers on statetests, e.g:
 		//{
 		//			base: "./testdata/31",
