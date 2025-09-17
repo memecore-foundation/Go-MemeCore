@@ -99,8 +99,8 @@ var (
 	}
 	chainIdFlag = &cli.Int64Flag{
 		Name:  "chainid",
-		Value: params.MemeMainnetChainConfig.ChainID.Int64(),
-		Usage: "Chain id to use for signing (1=mainnet, 17000=Holesky)",
+		Value: params.MemeCoreMainnetChainConfig.ChainID.Int64(),
+		Usage: "Chain id to use for signing (4352=mainnet)",
 	}
 	rpcPortFlag = &cli.IntFlag{
 		Name:     "http.port",

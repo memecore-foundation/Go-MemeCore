@@ -217,6 +217,8 @@ func getGenesisState(db ethdb.Database, blockhash common.Hash) (alloc types.Gene
 	switch blockhash {
 	case params.MainnetGenesisHash:
 		genesis = DefaultGenesisBlock()
+	case params.MemeCoreMainnetGenesisHash:
+		genesis = DefaultMemeCoreGenesisBlock()
 	case params.FormicariumGenesisHash:
 		genesis = DefaultFormicariumGenesisBlock()
 	case params.InsectariumGenesisHash:
@@ -302,7 +304,7 @@ func SetupGenesisBlockWithOverride(db ethdb.Database, triedb *triedb.Database, g
 	if (ghash == common.Hash{}) {
 		if genesis == nil {
 			log.Info("Writing default main-net genesis block")
-			genesis = DefaultGenesisBlock()
+			genesis = DefaultMemeCoreGenesisBlock()
 		} else {
 			log.Info("Writing custom genesis block")
 		}
@@ -327,7 +329,7 @@ func SetupGenesisBlockWithOverride(db ethdb.Database, triedb *triedb.Database, g
 		// genesis will be used as default and the initialization will always fail.
 		if genesis == nil {
 			log.Info("Writing default main-net genesis block")
-			genesis = DefaultGenesisBlock()
+			genesis = DefaultMemeCoreGenesisBlock()
 		} else {
 			log.Info("Writing custom genesis block")
 		}
@@ -418,7 +420,7 @@ func LoadChainConfig(db ethdb.Database, genesis *Genesis) (cfg *params.ChainConf
 	}
 	// There is no stored chain config and no new config provided,
 	// In this case the default chain config(mainnet) will be used
-	return params.MemeMainnetChainConfig, params.MemeMainnetGenesisHash, nil
+	return params.MemeCoreMainnetChainConfig, params.MemeCoreMainnetGenesisHash, nil
 }
 
 // chainConfigOrDefault retrieves the attached chain configuration. If the genesis
@@ -428,8 +430,8 @@ func (g *Genesis) chainConfigOrDefault(ghash common.Hash, stored *params.ChainCo
 	switch {
 	case g != nil:
 		return g.Config
-	case ghash == params.MemeMainnetGenesisHash:
-		return params.MemeMainnetChainConfig
+	case ghash == params.MemeCoreMainnetGenesisHash:
+		return params.MemeCoreMainnetChainConfig
 	case ghash == params.FormicariumGenesisHash:
 		return params.FormicariumChainConfig
 	case ghash == params.InsectariumGenesisHash:
@@ -607,17 +609,17 @@ func DefaultGenesisBlock() *Genesis {
 	}
 }
 
-// DefaultMemeGenesisBlock returns the MemeCore main net genesis block.
-func DefaultMemeGenesisBlock() *Genesis {
+// DefaultMemeCoreGenesisBlock returns the MemeCore main net genesis block.
+func DefaultMemeCoreGenesisBlock() *Genesis {
 	return &Genesis{
-		Config:     params.MemeMainnetChainConfig,
+		Config:     params.MemeCoreMainnetChainConfig,
 		Nonce:      0x0,
 		Timestamp:  0x677bac02,
 		ExtraData:  hexutil.MustDecode("0x0000000000000000000000000000000000000000000000000000000000000000da371e4be535eb88d299f93479402b05ec51eda76b2d2cca391845055e541ff718a067412bb40e5b19ff5842a6a19a0223042af0a82b2a4e3a06d0eba560b87795161e90012f1371b1e34917c99fab3e39829a23ea8df2fa55abe9dcf6b8df4faeb5eb4077b7dc151c87f67c98b5aab17496744d84537c7a560dae32f6932ec49929d8a3eec1111c7f2d0b1c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 		GasLimit:   0x3938700,
 		Difficulty: big.NewInt(1),
 		Mixhash:    common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
-		Alloc:      decodePrealloc(memeMainnetAllocData),
+		Alloc:      decodePrealloc(memecoreMainnetAllocData),
 		Number:     0x0,
 		GasUsed:    0x0,
 		ParentHash: common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),

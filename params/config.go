@@ -28,10 +28,10 @@ import (
 
 // Genesis hashes to enforce below configs on.
 var (
-	MainnetGenesisHash     = common.HexToHash("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3")
-	MemeMainnetGenesisHash = common.HexToHash("0x2ede7ea2e1feeba523f156c772d2189386a0e349b87a79327ad2c81c3bc6d9b8")
-	FormicariumGenesisHash = common.HexToHash("0xce00b0874554d9ed1539bb02b5f261dfc2fa1f230aa37f88c66137af6d180114")
-	InsectariumGenesisHash = common.HexToHash("0x0bd28b7ee9b66a61fce0760d9d44c317e7f949cb6cb4b32e2f774b228dfacf52")
+	MainnetGenesisHash         = common.HexToHash("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3")
+	MemeCoreMainnetGenesisHash = common.HexToHash("0x2ede7ea2e1feeba523f156c772d2189386a0e349b87a79327ad2c81c3bc6d9b8")
+	FormicariumGenesisHash     = common.HexToHash("0xce00b0874554d9ed1539bb02b5f261dfc2fa1f230aa37f88c66137af6d180114")
+	InsectariumGenesisHash     = common.HexToHash("0x0bd28b7ee9b66a61fce0760d9d44c317e7f949cb6cb4b32e2f774b228dfacf52")
 )
 
 func newUint64(val uint64) *uint64 { return &val }
@@ -69,7 +69,7 @@ var (
 		},
 	}
 
-	MemeMainnetChainConfig = &ChainConfig{
+	MemeCoreMainnetChainConfig = &ChainConfig{
 		ChainID:                 big.NewInt(4352),
 		HomesteadBlock:          big.NewInt(0),
 		DAOForkBlock:            nil,
@@ -410,10 +410,10 @@ var (
 
 // NetworkNames are user friendly names to use in the chain spec banner.
 var NetworkNames = map[string]string{
-	MainnetChainConfig.ChainID.String():     "ethereum",
-	MemeMainnetChainConfig.ChainID.String(): "mainnet",
-	FormicariumChainConfig.ChainID.String(): "formicarium",
-	InsectariumChainConfig.ChainID.String(): "insectarium",
+	MainnetChainConfig.ChainID.String():         "ethereum",
+	MemeCoreMainnetChainConfig.ChainID.String(): "mainnet",
+	FormicariumChainConfig.ChainID.String():     "formicarium",
+	InsectariumChainConfig.ChainID.String():     "insectarium",
 }
 
 // ChainConfig is the core config which determines the blockchain settings.

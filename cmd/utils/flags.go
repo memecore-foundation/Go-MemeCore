@@ -144,7 +144,7 @@ var (
 	}
 	MainnetFlag = &cli.BoolFlag{
 		Name:     "mainnet",
-		Usage:    "Ethereum mainnet",
+		Usage:    "MemeCore mainnet",
 		Category: flags.EthCategory,
 	}
 	FormicariumFlag = &cli.BoolFlag{
@@ -1841,8 +1841,8 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 		if !ctx.IsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 4352
 		}
-		cfg.Genesis = core.DefaultGenesisBlock()
-		SetDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
+		cfg.Genesis = core.DefaultMemeCoreGenesisBlock()
+		SetDNSDiscoveryDefaults(cfg, params.MemeCoreMainnetGenesisHash)
 	case ctx.Bool(FormicariumFlag.Name):
 		if !ctx.IsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 43521
@@ -1935,8 +1935,8 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 			cfg.Miner.GasPrice = big.NewInt(1)
 		}
 	default:
-		if cfg.NetworkId == 1 {
-			SetDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
+		if cfg.NetworkId == 4352 {
+			SetDNSDiscoveryDefaults(cfg, params.MemeCoreMainnetGenesisHash)
 		}
 	}
 	// Set any dangling config values
@@ -2278,7 +2278,7 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 	var genesis *core.Genesis
 	switch {
 	case ctx.Bool(MainnetFlag.Name):
-		genesis = core.DefaultGenesisBlock()
+		genesis = core.DefaultMemeCoreGenesisBlock()
 	case ctx.Bool(FormicariumFlag.Name):
 		genesis = core.DefaultFormicariumGenesisBlock()
 	case ctx.Bool(InsectariumFlag.Name):
