@@ -229,7 +229,7 @@ func ethFilter(args []string) (nodeFilter, error) {
 	var filter forkid.Filter
 	switch args[0] {
 	case "mainnet":
-		filter = forkid.NewStaticFilter(params.MemeCoreMainnetChainConfig, core.DefaultMemeCoreGenesisBlock().ToBlock())
+		filter = forkid.NewStaticFilter(params.MainnetChainConfig, core.DefaultGenesisBlock().ToBlock())
 	case "formicarium":
 		filter = forkid.NewStaticFilter(params.FormicariumChainConfig, core.DefaultFormicariumGenesisBlock().ToBlock())
 	case "insectarium":

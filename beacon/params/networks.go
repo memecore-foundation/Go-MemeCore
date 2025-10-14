@@ -18,29 +18,7 @@ package params
 
 import (
 	_ "embed"
-
-	"github.com/ethereum/go-ethereum/common"
 )
 
 //go:embed checkpoint_mainnet.hex
 var checkpointMainnet string
-
-//go:embed checkpoint_sepolia.hex
-var checkpointSepolia string
-
-//go:embed checkpoint_holesky.hex
-var checkpointHolesky string
-
-var (
-	MainnetLightConfig = (&ChainConfig{
-		GenesisValidatorsRoot: common.HexToHash("0x4b363db94e286120d76eb905340fdd4e54bfe9f06bf33ff6cf5ad27f511bfe95"),
-		GenesisTime:           1606824023,
-		Checkpoint:            common.HexToHash(checkpointMainnet),
-	}).
-		AddFork("GENESIS", 0, []byte{0, 0, 0, 0}).
-		AddFork("ALTAIR", 74240, []byte{1, 0, 0, 0}).
-		AddFork("BELLATRIX", 144896, []byte{2, 0, 0, 0}).
-		AddFork("CAPELLA", 194048, []byte{3, 0, 0, 0}).
-		AddFork("DENEB", 269568, []byte{4, 0, 0, 0}).
-		AddFork("ELECTRA", 364032, []byte{5, 0, 0, 0})
-)

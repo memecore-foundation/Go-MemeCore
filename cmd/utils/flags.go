@@ -1119,30 +1119,6 @@ func mustParseBootnodes(urls []string) []*enode.Node {
 	return nodes
 }
 
-// setBootstrapNodesV5 creates a list of bootstrap nodes from the command line
-// flags, reverting to pre-configured ones if none have been specified.
-func setBootstrapNodesV5(ctx *cli.Context, cfg *p2p.Config) {
-	urls := params.V5Bootnodes
-	switch {
-	case ctx.IsSet(BootnodesFlag.Name):
-		urls = SplitAndTrim(ctx.String(BootnodesFlag.Name))
-	case cfg.BootstrapNodesV5 != nil:
-		return // already set, don't apply defaults.
-	}
-
-	cfg.BootstrapNodesV5 = make([]*enode.Node, 0, len(urls))
-	for _, url := range urls {
-		if url != "" {
-			node, err := enode.Parse(enode.ValidSchemes, url)
-			if err != nil {
-				log.Error("Bootstrap URL invalid", "enode", url, "err", err)
-				continue
-			}
-			cfg.BootstrapNodesV5 = append(cfg.BootstrapNodesV5, node)
-		}
-	}
-}
-
 // setListenAddress creates TCP/UDP listening address strings from set command
 // line flags
 func setListenAddress(ctx *cli.Context, cfg *p2p.Config) {
@@ -1419,7 +1395,6 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	setNAT(ctx, cfg)
 	setListenAddress(ctx, cfg)
 	setBootstrapNodes(ctx, cfg)
-	setBootstrapNodesV5(ctx, cfg)
 
 	if ctx.IsSet(MaxPeersFlag.Name) {
 		cfg.MaxPeers = ctx.Int(MaxPeersFlag.Name)
@@ -1841,8 +1816,8 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 		if !ctx.IsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 4352
 		}
-		cfg.Genesis = core.DefaultMemeCoreGenesisBlock()
-		SetDNSDiscoveryDefaults(cfg, params.MemeCoreMainnetGenesisHash)
+		cfg.Genesis = core.DefaultGenesisBlock()
+		SetDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
 	case ctx.Bool(FormicariumFlag.Name):
 		if !ctx.IsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 43521
@@ -1936,7 +1911,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 		}
 	default:
 		if cfg.NetworkId == 4352 {
-			SetDNSDiscoveryDefaults(cfg, params.MemeCoreMainnetGenesisHash)
+			SetDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
 		}
 	}
 	// Set any dangling config values
@@ -1974,18 +1949,18 @@ func MakeBeaconLightConfig(ctx *cli.Context) bparams.ClientConfig {
 	var config bparams.ClientConfig
 	customConfig := ctx.IsSet(BeaconConfigFlag.Name)
 	flags.CheckExclusive(ctx, MainnetFlag, FormicariumFlag, InsectariumFlag, BeaconConfigFlag)
-	switch {
-	case ctx.Bool(MainnetFlag.Name):
-		config.ChainConfig = *bparams.MainnetLightConfig
+	// switch {
+	// case ctx.Bool(MainnetFlag.Name):
+	// 	config.ChainConfig = *bparams.MainnetLightConfig
 	// case ctx.Bool(FormicariumFlag.Name):
 	// 	config.ChainConfig = *bparams.FormicariumLightConfig
 	// case ctx.Bool(InsectariumFlag.Name):
 	// 	config.ChainConfig = *bparams.InsectariumLightConfig
-	default:
-		if !customConfig {
-			config.ChainConfig = *bparams.MainnetLightConfig
-		}
-	}
+	// default:
+	// 	if !customConfig {
+	// 		config.ChainConfig = *bparams.MainnetLightConfig
+	// 	}
+	// }
 	// Genesis root and time should always be specified together with custom chain config
 	if customConfig {
 		if !ctx.IsSet(BeaconGenesisRootFlag.Name) {
@@ -2278,7 +2253,7 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 	var genesis *core.Genesis
 	switch {
 	case ctx.Bool(MainnetFlag.Name):
-		genesis = core.DefaultMemeCoreGenesisBlock()
+		genesis = core.DefaultGenesisBlock()
 	case ctx.Bool(FormicariumFlag.Name):
 		genesis = core.DefaultFormicariumGenesisBlock()
 	case ctx.Bool(InsectariumFlag.Name):
