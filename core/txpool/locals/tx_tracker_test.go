@@ -37,7 +37,7 @@ import (
 var (
 	key, _  = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	address = crypto.PubkeyToAddress(key.PublicKey)
-	funds   = big.NewInt(1000000000000000)
+	funds   = big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(1000000000000000000))
 	gspec   = &core.Genesis{
 		Config: params.TestChainConfig,
 		Alloc: types.GenesisAlloc{
@@ -103,7 +103,7 @@ func (env *testEnv) makeTx(nonce uint64, gasPrice *big.Int) *types.Transaction {
 		nonce = state.GetNonce(address)
 	}
 	if gasPrice == nil {
-		gasPrice = big.NewInt(params.GWei)
+		gasPrice = big.NewInt(params.InitialBaseFee)
 	}
 	tx, _ := types.SignTx(types.NewTransaction(nonce, common.Address{0x00}, big.NewInt(1000), params.TxGas, gasPrice, nil), signer, key)
 	return tx
@@ -116,7 +116,7 @@ func (env *testEnv) makeTxs(n int) []*types.Transaction {
 
 	var txs []*types.Transaction
 	for i := 0; i < n; i++ {
-		tx, _ := types.SignTx(types.NewTransaction(nonce+uint64(i), common.Address{0x00}, big.NewInt(1000), params.TxGas, big.NewInt(params.GWei), nil), signer, key)
+		tx, _ := types.SignTx(types.NewTransaction(nonce+uint64(i), common.Address{0x00}, big.NewInt(1000), params.TxGas, big.NewInt(params.InitialBaseFee), nil), signer, key)
 		txs = append(txs, tx)
 	}
 	return txs

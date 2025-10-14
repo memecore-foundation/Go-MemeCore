@@ -54,6 +54,40 @@ var (
 
 const testMaxBlobsPerBlock = 6
 
+func newUint64(val uint64) *uint64 { return &val }
+
+var MockTestChainConfig = &params.ChainConfig{
+	ChainID:                 big.NewInt(1),
+	HomesteadBlock:          big.NewInt(0),
+	DAOForkBlock:            nil,
+	DAOForkSupport:          false,
+	EIP150Block:             big.NewInt(0),
+	EIP155Block:             big.NewInt(0),
+	EIP158Block:             big.NewInt(0),
+	ByzantiumBlock:          big.NewInt(0),
+	ConstantinopleBlock:     big.NewInt(0),
+	PetersburgBlock:         big.NewInt(0),
+	IstanbulBlock:           big.NewInt(0),
+	MuirGlacierBlock:        big.NewInt(0),
+	BerlinBlock:             big.NewInt(0),
+	LondonBlock:             big.NewInt(0),
+	ArrowGlacierBlock:       big.NewInt(0),
+	GrayGlacierBlock:        big.NewInt(0),
+	MergeNetsplitBlock:      big.NewInt(0),
+	ShanghaiTime:            newUint64(0),
+	CancunTime:              newUint64(0),
+	PragueTime:              newUint64(0),
+	OsakaTime:               nil,
+	VerkleTime:              nil,
+	TerminalTotalDifficulty: big.NewInt(0),
+	Ethash:                  new(params.EthashConfig),
+	Clique:                  nil,
+	BlobScheduleConfig: &params.BlobScheduleConfig{
+		Cancun: params.DefaultCancunBlobConfig,
+		Prague: params.DefaultPragueBlobConfig,
+	},
+}
+
 func init() {
 	for i := 0; i < 24; i++ {
 		testBlob := &kzg4844.Blob{byte(i)}
@@ -211,7 +245,7 @@ func (r *reserver) Has(address common.Address) bool {
 // the blob pool.
 func makeTx(nonce uint64, gasTipCap uint64, gasFeeCap uint64, blobFeeCap uint64, key *ecdsa.PrivateKey) *types.Transaction {
 	blobtx := makeUnsignedTx(nonce, gasTipCap, gasFeeCap, blobFeeCap)
-	return types.MustSignNewTx(key, types.LatestSigner(params.MainnetChainConfig), blobtx)
+	return types.MustSignNewTx(key, types.LatestSigner(MockTestChainConfig), blobtx)
 }
 
 // makeMultiBlobTx is a utility method to construct a ramdom blob tx with
@@ -230,7 +264,7 @@ func makeMultiBlobTx(nonce uint64, gasTipCap uint64, gasFeeCap uint64, blobFeeCa
 		blobHashes = append(blobHashes, testBlobVHashes[i])
 	}
 	blobtx := &types.BlobTx{
-		ChainID:    uint256.MustFromBig(params.MainnetChainConfig.ChainID),
+		ChainID:    uint256.MustFromBig(MockTestChainConfig.ChainID),
 		Nonce:      nonce,
 		GasTipCap:  uint256.NewInt(gasTipCap),
 		GasFeeCap:  uint256.NewInt(gasFeeCap),
@@ -244,7 +278,7 @@ func makeMultiBlobTx(nonce uint64, gasTipCap uint64, gasFeeCap uint64, blobFeeCa
 			Proofs:      proofs,
 		},
 	}
-	return types.MustSignNewTx(key, types.LatestSigner(params.MainnetChainConfig), blobtx)
+	return types.MustSignNewTx(key, types.LatestSigner(MockTestChainConfig), blobtx)
 }
 
 // makeUnsignedTx is a utility method to construct a random blob transaction
@@ -257,7 +291,7 @@ func makeUnsignedTx(nonce uint64, gasTipCap uint64, gasFeeCap uint64, blobFeeCap
 // without signing it.
 func makeUnsignedTxWithTestBlob(nonce uint64, gasTipCap uint64, gasFeeCap uint64, blobFeeCap uint64, blobIdx int) *types.BlobTx {
 	return &types.BlobTx{
-		ChainID:    uint256.MustFromBig(params.MainnetChainConfig.ChainID),
+		ChainID:    uint256.MustFromBig(MockTestChainConfig.ChainID),
 		Nonce:      nonce,
 		GasTipCap:  uint256.NewInt(gasTipCap),
 		GasFeeCap:  uint256.NewInt(gasFeeCap),
@@ -476,7 +510,7 @@ func TestOpenDrops(t *testing.T) {
 	// Insert a transaction with a bad signature to verify that stale junk after
 	// potential hard-forks can get evicted (case 2)
 	tx := types.NewTx(&types.BlobTx{
-		ChainID:    uint256.MustFromBig(params.MainnetChainConfig.ChainID),
+		ChainID:    uint256.MustFromBig(MockTestChainConfig.ChainID),
 		GasTipCap:  new(uint256.Int),
 		GasFeeCap:  new(uint256.Int),
 		Gas:        0,
@@ -705,7 +739,7 @@ func TestOpenDrops(t *testing.T) {
 	statedb.Commit(0, true, false)
 
 	chain := &testBlockChain{
-		config:  params.MainnetChainConfig,
+		config:  MockTestChainConfig,
 		basefee: uint256.NewInt(params.InitialBaseFee),
 		blobfee: uint256.NewInt(params.BlobTxMinBlobGasprice),
 		statedb: statedb,
@@ -823,7 +857,7 @@ func TestOpenIndex(t *testing.T) {
 	statedb.Commit(0, true, false)
 
 	chain := &testBlockChain{
-		config:  params.MainnetChainConfig,
+		config:  MockTestChainConfig,
 		basefee: uint256.NewInt(params.InitialBaseFee),
 		blobfee: uint256.NewInt(params.BlobTxMinBlobGasprice),
 		statedb: statedb,
@@ -924,7 +958,7 @@ func TestOpenHeap(t *testing.T) {
 	statedb.Commit(0, true, false)
 
 	chain := &testBlockChain{
-		config:  params.MainnetChainConfig,
+		config:  MockTestChainConfig,
 		basefee: uint256.NewInt(params.InitialBaseFee),
 		blobfee: uint256.NewInt(105),
 		statedb: statedb,
@@ -1003,7 +1037,7 @@ func TestOpenCap(t *testing.T) {
 		statedb.Commit(0, true, false)
 
 		chain := &testBlockChain{
-			config:  params.MainnetChainConfig,
+			config:  MockTestChainConfig,
 			basefee: uint256.NewInt(params.InitialBaseFee),
 			blobfee: uint256.NewInt(105),
 			statedb: statedb,
@@ -1537,7 +1571,7 @@ func TestAdd(t *testing.T) {
 
 			// Sign the seed transactions and store them in the data store
 			for _, tx := range seed.txs {
-				signed := types.MustSignNewTx(keys[acc], types.LatestSigner(params.MainnetChainConfig), tx)
+				signed := types.MustSignNewTx(keys[acc], types.LatestSigner(MockTestChainConfig), tx)
 				blob, _ := rlp.EncodeToBytes(signed)
 				store.Put(blob)
 			}
@@ -1547,7 +1581,7 @@ func TestAdd(t *testing.T) {
 
 		// Create a blob pool out of the pre-seeded dats
 		chain := &testBlockChain{
-			config:  params.MainnetChainConfig,
+			config:  MockTestChainConfig,
 			basefee: uint256.NewInt(1050),
 			blobfee: uint256.NewInt(105),
 			statedb: statedb,
@@ -1560,7 +1594,7 @@ func TestAdd(t *testing.T) {
 
 		// Add each transaction one by one, verifying the pool internals in between
 		for j, add := range tt.adds {
-			signed, _ := types.SignNewTx(keys[add.from], types.LatestSigner(params.MainnetChainConfig), add.tx)
+			signed, _ := types.SignNewTx(keys[add.from], types.LatestSigner(MockTestChainConfig), add.tx)
 			if err := pool.add(signed); !errors.Is(err, add.err) {
 				t.Errorf("test %d, tx %d: adding transaction error mismatch: have %v, want %v", i, j, err, add.err)
 			}
@@ -1589,7 +1623,7 @@ func TestAdd(t *testing.T) {
 			// Inject the fake block into the chain
 			txs := make([]*types.Transaction, len(tt.block))
 			for j, inc := range tt.block {
-				txs[j] = types.MustSignNewTx(keys[inc.from], types.LatestSigner(params.MainnetChainConfig), inc.tx)
+				txs[j] = types.MustSignNewTx(keys[inc.from], types.LatestSigner(MockTestChainConfig), inc.tx)
 			}
 			chain.blocks = map[uint64]*types.Block{
 				header.Number.Uint64(): types.NewBlockWithHeader(header).WithBody(types.Body{
@@ -1598,7 +1632,7 @@ func TestAdd(t *testing.T) {
 			}
 			// Apply the nonce updates to the state db
 			for _, tx := range txs {
-				sender, _ := types.Sender(types.LatestSigner(params.MainnetChainConfig), tx)
+				sender, _ := types.Sender(types.LatestSigner(MockTestChainConfig), tx)
 				chain.statedb.SetNonce(sender, tx.Nonce()+1, tracing.NonceChangeUnspecified)
 			}
 			pool.Reset(chain.CurrentBlock(), header)
@@ -1641,10 +1675,10 @@ func benchmarkPoolPending(b *testing.B, datacap uint64) {
 	var (
 		basefee    = uint64(1050)
 		blobfee    = uint64(105)
-		signer     = types.LatestSigner(params.MainnetChainConfig)
+		signer     = types.LatestSigner(MockTestChainConfig)
 		statedb, _ = state.New(types.EmptyRootHash, state.NewDatabaseForTesting())
 		chain      = &testBlockChain{
-			config:  params.MainnetChainConfig,
+			config:  MockTestChainConfig,
 			basefee: uint256.NewInt(basefee),
 			blobfee: uint256.NewInt(blobfee),
 			statedb: statedb,
