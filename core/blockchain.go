@@ -2825,8 +2825,11 @@ func (bc *BlockChain) InsertHeadersBeforeCutoff(headers []*types.Header) (int, e
 
 	// Write headers to the ancient store, with block bodies and receipts set to nil
 	// to ensure consistency across tables in the freezer.
-	td := bc.GetTd(headers[0].ParentHash, headers[0].Number.Uint64()-1)
-	_, err := rawdb.WriteAncientHeaderChain(bc.db, headers, td)
+	ptd := bc.GetTd(headers[0].ParentHash, headers[0].Number.Uint64()-1)
+	if ptd == nil {
+		return 0, consensus.ErrUnknownAncestor
+	}
+	_, err := rawdb.WriteAncientHeaderChain(bc.db, headers, ptd)
 	if err != nil {
 		return 0, err
 	}

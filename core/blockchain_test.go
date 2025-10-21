@@ -4429,13 +4429,6 @@ func testInsertChainWithCutoff(t *testing.T, cutoff uint64, ancientLimit uint64,
 	if n, err := chain.InsertHeadersBeforeCutoff(headersBefore); err != nil {
 		t.Fatalf("failed to insert headers before cutoff %d: %v", n, err)
 	}
-	headers := make([]*types.Header, len(blocks))
-	for i, block := range blocks {
-		headers[i] = block.Header()
-	}
-	if n, err := chain.InsertHeaderChain(headers); err != nil {
-		t.Fatalf("failed to insert header %d: %v", n, err)
-	}
 	if n, err := chain.InsertReceiptChain(blocksAfter, receiptsAfter, ancientLimit); err != nil {
 		t.Fatalf("failed to insert receipt %d: %v", n, err)
 	}

@@ -48,8 +48,6 @@ var DeprecatedFlags = []cli.Flag{
 	LogBacktraceAtFlag,
 	LogDebugFlag,
 	MinerNewPayloadTimeoutFlag,
-	MinerEtherbaseFlag,
-	MiningEnabledFlag,
 }
 
 var (
