@@ -143,8 +143,13 @@ func ValidateTransaction(tx *types.Transaction, head *types.Header, signer types
 	if tx.GasTipCapIntCmp(opts.MinTip) < 0 {
 		return fmt.Errorf("%w: gas tip cap %v, minimum needed %v", ErrTxGasPriceTooLow, tx.GasTipCap(), opts.MinTip)
 	}
-	if tx.EffectiveGasTipValue(big.NewInt(params.InitialBaseFee)).Cmp(opts.MinTip) < 0 {
-		return fmt.Errorf("%w: gas fee cap %v, minimum needed %v", ErrUnderpriced, tx.GasFeeCap(), new(big.Int).Add(big.NewInt(params.InitialBaseFee), opts.MinTip))
+	// Determine the appropriate base fee based on GasTree fork activation
+	baseFeeBig := big.NewInt(params.InitialBaseFee)
+	if opts.Config.IsGasTreeFork(head.Number) {
+		baseFeeBig = big.NewInt(params.GasTreeInitialBaseFee)
+	}
+	if tx.EffectiveGasTipValue(baseFeeBig).Cmp(opts.MinTip) < 0 {
+		return fmt.Errorf("%w: gas fee cap %v, minimum needed %v", ErrUnderpriced, tx.GasFeeCap(), new(big.Int).Add(baseFeeBig, opts.MinTip))
 	}
 	if tx.Type() == types.BlobTxType {
 		// Ensure the blob fee cap satisfies the minimum blob gas price

@@ -58,6 +58,7 @@ var (
 		MergeNetsplitBlock:      nil,
 		ShanghaiTime:            newUint64(0),
 		RewardTreeForkBlock:     big.NewInt(2_300_000),
+		GasTreeForkBlock:        big.NewInt(math.MaxInt64), // TODO: Set actual block number when determined
 		CancunTime:              nil,
 		PragueTime:              nil,
 		OsakaTime:               nil,
@@ -90,6 +91,7 @@ var (
 		MergeNetsplitBlock:      nil,
 		ShanghaiTime:            newUint64(0),
 		RewardTreeForkBlock:     big.NewInt(2_335_000),
+		GasTreeForkBlock:        big.NewInt(math.MaxInt64), // TODO: Set actual block number when determined
 		CancunTime:              nil,
 		PragueTime:              nil,
 		OsakaTime:               nil,
@@ -122,6 +124,7 @@ var (
 		MergeNetsplitBlock:      nil,
 		ShanghaiTime:            newUint64(0),
 		RewardTreeForkBlock:     big.NewInt(270_000),
+		GasTreeForkBlock:        big.NewInt(math.MaxInt64), // TODO: Set actual block number when determined
 		CancunTime:              nil,
 		PragueTime:              nil,
 		OsakaTime:               nil,
@@ -423,6 +426,9 @@ type ChainConfig struct {
 	// RewardTreeForkBlock specifies the block number for the reward reduction hard fork
 	RewardTreeForkBlock *big.Int `json:"rewardTreeForkBlock,omitempty"` // RewardTree switch time (nil = no fork, 0 = already on RewardTree)
 
+	// GasTreeForkBlock specifies the block number for the base fee reduction hard fork (from 1500 to 150 gwei)
+	GasTreeForkBlock *big.Int `json:"gasTreeForkBlock,omitempty"` // GasTree switch block (nil = no fork, 0 = already on GasTree)
+
 	// TerminalTotalDifficulty is the amount of total difficulty reached by
 	// the network that triggers the consensus upgrade.
 	TerminalTotalDifficulty *big.Int `json:"terminalTotalDifficulty,omitempty"`
@@ -484,6 +490,11 @@ func (c *ChainConfig) IsRewardTreeFork(num *big.Int) bool {
 	return isBlockForked(c.RewardTreeForkBlock, num)
 }
 
+// IsGasTreeFork returns whether num is either equal to the GasTree fork block or greater.
+func (c *ChainConfig) IsGasTreeFork(num *big.Int) bool {
+	return isBlockForked(c.GasTreeForkBlock, num)
+}
+
 // Description returns a human-readable description of ChainConfig.
 func (c *ChainConfig) Description() string {
 	var banner string
@@ -534,6 +545,9 @@ func (c *ChainConfig) Description() string {
 	}
 	if c.RewardTreeForkBlock != nil {
 		banner += fmt.Sprintf(" - RewardTree:                  #%-8v (block reward reduction to 300 * 10^17 wei)\n", c.RewardTreeForkBlock)
+	}
+	if c.GasTreeForkBlock != nil {
+		banner += fmt.Sprintf(" - GasTree:                     #%-8v (base fee reduction from 1500 to 150 gwei)\n", c.GasTreeForkBlock)
 	}
 	banner += "\n"
 
@@ -758,6 +772,7 @@ func (c *ChainConfig) CheckConfigForkOrder() error {
 		{name: "mergeNetsplitBlock", block: c.MergeNetsplitBlock, optional: true},
 		{name: "shanghaiTime", timestamp: c.ShanghaiTime},
 		{name: "rewardTreeForkBlock", block: c.RewardTreeForkBlock, optional: true},
+		{name: "gasTreeForkBlock", block: c.GasTreeForkBlock, optional: true},
 		{name: "cancunTime", timestamp: c.CancunTime, optional: true},
 		{name: "pragueTime", timestamp: c.PragueTime, optional: true},
 		{name: "osakaTime", timestamp: c.OsakaTime, optional: true},
@@ -901,6 +916,9 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, headNumber *big.Int, 
 	}
 	if isForkBlockIncompatible(c.RewardTreeForkBlock, newcfg.RewardTreeForkBlock, headNumber) {
 		return newBlockCompatError("RewardTree fork block", c.RewardTreeForkBlock, newcfg.RewardTreeForkBlock)
+	}
+	if isForkBlockIncompatible(c.GasTreeForkBlock, newcfg.GasTreeForkBlock, headNumber) {
+		return newBlockCompatError("GasTree fork block", c.GasTreeForkBlock, newcfg.GasTreeForkBlock)
 	}
 	if isForkTimestampIncompatible(c.CancunTime, newcfg.CancunTime, headTimestamp) {
 		return newTimestampCompatError("Cancun fork timestamp", c.CancunTime, newcfg.CancunTime)

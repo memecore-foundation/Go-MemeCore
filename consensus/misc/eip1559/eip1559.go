@@ -54,9 +54,21 @@ func VerifyEIP1559Header(config *params.ChainConfig, parent, header *types.Heade
 
 // CalcBaseFee calculates the basefee of the header.
 func CalcBaseFee(config *params.ChainConfig, parent *types.Header) *big.Int {
+	// Calculate next block number
+	nextBlockNumber := new(big.Int).Add(parent.Number, common.Big1)
+
 	// If the current block is the first EIP-1559 block, return the InitialBaseFee.
 	if !config.IsLondon(parent.Number) {
+		// Check if GasTree is active for the next block
+		if config.IsGasTreeFork(nextBlockNumber) {
+			return new(big.Int).SetUint64(params.GasTreeInitialBaseFee)
+		}
 		return new(big.Int).SetUint64(params.InitialBaseFee)
+	}
+
+	// If transitioning to GasTree fork, return GasTreeInitialBaseFee
+	if config.IsGasTreeFork(nextBlockNumber) && !config.IsGasTreeFork(parent.Number) {
+		return new(big.Int).SetUint64(params.GasTreeInitialBaseFee)
 	}
 
 	parentGasTarget := parent.GasLimit / config.ElasticityMultiplier()
@@ -90,8 +102,17 @@ func CalcBaseFee(config *params.ChainConfig, parent *types.Header) *big.Int {
 		num.Div(num, denom.SetUint64(config.BaseFeeChangeDenominator()))
 
 		baseFee := num.Sub(parent.BaseFee, num)
-		if baseFee.Cmp(new(big.Int).SetUint64(params.InitialBaseFee)) < 0 {
-			baseFee = new(big.Int).SetUint64(params.InitialBaseFee)
+
+		// Set minimum base fee based on fork activation
+		var minBaseFee uint64
+		if config.IsGasTreeFork(nextBlockNumber) {
+			minBaseFee = params.GasTreeInitialBaseFee
+		} else {
+			minBaseFee = params.InitialBaseFee
+		}
+
+		if baseFee.Cmp(new(big.Int).SetUint64(minBaseFee)) < 0 {
+			baseFee = new(big.Int).SetUint64(minBaseFee)
 		}
 		return baseFee
 	}

@@ -131,6 +131,7 @@ const (
 	DefaultBaseFeeChangeDenominator = 8             // Bounds the amount the base fee can change between blocks.
 	DefaultElasticityMultiplier     = 2             // Bounds the maximum gas limit an EIP-1559 block may have.
 	InitialBaseFee                  = 1500000000000 // Initial base fee for EIP-1559 blocks.
+	GasTreeInitialBaseFee           = 15000000000   // Initial base fee for EIP-1559 blocks after GasTree fork (15 gwei).
 
 	MaxCodeSize     = 24576           // Maximum bytecode to permit for a contract
 	MaxInitCodeSize = 2 * MaxCodeSize // Maximum initcode to permit in a creation transaction and create instructions

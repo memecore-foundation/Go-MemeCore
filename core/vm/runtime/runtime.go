@@ -103,7 +103,12 @@ func setDefaults(cfg *Config) {
 		}
 	}
 	if cfg.BaseFee == nil {
-		cfg.BaseFee = big.NewInt(params.InitialBaseFee)
+		// Use GasTreeInitialBaseFee if GasTree fork is active
+		if cfg.ChainConfig != nil && cfg.BlockNumber != nil && cfg.ChainConfig.IsGasTreeFork(cfg.BlockNumber) {
+			cfg.BaseFee = big.NewInt(params.GasTreeInitialBaseFee)
+		} else {
+			cfg.BaseFee = big.NewInt(params.InitialBaseFee)
+		}
 	}
 	if cfg.BlobBaseFee == nil {
 		cfg.BlobBaseFee = big.NewInt(params.BlobTxMinBlobGasprice)

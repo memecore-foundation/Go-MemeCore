@@ -484,7 +484,12 @@ func (g *Genesis) toBlockWithRoot(root common.Hash) *types.Block {
 		if g.BaseFee != nil {
 			head.BaseFee = g.BaseFee
 		} else {
-			head.BaseFee = new(big.Int).SetUint64(params.InitialBaseFee)
+			// Use GasTreeInitialBaseFee if GasTree fork is active at genesis
+			if g.Config.IsGasTreeFork(common.Big0) {
+				head.BaseFee = new(big.Int).SetUint64(params.GasTreeInitialBaseFee)
+			} else {
+				head.BaseFee = new(big.Int).SetUint64(params.InitialBaseFee)
+			}
 		}
 	}
 	var (
