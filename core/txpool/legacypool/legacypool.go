@@ -1069,6 +1069,18 @@ func (pool *LegacyPool) GetBlobs(vhashes []common.Hash) ([]*kzg4844.Blob, []*kzg
 	return nil, nil
 }
 
+// GetMinedBlobSidecarByTxHash is not supported by the legacy transaction pool, it is just here to
+// implement the txpool.SubPool interface.
+func (pool *LegacyPool) GetMinedBlobSidecarByTxHash(tx common.Hash) (*types.BlobTxSidecar, error) {
+	return nil, nil
+}
+
+// GetMinedBlobSidecars is not supported by the legacy transaction pool, it is just here to
+// implement the txpool.SubPool interface.
+func (pool *LegacyPool) GetMinedBlobSidecars(blockId uint64) ([]*types.BlobTxSidecar, error) {
+	return nil, nil
+}
+
 // Has returns an indicator whether txpool has a transaction cached with the
 // given hash.
 func (pool *LegacyPool) Has(hash common.Hash) bool {

@@ -324,6 +324,38 @@ func (p *TxPool) GetBlobs(vhashes []common.Hash) ([]*kzg4844.Blob, []*kzg4844.Pr
 	return nil, nil
 }
 
+// GetMinedBlobSidecarByTxHash returns a number of blobs for the given transaction hash.
+// This is a utility method for the beacon API, enabling EL clients to provide a
+// CL API.
+func (p *TxPool) GetMinedBlobSidecarByTxHash(tx common.Hash) (*types.BlobTxSidecar, error) {
+	for _, subpool := range p.subpools {
+		// It's an ugly to assume that only one pool will be capable of returning
+		// anything meaningful for this call, but anythingh else requires merging
+		// partial responses and that's too annoying to do until we get a second
+		// blobpool (probably never).
+		if sidecar, err := subpool.GetMinedBlobSidecarByTxHash(tx); sidecar != nil || err != nil {
+			return sidecar, err
+		}
+	}
+	return nil, nil
+}
+
+// GetMinedBlobSidecars returns a number of blobs for the given block id.
+// This is a utility method for the beacon API, enabling EL clients to provide a
+// CL API.
+func (p *TxPool) GetMinedBlobSidecars(blockId uint64) ([]*types.BlobTxSidecar, error) {
+	for _, subpool := range p.subpools {
+		// It's an ugly to assume that only one pool will be capable of returning
+		// anything meaningful for this call, but anythingh else requires merging
+		// partial responses and that's too annoying to do until we get a second
+		// blobpool (probably never).
+		if sidecars, err := subpool.GetMinedBlobSidecars(blockId); sidecars != nil || err != nil {
+			return sidecars, err
+		}
+	}
+	return nil, nil
+}
+
 // Add enqueues a batch of transactions into the pool if they are valid. Due
 // to the large transaction churn, add may postpone fully integrating the tx
 // to a later point to batch multiple ones together.

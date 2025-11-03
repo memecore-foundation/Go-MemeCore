@@ -331,6 +331,26 @@ func (api *BlockChainAPI) GetBalance(ctx context.Context, address common.Address
 	return (*hexutil.Big)(b), state.Error()
 }
 
+func (api *BlockChainAPI) GetBlobSidecars(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) ([]map[string]interface{}, error) {
+	sidecars, err := api.b.GetBlobSidecars(ctx, blockNrOrHash)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]map[string]interface{}, 0)
+	for _, sidecar := range sidecars {
+		result = append(result, marshalBlobSidecar(sidecar))
+	}
+	return result, nil
+}
+
+func (api *BlockChainAPI) GetBlobSidecarByTxHash(ctx context.Context, hash common.Hash) (map[string]interface{}, error) {
+	sidecar, err := api.b.GetBlobSidecarByTxHash(ctx, hash)
+	if err != nil {
+		return nil, err
+	}
+	return marshalBlobSidecar(sidecar), nil
+}
+
 // AccountResult structs for GetProof
 type AccountResult struct {
 	Address      common.Address  `json:"address"`
@@ -1440,6 +1460,16 @@ func marshalReceipt(receipt *types.Receipt, blockHash common.Hash, blockNumber u
 		fields["contractAddress"] = receipt.ContractAddress
 	}
 	return fields
+}
+
+// marshalBlobSidecar marshals a blob sidecar receipt into a JSON object.
+func marshalBlobSidecar(sidecar *types.BlobTxSidecar) map[string]interface{} {
+	field := map[string]interface{}{
+		"blobs":       sidecar.Blobs,
+		"commitments": sidecar.Commitments,
+		"proofs":      sidecar.Proofs,
+	}
+	return field
 }
 
 // sign is a helper function that signs a transaction with the private key of the given address.

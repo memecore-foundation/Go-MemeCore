@@ -408,3 +408,10 @@ func (b *backendMock) CurrentView() *filtermaps.ChainView           { return nil
 func (b *backendMock) NewMatcherBackend() filtermaps.MatcherBackend { return nil }
 
 func (b *backendMock) HistoryPruningCutoff() uint64 { return 0 }
+
+func (b *backendMock) GetBlobSidecarByTxHash(ctx context.Context, txHash common.Hash) (*types.BlobTxSidecar, error) {
+	return nil, nil
+}
+func (b *backendMock) GetBlobSidecars(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) ([]*types.BlobTxSidecar, error) {
+	return nil, nil
+}

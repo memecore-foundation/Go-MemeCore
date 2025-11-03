@@ -635,6 +635,12 @@ func (b testBackend) HistoryPruningCutoff() uint64 {
 	bn, _ := b.chain.HistoryPruningCutoff()
 	return bn
 }
+func (b testBackend) GetBlobSidecarByTxHash(ctx context.Context, txHash common.Hash) (*types.BlobTxSidecar, error) {
+	panic("implement me")
+}
+func (b testBackend) GetBlobSidecars(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) ([]*types.BlobTxSidecar, error) {
+	panic("implement me")
+}
 
 func TestEstimateGas(t *testing.T) {
 	t.Parallel()

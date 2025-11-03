@@ -484,3 +484,17 @@ func (b *EthAPIBackend) StateAtBlock(ctx context.Context, block *types.Block, re
 func (b *EthAPIBackend) StateAtTransaction(ctx context.Context, block *types.Block, txIndex int, reexec uint64) (*types.Transaction, vm.BlockContext, *state.StateDB, tracers.StateReleaseFunc, error) {
 	return b.eth.stateAtTransaction(ctx, block, txIndex, reexec)
 }
+
+func (b *EthAPIBackend) GetBlobSidecarByTxHash(ctx context.Context, txHash common.Hash) (*types.BlobTxSidecar, error) {
+	// TODO: Move this blob query from txpool to long-term storage when the latter is implemented.
+	return b.eth.txPool.GetMinedBlobSidecarByTxHash(txHash)
+}
+
+func (b *EthAPIBackend) GetBlobSidecars(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) ([]*types.BlobTxSidecar, error) {
+	// TODO: Move this blob query from txpool to long-term storage when the latter is implemented.
+	header, err := b.HeaderByNumberOrHash(ctx, blockNrOrHash)
+	if err != nil {
+		return nil, err
+	}
+	return b.eth.txPool.GetMinedBlobSidecars(header.Number.Uint64())
+}

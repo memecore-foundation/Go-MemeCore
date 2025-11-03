@@ -98,6 +98,10 @@ type Backend interface {
 
 	CurrentView() *filtermaps.ChainView
 	NewMatcherBackend() filtermaps.MatcherBackend
+
+	// Customized API for EIP-4844 blobs
+	GetBlobSidecarByTxHash(ctx context.Context, txHash common.Hash) (*types.BlobTxSidecar, error)
+	GetBlobSidecars(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) ([]*types.BlobTxSidecar, error)
 }
 
 func GetAPIs(apiBackend Backend) []rpc.API {
