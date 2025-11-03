@@ -104,7 +104,7 @@ func setDefaults(cfg *Config) {
 	}
 	if cfg.BaseFee == nil {
 		// Use GasTreeInitialBaseFee if GasTree fork is active
-		if cfg.ChainConfig != nil && cfg.BlockNumber != nil && cfg.ChainConfig.IsGasTreeFork(cfg.BlockNumber) {
+		if cfg.ChainConfig.IsGasTreeFork(cfg.BlockNumber) {
 			cfg.BaseFee = big.NewInt(params.GasTreeInitialBaseFee)
 		} else {
 			cfg.BaseFee = big.NewInt(params.InitialBaseFee)
