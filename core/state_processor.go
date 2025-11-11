@@ -108,18 +108,18 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	var requests [][]byte
 	if p.config.IsPrague(block.Number(), block.Time()) {
 		requests = [][]byte{}
-		// EIP-6110
-		if err := ParseDepositLogs(&requests, allLogs, p.config); err != nil {
-			return nil, err
-		}
-		// EIP-7002
-		if err := ProcessWithdrawalQueue(&requests, evm); err != nil {
-			return nil, err
-		}
-		// EIP-7251
-		if err := ProcessConsolidationQueue(&requests, evm); err != nil {
-			return nil, err
-		}
+		// // EIP-6110
+		// if err := ParseDepositLogs(&requests, allLogs, p.config); err != nil {
+		// 	return nil, err
+		// }
+		// // EIP-7002
+		// if err := ProcessWithdrawalQueue(&requests, evm); err != nil {
+		// 	return nil, err
+		// }
+		// // EIP-7251
+		// if err := ProcessConsolidationQueue(&requests, evm); err != nil {
+		// 	return nil, err
+		// }
 	}
 
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)

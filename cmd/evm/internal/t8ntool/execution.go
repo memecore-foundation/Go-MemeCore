@@ -354,22 +354,22 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig, 
 	var requests [][]byte
 	if chainConfig.IsPrague(vmContext.BlockNumber, vmContext.Time) {
 		requests = [][]byte{}
-		// EIP-6110
-		var allLogs []*types.Log
-		for _, receipt := range receipts {
-			allLogs = append(allLogs, receipt.Logs...)
-		}
-		if err := core.ParseDepositLogs(&requests, allLogs, chainConfig); err != nil {
-			return nil, nil, nil, NewError(ErrorEVM, fmt.Errorf("could not parse requests logs: %v", err))
-		}
-		// EIP-7002
-		if err := core.ProcessWithdrawalQueue(&requests, evm); err != nil {
-			return nil, nil, nil, NewError(ErrorEVM, fmt.Errorf("could not process withdrawal requests: %v", err))
-		}
-		// EIP-7251
-		if err := core.ProcessConsolidationQueue(&requests, evm); err != nil {
-			return nil, nil, nil, NewError(ErrorEVM, fmt.Errorf("could not process consolidation requests: %v", err))
-		}
+		// // EIP-6110
+		// var allLogs []*types.Log
+		// for _, receipt := range receipts {
+		// 	allLogs = append(allLogs, receipt.Logs...)
+		// }
+		// if err := core.ParseDepositLogs(&requests, allLogs, chainConfig); err != nil {
+		// 	return nil, nil, nil, NewError(ErrorEVM, fmt.Errorf("could not parse requests logs: %v", err))
+		// }
+		// // EIP-7002
+		// if err := core.ProcessWithdrawalQueue(&requests, evm); err != nil {
+		// 	return nil, nil, nil, NewError(ErrorEVM, fmt.Errorf("could not process withdrawal requests: %v", err))
+		// }
+		// // EIP-7251
+		// if err := core.ProcessConsolidationQueue(&requests, evm); err != nil {
+		// 	return nil, nil, nil, NewError(ErrorEVM, fmt.Errorf("could not process consolidation requests: %v", err))
+		// }
 	}
 
 	// Commit block

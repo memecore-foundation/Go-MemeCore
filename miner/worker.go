@@ -729,27 +729,27 @@ func (w *worker) generateWork(params *generateParams, witness bool) *newPayloadR
 	}
 
 	body := types.Body{Transactions: work.txs, Withdrawals: params.withdrawals}
-	allLogs := make([]*types.Log, 0)
-	for _, r := range work.receipts {
-		allLogs = append(allLogs, r.Logs...)
-	}
+	// allLogs := make([]*types.Log, 0)
+	// for _, r := range work.receipts {
+	// 	allLogs = append(allLogs, r.Logs...)
+	// }
 
 	// Collect consensus-layer requests if Prague is enabled.
 	var requests [][]byte
 	if w.chainConfig.IsPrague(work.header.Number, work.header.Time) {
 		requests = [][]byte{}
-		// EIP-6110 deposits
-		if err := core.ParseDepositLogs(&requests, allLogs, w.chainConfig); err != nil {
-			return &newPayloadResult{err: err}
-		}
-		// EIP-7002
-		if err := core.ProcessWithdrawalQueue(&requests, work.evm); err != nil {
-			return &newPayloadResult{err: err}
-		}
-		// EIP-7251 consolidations
-		if err := core.ProcessConsolidationQueue(&requests, work.evm); err != nil {
-			return &newPayloadResult{err: err}
-		}
+		// // EIP-6110 deposits
+		// if err := core.ParseDepositLogs(&requests, allLogs, w.chainConfig); err != nil {
+		// 	return &newPayloadResult{err: err}
+		// }
+		// // EIP-7002
+		// if err := core.ProcessWithdrawalQueue(&requests, work.evm); err != nil {
+		// 	return &newPayloadResult{err: err}
+		// }
+		// // EIP-7251 consolidations
+		// if err := core.ProcessConsolidationQueue(&requests, work.evm); err != nil {
+		// 	return &newPayloadResult{err: err}
+		// }
 	}
 	if requests != nil {
 		reqHash := types.CalcRequestsHash(requests)

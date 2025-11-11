@@ -4139,7 +4139,7 @@ func TestPragueRequests(t *testing.T) {
 	if rh == nil {
 		t.Fatal("block has nil requests hash")
 	}
-	expectedRequestsHash := common.HexToHash("0x06ffb72b9f0823510b128bca6cd4f96f59b745de6791e9fc350b596e7605101e")
+	expectedRequestsHash := types.EmptyRequestsHash
 	if *rh != expectedRequestsHash {
 		t.Fatalf("block has wrong requestsHash %v, want %v", *rh, expectedRequestsHash)
 	}
