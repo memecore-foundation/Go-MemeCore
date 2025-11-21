@@ -137,6 +137,27 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Check for state scheme incompatibility with better error messages.
+	// NOTE: This fix only applies to release/1.15 and does not need to be included
+	// in release/1.16, which allows setting gcmode=archive in the path scheme.
+	stored := rawdb.ReadStateScheme(chainDb)
+	if stored != "" && config.StateScheme != "" && stored != config.StateScheme {
+		if stored == rawdb.PathScheme && config.StateScheme == rawdb.HashScheme {
+			if config.NoPruning { // Archive mode
+				return nil, fmt.Errorf("database was initialized with 'path' state scheme, but archive mode (--gcmode=archive) requires 'hash' scheme.\n" +
+					"Cannot change state scheme on existing database.\n" +
+					"Solution: Remove --gcmode=archive flag to use path scheme")
+			} else {
+				return nil, fmt.Errorf("database was initialized with 'path' state scheme, but 'hash' scheme is explicitly requested.\n" +
+					"Cannot change state scheme on existing database.\n" +
+					"Solution: Remove --state.scheme=hash flag")
+			}
+		} else if stored == rawdb.HashScheme && config.StateScheme == rawdb.PathScheme {
+			return nil, fmt.Errorf("database was initialized with 'hash' state scheme, but 'path' scheme was requested.\n" +
+				"Cannot change state scheme on existing database.\n" +
+				"Solution: Remove --state.scheme flag to use existing hash scheme")
+		}
+	}
 	scheme, err := rawdb.ParseStateScheme(config.StateScheme, chainDb)
 	if err != nil {
 		return nil, err

@@ -289,6 +289,9 @@ func ReadStateScheme(db ethdb.Database) string {
 //
 //   - If the provided scheme is path: use path-based scheme or error out if not
 //     compatible with persistent state scheme.
+//
+// NOTE: This fix only applies to release/1.15 and does not need to be included
+// in release/1.16, which allows setting gcmode=archive in the path scheme.
 func ParseStateScheme(provided string, disk ethdb.Database) (string, error) {
 	// If state scheme is not specified, use the scheme consistent
 	// with persistent state, or fallback to hash mode if database
@@ -311,6 +314,18 @@ func ParseStateScheme(provided string, disk ethdb.Database) (string, error) {
 	if stored == "" || provided == stored {
 		log.Info("State scheme set by user", "scheme", provided)
 		return provided, nil
+	}
+	// Provide detailed error messages for specific incompatibility cases
+	if stored == PathScheme && provided == HashScheme {
+		return "", fmt.Errorf("database was initialized with 'path' state scheme, but 'hash' scheme is requested.\n" +
+			"Cannot change state scheme on existing database.\n" +
+			"Note: This often happens when using --gcmode=archive, which forces hash scheme.\n" +
+			"Solution: Remove --gcmode=archive or --state.scheme=hash flag")
+	}
+	if stored == HashScheme && provided == PathScheme {
+		return "", fmt.Errorf("database was initialized with 'hash' state scheme, but 'path' scheme was requested.\n" +
+			"Cannot change state scheme on existing database.\n" +
+			"Solution: Remove --state.scheme flag to use existing hash scheme")
 	}
 	return "", fmt.Errorf("incompatible state scheme, stored: %s, provided: %s", stored, provided)
 }
