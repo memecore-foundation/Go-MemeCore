@@ -603,6 +603,10 @@ func (w *worker) taskLoop() {
 			stopCh = nil
 		}
 	}
+	go func() {
+		<-w.exitCh
+		interrupt()
+	}()
 	for {
 		select {
 		case task := <-w.taskCh:
@@ -632,7 +636,6 @@ func (w *worker) taskLoop() {
 				w.pendingMu.Unlock()
 			}
 		case <-w.exitCh:
-			interrupt()
 			return
 		}
 	}

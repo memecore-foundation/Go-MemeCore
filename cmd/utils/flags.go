@@ -1024,6 +1024,16 @@ Please note that --` + MetricsHTTPFlag.Name + ` must be set to start the server.
 		Usage:    "Enable event logging for PoSA consensus engine",
 		Category: flags.MiscCategory,
 	}
+	PoSASignerRetryIntervalFlag = &cli.DurationFlag{
+		Name:     "posa.signer.retry.interval",
+		Usage:    "Interval between retries to signer (default: 500ms)",
+		Category: flags.MiscCategory,
+	}
+	PoSASignerRetryCountFlag = &cli.IntFlag{
+		Name:     "posa.signer.retry.count",
+		Usage:    "Number of retries to signer, -1 for infinite retries (default: -1)",
+		Category: flags.MiscCategory,
+	}
 )
 
 var (
@@ -1965,6 +1975,14 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 		cfg.PoSAEnableEventLogging = ctx.Bool(PoSAEnableEventLoggingFlag.Name)
 		log.Info("PoSA event logging flag set", "enabled", cfg.PoSAEnableEventLogging)
 	}
+	if ctx.IsSet(PoSASignerRetryIntervalFlag.Name) {
+		cfg.PoSASignerRetryInterval = ctx.Duration(PoSASignerRetryIntervalFlag.Name)
+		log.Info("PoSA signer retry interval set", "interval", cfg.PoSASignerRetryInterval)
+	}
+	if ctx.IsSet(PoSASignerRetryCountFlag.Name) {
+		cfg.PoSASignerRetryCount = ctx.Int(PoSASignerRetryCountFlag.Name)
+		log.Info("PoSA signer retry count set", "count", cfg.PoSASignerRetryCount)
+	}
 
 	// Blob archiving configuration
 	if ctx.IsSet(BlobExtraReserveFlag.Name) {
@@ -2104,6 +2122,7 @@ func RegisterEthService(stack *node.Node, cfg *ethconfig.Config) (*eth.EthAPIBac
 
 	if posaEngine != nil {
 		posaEngine.SetEventLoggingEnabled(cfg.PoSAEnableEventLogging)
+		posaEngine.SetSignerRetry(cfg.PoSASignerRetryInterval, cfg.PoSASignerRetryCount)
 		log.Info("PoSA event logging configured", "enabled", cfg.PoSAEnableEventLogging)
 	} else {
 		log.Warn("No PoSA engine found", "engine", fmt.Sprintf("%T", engine))

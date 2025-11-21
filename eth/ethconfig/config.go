@@ -74,7 +74,10 @@ var Defaults = Config{
 	GPO:                FullNodeGPO,
 	RPCTxFeeCap:        1500, // 1500 ether
 
-	PoSAEnableEventLogging: false,
+	PoSAEnableEventLogging:  false,
+	PoSASignerRetryInterval: 500 * time.Millisecond,
+	PoSASignerRetryCount:    -1,
+
 	BlobExtraReserve:       params.DefaultExtraReserveForBlobRequests,
 }
 
@@ -173,7 +176,9 @@ type Config struct {
 	OverrideVerkle *uint64 `toml:",omitempty"`
 
 	// PoSA-specific settings
-	PoSAEnableEventLogging bool // Enable event logging for PoSA consensus engine
+	PoSAEnableEventLogging  bool          // Enable event logging for PoSA consensus engine
+	PoSASignerRetryInterval time.Duration // Interval between retries to signer
+	PoSASignerRetryCount    int           // Number of retries to signer
 
 	// Blob archiving settings
 	BlobExtraReserve uint64 // Extra reserve for blob archiving (blocks), blob never expires when 0 is set

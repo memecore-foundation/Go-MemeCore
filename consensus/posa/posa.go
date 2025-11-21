@@ -183,7 +183,9 @@ type PoSA struct {
 	// The fields below are for testing only
 	fakeDiff bool // Skip difficulty verifications
 
-	enableEventLogging bool // Flag to control event logging
+	enableEventLogging      bool          // Flag to control event logging
+	poSASignerRetryInterval time.Duration // Interval between retries to signer
+	poSASignerRetryCount    int           // Number of retries to signer
 }
 
 // SetEventLoggingEnabled sets whether event logging is enabled or disabled.
@@ -191,6 +193,13 @@ func (p *PoSA) SetEventLoggingEnabled(enabled bool) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	p.enableEventLogging = enabled
+}
+
+func (p *PoSA) SetSignerRetry(interval time.Duration, count int) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	p.poSASignerRetryInterval = interval
+	p.poSASignerRetryCount = count
 }
 
 // New creates a PoSA consensus engine with the initial signers set to the
@@ -770,9 +779,31 @@ func (p *PoSA) Seal(chain consensus.ChainHeaderReader, block *types.Block, resul
 		log.Trace("Out-of-turn signing requested", "wiggle", common.PrettyDuration(wiggle))
 	}
 	// Sign all the things!
-	sighash, err := signFn(accounts.Account{Address: signer}, accounts.MimetypePoSA, PoSARLP(header))
-	if err != nil {
-		return err
+	var (
+		sighash    []byte
+		retryCount int = 0
+	)
+	for loop := true; loop && (retryCount < p.poSASignerRetryCount || p.poSASignerRetryCount == -1); {
+		curBlockNumber := chain.CurrentHeader().Number
+		if curBlockNumber.Cmp(header.Number) >= 0 {
+			return fmt.Errorf("current block number is greater than or equal to signing block number. current block number: %d, signing block number: %d", curBlockNumber, header.Number)
+		}
+		select {
+		case <-stop:
+			log.Warn("PoSA signing aborted", "number", header.Number.Uint64())
+			return nil
+		case <-time.After(p.poSASignerRetryInterval):
+			sighash, err = signFn(accounts.Account{Address: signer}, accounts.MimetypePoSA, PoSARLP(header))
+			if err == nil {
+				loop = false
+			} else {
+				log.Warn("PoSA signer failed to sign block.", "number", header.Number.Uint64(), "retry", retryCount, "err", err)
+				retryCount++
+			}
+		}
+	}
+	if sighash == nil {
+		return fmt.Errorf("failed to sign block. number: %d, retry count: %d", header.Number.Uint64(), retryCount)
 	}
 	copy(header.Extra[len(header.Extra)-extraSeal:], sighash)
 	// Wait until sealing is terminated or delay timeout.
