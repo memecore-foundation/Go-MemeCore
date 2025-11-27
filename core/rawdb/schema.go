@@ -102,8 +102,9 @@ var (
 	headerHashSuffix   = []byte("n") // headerPrefix + num (uint64 big endian) + headerHashSuffix -> hash
 	headerNumberPrefix = []byte("H") // headerNumberPrefix + hash -> num (uint64 big endian)
 
-	blockBodyPrefix     = []byte("b") // blockBodyPrefix + num (uint64 big endian) + hash -> block body
-	blockReceiptsPrefix = []byte("r") // blockReceiptsPrefix + num (uint64 big endian) + hash -> block receipts
+	blockBodyPrefix         = []byte("b")      // blockBodyPrefix + num (uint64 big endian) + hash -> block body
+	blockReceiptsPrefix     = []byte("r")      // blockReceiptsPrefix + num (uint64 big endian) + hash -> block receipts
+	BlockBlobSidecarsPrefix = []byte("blobs")  // BlockBlobSidecarsPrefix + num (uint64 big endian) + hash -> block blob sidecars
 
 	txLookupPrefix        = []byte("l") // txLookupPrefix + hash -> transaction/receipt lookup metadata
 	bloomBitsPrefix       = []byte("B") // bloomBitsPrefix + bit (uint16 big endian) + section (uint64 big endian) + hash -> bloom bits
@@ -198,6 +199,11 @@ func blockBodyKey(number uint64, hash common.Hash) []byte {
 // blockReceiptsKey = blockReceiptsPrefix + num (uint64 big endian) + hash
 func blockReceiptsKey(number uint64, hash common.Hash) []byte {
 	return append(append(blockReceiptsPrefix, encodeBlockNumber(number)...), hash.Bytes()...)
+}
+
+// blockBlobSidecarsKey = BlockBlobSidecarsPrefix + num (uint64 big endian) + hash
+func blockBlobSidecarsKey(number uint64, hash common.Hash) []byte {
+	return append(append(BlockBlobSidecarsPrefix, encodeBlockNumber(number)...), hash.Bytes()...)
 }
 
 // txLookupKey = txLookupPrefix + hash

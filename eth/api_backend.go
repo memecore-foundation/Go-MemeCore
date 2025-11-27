@@ -421,6 +421,10 @@ func (b *EthAPIBackend) BlobBaseFee(ctx context.Context) *big.Int {
 	return nil
 }
 
+func (b *EthAPIBackend) Chain() *core.BlockChain {
+	return b.eth.BlockChain()
+}
+
 func (b *EthAPIBackend) ChainDb() ethdb.Database {
 	return b.eth.ChainDb()
 }
@@ -486,15 +490,25 @@ func (b *EthAPIBackend) StateAtTransaction(ctx context.Context, block *types.Blo
 }
 
 func (b *EthAPIBackend) GetBlobSidecarByTxHash(ctx context.Context, txHash common.Hash) (*types.BlobTxSidecar, error) {
-	// TODO: Move this blob query from txpool to long-term storage when the latter is implemented.
-	return b.eth.txPool.GetMinedBlobSidecarByTxHash(txHash)
+	// Find the transaction and its block
+	tx, blockHash, _, _ := rawdb.ReadTransaction(b.eth.ChainDb(), txHash)
+	if tx == nil {
+		return nil, nil
+	}
+	// Get blob sidecars from blockchain long-term storage
+	sidecars := b.eth.blockchain.GetSidecarsByHash(blockHash)
+	if sidecars == nil {
+		return nil, nil
+	}
+	// Find the sidecar for this specific transaction
+	for _, sidecar := range sidecars {
+		if sidecar.TxHash == txHash {
+			return &sidecar.BlobTxSidecar, nil
+		}
+	}
+	return nil, nil
 }
 
-func (b *EthAPIBackend) GetBlobSidecars(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) ([]*types.BlobTxSidecar, error) {
-	// TODO: Move this blob query from txpool to long-term storage when the latter is implemented.
-	header, err := b.HeaderByNumberOrHash(ctx, blockNrOrHash)
-	if err != nil {
-		return nil, err
-	}
-	return b.eth.txPool.GetMinedBlobSidecars(header.Number.Uint64())
+func (b *EthAPIBackend) GetBlobSidecars(ctx context.Context, hash common.Hash) (types.BlobSidecars, error) {
+	return b.eth.blockchain.GetSidecarsByHash(hash), nil
 }

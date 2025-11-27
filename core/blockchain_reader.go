@@ -28,6 +28,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/event"
+	// "github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/triedb"
@@ -241,6 +242,33 @@ func (bc *BlockChain) GetRawReceiptsByHash(hash common.Hash) types.Receipts {
 		return nil
 	}
 	return rawdb.ReadRawReceipts(bc.db, hash, *number)
+}
+
+// GetSidecarsByHash retrieves the blob sidecars for a given block.
+func (bc *BlockChain) GetSidecarsByHash(hash common.Hash) types.BlobSidecars {
+	number := rawdb.ReadHeaderNumber(bc.db, hash)
+	if number == nil {
+		return nil
+	}
+
+	// Check if the blob has been pruned
+	if tail, err := bc.db.BlobTail(); err == nil && *number < tail {
+		// log.Debug("[GetSidecarsByHash] Blob pruned", "block", *number, "tail", tail)
+		return nil
+	}
+
+	// Check cache after pruning check
+	if sidecars, ok := bc.sidecarsCache.Get(hash); ok {
+		// log.Debug("[GetSidecarsByHash] Cache hit", "block", *number)
+		return sidecars
+	}
+
+	sidecars := rawdb.ReadBlobSidecars(bc.db, hash, *number)
+	if sidecars == nil {
+		return nil
+	}
+	bc.sidecarsCache.Add(hash, sidecars)
+	return sidecars
 }
 
 // GetUnclesInChain retrieves all the uncles from a given block backwards until

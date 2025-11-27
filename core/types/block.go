@@ -227,6 +227,9 @@ type Block struct {
 	// inter-peer block relay.
 	ReceivedAt   time.Time
 	ReceivedFrom interface{}
+
+	// sidecars provides blob transaction data for EIP-4844
+	sidecars BlobSidecars
 }
 
 // "external" block encoding. used for eth protocol, etc.
@@ -437,6 +440,16 @@ func (b *Block) BlobGasUsed() *uint64 {
 // ExecutionWitness returns the verkle execution witneess + proof for a block
 func (b *Block) ExecutionWitness() *ExecutionWitness { return b.witness }
 
+// Sidecars returns the blob sidecars for this block.
+func (b *Block) Sidecars() BlobSidecars {
+	return b.sidecars
+}
+
+// CleanSidecars clears the blob sidecars from this block.
+func (b *Block) CleanSidecars() {
+	b.sidecars = make(BlobSidecars, 0)
+}
+
 // Size returns the true RLP encoded storage size of the block, either by encoding
 // and returning it, or returning a previously cached value.
 func (b *Block) Size() uint64 {
@@ -494,12 +507,18 @@ func NewBlockWithHeader(header *Header) *Block {
 // WithSeal returns a new block with the data from b but the header replaced with
 // the sealed one.
 func (b *Block) WithSeal(header *Header) *Block {
+	// fill sidecars metadata
+	for _, sidecar := range b.sidecars {
+		sidecar.BlockNumber = header.Number
+		sidecar.BlockHash = header.Hash()
+	}
 	return &Block{
 		header:       CopyHeader(header),
 		transactions: b.transactions,
 		uncles:       b.uncles,
 		withdrawals:  b.withdrawals,
 		witness:      b.witness,
+		sidecars:     b.sidecars,
 	}
 }
 
@@ -512,6 +531,7 @@ func (b *Block) WithBody(body Body) *Block {
 		uncles:       make([]*Header, len(body.Uncles)),
 		withdrawals:  slices.Clone(body.Withdrawals),
 		witness:      b.witness,
+		sidecars:     b.sidecars,
 	}
 	for i := range body.Uncles {
 		block.uncles[i] = CopyHeader(body.Uncles[i])
@@ -526,6 +546,7 @@ func (b *Block) WithWithdrawals(withdrawals []*Withdrawal) *Block {
 		transactions: b.transactions,
 		uncles:       b.uncles,
 		witness:      b.witness,
+		sidecars:     b.sidecars,
 	}
 	if withdrawals != nil {
 		block.withdrawals = make([]*Withdrawal, len(withdrawals))
@@ -541,7 +562,24 @@ func (b *Block) WithWitness(witness *ExecutionWitness) *Block {
 		uncles:       b.uncles,
 		withdrawals:  b.withdrawals,
 		witness:      witness,
+		sidecars:     b.sidecars,
 	}
+}
+
+// WithSidecars returns a new block with the blob sidecars set.
+func (b *Block) WithSidecars(sidecars BlobSidecars) *Block {
+	block := &Block{
+		header:       b.header,
+		transactions: b.transactions,
+		uncles:       b.uncles,
+		withdrawals:  b.withdrawals,
+		witness:      b.witness,
+	}
+	if sidecars != nil {
+		block.sidecars = make(BlobSidecars, len(sidecars))
+		copy(block.sidecars, sidecars)
+	}
+	return block
 }
 
 // Hash returns the keccak256 hash of b's header.

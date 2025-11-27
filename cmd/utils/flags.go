@@ -440,6 +440,13 @@ var (
 		Value:    ethconfig.Defaults.BlobPool.PriceBump,
 		Category: flags.BlobPoolCategory,
 	}
+	// Blob archiving settings
+	BlobExtraReserveFlag = &cli.Uint64Flag{
+		Name:     "blob.extra-reserve",
+		Usage:    "Extra reserve threshold for blob archiving (blocks), blob never expires when 0 is set",
+		Value:    params.DefaultExtraReserveForBlobRequests,
+		Category: flags.MiscCategory,
+	}
 	// Performance tuning settings
 	CacheFlag = &cli.IntFlag{
 		Name:     "cache",
@@ -1940,6 +1947,16 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	if ctx.IsSet(PoSAEnableEventLoggingFlag.Name) {
 		cfg.PoSAEnableEventLogging = ctx.Bool(PoSAEnableEventLoggingFlag.Name)
 		log.Info("PoSA event logging flag set", "enabled", cfg.PoSAEnableEventLogging)
+	}
+
+	// Blob archiving configuration
+	if ctx.IsSet(BlobExtraReserveFlag.Name) {
+		extraReserve := ctx.Uint64(BlobExtraReserveFlag.Name)
+		if extraReserve > 0 && extraReserve < params.DefaultExtraReserveForBlobRequests {
+			log.Warn("Blob extra reserve too small, using default", "provided", extraReserve, "default", params.DefaultExtraReserveForBlobRequests)
+			extraReserve = params.DefaultExtraReserveForBlobRequests
+		}
+		cfg.BlobExtraReserve = extraReserve
 	}
 }
 

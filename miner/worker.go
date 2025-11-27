@@ -94,7 +94,7 @@ type environment struct {
 	header   *types.Header
 	txs      []*types.Transaction
 	receipts []*types.Receipt
-	sidecars []*types.BlobTxSidecar
+	sidecars types.BlobSidecars
 	blobs    int
 
 	witness *stateless.Witness
@@ -117,7 +117,7 @@ func (env *environment) copy() *environment {
 	cpy.txs = make([]*types.Transaction, len(env.txs))
 	copy(cpy.txs, env.txs)
 
-	cpy.sidecars = make([]*types.BlobTxSidecar, len(env.sidecars))
+	cpy.sidecars = make(types.BlobSidecars, len(env.sidecars))
 	copy(cpy.sidecars, env.sidecars)
 
 	return cpy
@@ -689,6 +689,13 @@ func (w *worker) resultLoop() {
 				}
 				logs = append(logs, receipt.Logs...)
 			}
+			// Restore sidecars from original block (lost during sealing)
+			// log.Info("TRACE: Received sealed block", "blockNum", block.Number(), "sealedHasSidecars", block.Sidecars() != nil)
+			if task.block.Sidecars() != nil {
+				// log.Info("TRACE: Checking task.block sidecars", "taskBlockHasSidecars", task.block.Sidecars() != nil, "taskBlockSidecarCount", len(task.block.Sidecars()))
+				block = block.WithSidecars(task.block.Sidecars())
+				// log.Info("TRACE: After sidecar restoration", "blockNum", block.Number(), "hasSidecars", block.Sidecars() != nil, "sidecarCount", len(block.Sidecars()))
+			}
 			// Commit block and state to database.
 			_, err := w.chain.WriteBlockAndSetHead(block, receipts, logs, task.state, true)
 			if err != nil {
@@ -760,10 +767,16 @@ func (w *worker) generateWork(params *generateParams, witness bool) *newPayloadR
 	if err != nil {
 		return &newPayloadResult{err: err}
 	}
+	// If Cancun enabled, sidecars can't be nil then.
+	if w.chainConfig.IsCancun(work.header.Number, work.header.Time) && work.sidecars == nil {
+		work.sidecars = make(types.BlobSidecars, 0)
+	}
+	block = block.WithSidecars(work.sidecars)
+
 	return &newPayloadResult{
 		block:    block,
 		fees:     totalFees(block, work.receipts),
-		sidecars: work.sidecars,
+		sidecars: work.sidecars.BlobTxSidecarList(),
 		stateDB:  work.state,
 		receipts: work.receipts,
 		requests: requests,
@@ -911,7 +924,7 @@ func (w *worker) commitTransaction(env *environment, tx *types.Transaction) ([]*
 }
 
 func (w *worker) commitBlobTransaction(env *environment, tx *types.Transaction) ([]*types.Log, error) {
-	sc := tx.BlobTxSidecar()
+	sc := types.NewBlobSidecarFromTx(tx)
 	if sc == nil {
 		panic("blob transaction without blobs in miner")
 	}
@@ -927,6 +940,7 @@ func (w *worker) commitBlobTransaction(env *environment, tx *types.Transaction) 
 	if err != nil {
 		return nil, err
 	}
+	sc.TxIndex = uint64(len(env.txs))
 	env.txs = append(env.txs, tx.WithoutBlobTxSidecar())
 	env.receipts = append(env.receipts, receipt)
 	env.sidecars = append(env.sidecars, sc)
@@ -1218,10 +1232,18 @@ func (w *worker) commit(env *environment, interval func(), update bool, start ti
 		if err != nil {
 			return err
 		}
+		// If Cancun enabled, sidecars can't be nil then.
+		if w.chainConfig.IsCancun(env.header.Number, env.header.Time) && env.sidecars == nil {
+			env.sidecars = make(types.BlobSidecars, 0)
+		}
+		block = block.WithSidecars(env.sidecars)
+		// log.Info("TRACE: Sidecars attached in commitWork", "blockNum", block.Number(), "sidecarCount", len(env.sidecars), "hasSidecars", block.Sidecars() != nil)
+
 		// If we're post merge, just ignore
 		if !w.isTTDReached(block.Header()) {
 			select {
 			case w.taskCh <- &task{receipts: env.receipts, state: env.state, block: block, createdAt: time.Now()}:
+				// log.Info("TRACE: Sending task to taskCh", "blockNum", block.Number(), "taskBlockHasSidecars", block.Sidecars() != nil, "taskBlockSidecarCount", len(block.Sidecars()))
 				fees := totalFees(block, env.receipts)
 				feesInEther := new(big.Float).Quo(new(big.Float).SetInt(fees), big.NewFloat(params.Ether))
 				log.Info("Commit new sealing work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()),

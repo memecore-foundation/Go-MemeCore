@@ -97,7 +97,7 @@ func (t *memoryTable) truncateHead(items uint64) error {
 		return nil
 	}
 	if items < t.offset {
-		return errors.New("truncation below tail")
+		return errTruncationBelowTail
 	}
 	t.data = t.data[:items-t.offset]
 	t.items = items
@@ -293,6 +293,12 @@ func (f *MemoryFreezer) Tail() (uint64, error) {
 	return f.tail, nil
 }
 
+// BlobTail returns the number of first stored blob item in the freezer.
+// MemoryFreezer doesn't support pruning, so it returns 0.
+func (f *MemoryFreezer) BlobTail() (uint64, error) {
+	return 0, nil
+}
+
 // AncientSize returns the ancient size of the specified category.
 func (f *MemoryFreezer) AncientSize(kind string) (uint64, error) {
 	f.lock.RLock()
@@ -393,6 +399,61 @@ func (f *MemoryFreezer) TruncateTail(tail uint64) (uint64, error) {
 	}
 	f.tail = tail
 	return old, nil
+}
+
+// TruncateTableTail truncates a specific table to the new tail position.
+func (f *MemoryFreezer) TruncateTableTail(kind string, tail uint64) (uint64, error) {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+
+	if f.readonly {
+		return 0, errReadOnly
+	}
+
+	table, exist := f.tables[kind]
+	if !exist {
+		return 0, fmt.Errorf("table %s does not exist", kind)
+	}
+
+	table.lock.Lock()
+	old := table.offset
+	if err := table.truncateTail(tail); err != nil {
+		table.lock.Unlock()
+		return 0, err
+	}
+	table.lock.Unlock()
+	return old, nil
+}
+
+// ResetTable resets a specific table with a new start point.
+func (f *MemoryFreezer) ResetTable(kind string, startAt uint64, onlyEmpty bool) error {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+
+	if f.readonly {
+		return errReadOnly
+	}
+
+	table, exist := f.tables[kind]
+	if !exist {
+		return fmt.Errorf("table %s does not exist", kind)
+	}
+
+	table.lock.Lock()
+	defer table.lock.Unlock()
+
+	// If onlyEmpty is true and table is not empty, skip reset
+	if onlyEmpty && table.items > table.offset {
+		return nil
+	}
+
+	// Reset the table
+	table.items = startAt
+	table.offset = startAt
+	table.data = make([][]byte, 0)
+	table.size = 0
+
+	return nil
 }
 
 // Sync flushes all data tables to disk.

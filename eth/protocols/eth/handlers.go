@@ -234,10 +234,25 @@ func ServiceGetBlockBodiesQuery(chain *core.BlockChain, query GetBlockBodiesRequ
 			lookups >= 2*maxBodiesServe {
 			break
 		}
-		if data := chain.GetBodyRLP(hash); len(data) != 0 {
-			bodies = append(bodies, data)
-			bytes += len(data)
+		body := chain.GetBody(hash)
+		if body == nil {
+			continue
 		}
+		// Include blob sidecars in the response (EIP-4844)
+		sidecars := chain.GetSidecarsByHash(hash)
+		bodyWithSidecars := &BlockBody{
+			Transactions: body.Transactions,
+			Uncles:       body.Uncles,
+			Withdrawals:  body.Withdrawals,
+			Sidecars:     sidecars,
+		}
+		enc, err := rlp.EncodeToBytes(bodyWithSidecars)
+		if err != nil {
+			log.Error("block body encode err", "hash", hash, "err", err)
+			continue
+		}
+		bodies = append(bodies, enc)
+		bytes += len(enc)
 	}
 	return bodies
 }
@@ -303,6 +318,7 @@ func handleNewBlock(backend Backend, msg Decoder, peer *Peer) error {
 	if err := msg.Decode(ann); err != nil {
 		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
 	}
+	log.Debug("Received new block", "number", ann.Block.NumberU64(), "hash", ann.Block.Hash(), "peer", peer.ID(), "sidecars", len(ann.Sidecars))
 	if err := ann.sanityCheck(); err != nil {
 		return err
 	}

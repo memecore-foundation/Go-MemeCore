@@ -20,6 +20,8 @@ package ethdb
 import (
 	"errors"
 	"io"
+
+	"github.com/ethereum/go-ethereum/params"
 )
 
 // KeyValueReader wraps the Has and Get method of a backing data store.
@@ -106,6 +108,10 @@ type AncientReaderOp interface {
 	// This number can also be interpreted as the total deleted items.
 	Tail() (uint64, error)
 
+	// BlobTail returns the number of first stored blob item in the ancient store.
+	// This is used to check if a blob has been pruned.
+	BlobTail() (uint64, error)
+
 	// AncientSize returns the ancient size of the specified category.
 	AncientSize(kind string) (uint64, error)
 }
@@ -138,6 +144,14 @@ type AncientWriter interface {
 	//
 	// Note that data marked as non-prunable will still be retained and remain accessible.
 	TruncateTail(n uint64) (uint64, error)
+
+	// TruncateTableTail truncates a specific ancient table to the new tail position.
+	// This allows independent pruning of individual tables (e.g., blob sidecar table).
+	TruncateTableTail(kind string, tail uint64) (uint64, error)
+
+	// ResetTable resets a specific ancient table with a new start point.
+	// If onlyEmpty is true, the reset only occurs if the table is empty.
+	ResetTable(kind string, startAt uint64, onlyEmpty bool) error
 
 	// Sync flushes all in-memory ancient store data to disk.
 	Sync() error
@@ -188,9 +202,24 @@ type ResettableAncientStore interface {
 	Reset() error
 }
 
+// FreezerEnv contains the environment configuration for the ancient freezer.
+// It provides chain configuration and blob archiving settings needed during freezing.
+type FreezerEnv struct {
+	ChainCfg         *params.ChainConfig // Chain config for fork detection (e.g., isCancun)
+	BlobExtraReserve uint64              // Extra reserve for blob archiving in blocks
+}
+
+// AncientFreezer defines helper functions for freezing ancient data with blob support.
+type AncientFreezer interface {
+	// SetupFreezerEnv provides ChainConfig for checking hard forks (e.g., isCancun)
+	// and configures blob archiving parameters.
+	SetupFreezerEnv(env *FreezerEnv, blockHistory uint64) error
+}
+
 // Database contains all the methods required by the high level database to not
 // only access the key-value data store but also the ancient chain store.
 type Database interface {
 	KeyValueStore
 	AncientStore
+	AncientFreezer
 }

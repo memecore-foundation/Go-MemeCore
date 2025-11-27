@@ -153,6 +153,10 @@ func (m *simChainHeadReader) GetTd(hash common.Hash, number uint64) *big.Int {
 	return nil // not supported
 }
 
+func (m *simChainHeadReader) ChasingHead() *types.Header {
+	return m.Backend.Chain().ChasingHead()
+}
+
 // simulator is a stateful object that simulates a series of blocks.
 // it is not safe for concurrent use.
 type simulator struct {

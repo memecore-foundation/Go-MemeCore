@@ -418,6 +418,11 @@ func (hc *HeaderChain) GetTd(hash common.Hash, number uint64) *big.Int {
 	return td
 }
 
+// ChasingHead return the best chain head of peers.
+func (hc *HeaderChain) ChasingHead() *types.Header {
+	return nil
+}
+
 // GetHeader retrieves a block header from the database by hash and number,
 // caching it if found.
 func (hc *HeaderChain) GetHeader(hash common.Hash, number uint64) *types.Header {

@@ -46,6 +46,9 @@ var (
 
 	// errNotSupported is returned if the database doesn't support the required operation.
 	errNotSupported = errors.New("this operation is not supported")
+
+	// errTruncationBelowTail is returned if an operation attempts to truncate below tail.
+	errTruncationBelowTail = errors.New("truncation below tail")
 )
 
 // indexEntry contains the number/id of the file that the data resides in, as well as the
@@ -607,7 +610,7 @@ func (t *freezerTable) truncateHead(items uint64) error {
 		return nil
 	}
 	if items < t.itemHidden.Load() {
-		return errors.New("truncation below tail")
+		return errTruncationBelowTail
 	}
 	// We need to truncate, save the old size for metrics tracking
 	oldSize, err := t.sizeNolock()
@@ -1239,4 +1242,51 @@ func (t *freezerTable) dumpIndex(w io.Writer, start, stop int64) {
 		}
 	}
 	fmt.Fprintf(w, "|--------------------------|\n")
+}
+
+func (t *freezerTable) resetItems(startAt uint64) (*freezerTable, error) {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	if t.readonly {
+		return nil, errors.New("resetItems in readonly mode")
+	}
+
+	// remove all data files
+	t.head.Close()
+	t.releaseFilesAfter(0, true)
+	t.releaseFile(0)
+
+	// overwrite metadata file
+	t.metadata.setVirtualTail(startAt, false)
+	if err := t.metadata.write(true); err != nil {
+		return nil, err
+	}
+	t.metadata.file.Close()
+
+	// recreate the index file
+	t.index.Close()
+	os.Remove(t.index.Name())
+	var idxName string
+	if t.config.noSnappy {
+		idxName = fmt.Sprintf("%s.ridx", t.name) // raw index file
+	} else {
+		idxName = fmt.Sprintf("%s.cidx", t.name) // compressed index file
+	}
+	index, err := openFreezerFileForAppend(filepath.Join(t.path, idxName))
+	if err != nil {
+		return nil, err
+	}
+	tailIndex := indexEntry{
+		filenum: 0,
+		offset:  uint32(startAt),
+	}
+	if _, err = index.Write(tailIndex.append(nil)); err != nil {
+		return nil, err
+	}
+	if err := index.Sync(); err != nil {
+		return nil, err
+	}
+	index.Close()
+
+	return newFreezerTable(t.path, t.name, t.config, t.readonly)
 }

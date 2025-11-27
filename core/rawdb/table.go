@@ -80,6 +80,12 @@ func (t *table) Tail() (uint64, error) {
 	return t.db.Tail()
 }
 
+// BlobTail is a noop passthrough that just forwards the request to the underlying
+// database.
+func (t *table) BlobTail() (uint64, error) {
+	return t.db.BlobTail()
+}
+
 // AncientSize is a noop passthrough that just forwards the request to the underlying
 // database.
 func (t *table) AncientSize(kind string) (uint64, error) {
@@ -107,10 +113,24 @@ func (t *table) TruncateTail(items uint64) (uint64, error) {
 	return t.db.TruncateTail(items)
 }
 
+// TruncateTableTail is a passthrough that forwards the request to the underlying database.
+func (t *table) TruncateTableTail(kind string, tail uint64) (uint64, error) {
+	return t.db.TruncateTableTail(kind, tail)
+}
+
+// ResetTable is a passthrough that forwards the request to the underlying database.
+func (t *table) ResetTable(kind string, startAt uint64, onlyEmpty bool) error {
+	return t.db.ResetTable(kind, startAt, onlyEmpty)
+}
+
 // Sync is a noop passthrough that just forwards the request to the underlying
 // database.
 func (t *table) Sync() error {
 	return t.db.Sync()
+}
+
+func (t *table) SetupFreezerEnv(env *ethdb.FreezerEnv, blockHistory uint64) error {
+	return nil
 }
 
 // AncientDatadir returns the ancient datadir of the underlying database.

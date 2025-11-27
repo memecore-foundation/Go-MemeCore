@@ -74,6 +74,7 @@ var Defaults = Config{
 	RPCTxFeeCap:        1500, // 1500 ether
 
 	PoSAEnableEventLogging: false,
+	BlobExtraReserve:       params.DefaultExtraReserveForBlobRequests,
 }
 
 //go:generate go run github.com/fjl/gencodec -type Config -formats toml -out gen_config.go
@@ -170,6 +171,9 @@ type Config struct {
 
 	// PoSA-specific settings
 	PoSAEnableEventLogging bool // Enable event logging for PoSA consensus engine
+
+	// Blob archiving settings
+	BlobExtraReserve uint64 // Extra reserve for blob archiving (blocks), blob never expires when 0 is set
 }
 
 // CreateConsensusEngine creates a consensus engine for the given chain config.

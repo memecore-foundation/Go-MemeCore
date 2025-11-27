@@ -44,6 +44,15 @@ type freezerdb struct {
 
 	readOnly    bool
 	ancientRoot string
+
+	stateStore ethdb.Database
+}
+
+func (frdb *freezerdb) StateStoreReader() ethdb.Reader {
+	if frdb.stateStore == nil {
+		return frdb
+	}
+	return frdb.stateStore
 }
 
 // AncientDatadir returns the path of root ancient directory.
@@ -61,10 +70,33 @@ func (frdb *freezerdb) Close() error {
 	if err := frdb.KeyValueStore.Close(); err != nil {
 		errs = append(errs, err)
 	}
+	if frdb.HasSeparateStateStore() {
+		if err := frdb.GetStateStore().Close(); err != nil {
+			errs = append(errs, err)
+		}
+	}
 	if len(errs) != 0 {
 		return fmt.Errorf("%v", errs)
 	}
 	return nil
+}
+
+func (frdb *freezerdb) SetStateStore(state ethdb.Database) {
+	if frdb.stateStore != nil {
+		frdb.stateStore.Close()
+	}
+	frdb.stateStore = state
+}
+
+func (frdb *freezerdb) GetStateStore() ethdb.Database {
+	if frdb.stateStore != nil {
+		return frdb.stateStore
+	}
+	return frdb
+}
+
+func (frdb *freezerdb) HasSeparateStateStore() bool {
+	return frdb.stateStore != nil
 }
 
 // Freeze is a helper method used for external testing to trigger and block until
@@ -81,9 +113,14 @@ func (frdb *freezerdb) Freeze() error {
 	return nil
 }
 
+func (frdb *freezerdb) SetupFreezerEnv(env *ethdb.FreezerEnv, blockHistory uint64) error {
+	return frdb.chainFreezer.SetupFreezerEnv(env, blockHistory)
+}
+
 // nofreezedb is a database wrapper that disables freezer data retrievals.
 type nofreezedb struct {
 	ethdb.KeyValueStore
+	stateStore ethdb.Database
 }
 
 // HasAncient returns an error as we don't have a backing chain freezer.
@@ -111,6 +148,11 @@ func (db *nofreezedb) Tail() (uint64, error) {
 	return 0, errNotSupported
 }
 
+// BlobTail returns an error as we don't have a backing chain freezer.
+func (db *nofreezedb) BlobTail() (uint64, error) {
+	return 0, errNotSupported
+}
+
 // AncientSize returns an error as we don't have a backing chain freezer.
 func (db *nofreezedb) AncientSize(kind string) (uint64, error) {
 	return 0, errNotSupported
@@ -131,9 +173,50 @@ func (db *nofreezedb) TruncateTail(items uint64) (uint64, error) {
 	return 0, errNotSupported
 }
 
+// TruncateTableTail will truncate certain table to new tail
+func (db *nofreezedb) TruncateTableTail(kind string, tail uint64) (uint64, error) {
+	return 0, errNotSupported
+}
+
+// ResetTable will reset certain table with new start point
+func (db *nofreezedb) ResetTable(kind string, startAt uint64, onlyEmpty bool) error {
+	return errNotSupported
+}
+
+func (db *nofreezedb) ResetTableForIncr(kind string, startAt uint64, onlyEmpty bool) error {
+	return errNotSupported
+}
+
 // Sync returns an error as we don't have a backing chain freezer.
 func (db *nofreezedb) Sync() error {
 	return errNotSupported
+}
+
+// SyncAncient returns an error as we don't have a backing chain freezer.
+func (db *nofreezedb) SyncAncient() error {
+	return errNotSupported
+}
+
+func (db *nofreezedb) SetStateStore(state ethdb.Database) {
+	db.stateStore = state
+}
+
+func (db *nofreezedb) GetStateStore() ethdb.Database {
+	if db.stateStore != nil {
+		return db.stateStore
+	}
+	return db
+}
+
+func (db *nofreezedb) HasSeparateStateStore() bool {
+	return db.stateStore != nil
+}
+
+func (db *nofreezedb) StateStoreReader() ethdb.Reader {
+	if db.stateStore != nil {
+		return db.stateStore
+	}
+	return db
 }
 
 func (db *nofreezedb) ReadAncients(fn func(reader ethdb.AncientReaderOp) error) (err error) {
@@ -155,6 +238,13 @@ func (db *nofreezedb) ReadAncients(fn func(reader ethdb.AncientReaderOp) error) 
 // AncientDatadir returns an error as we don't have a backing chain freezer.
 func (db *nofreezedb) AncientDatadir() (string, error) {
 	return "", errNotSupported
+}
+
+func (db *nofreezedb) SetupFreezerEnv(env *ethdb.FreezerEnv, blockHistory uint64) error {
+	return nil
+}
+func (db *nofreezedb) CleanBlock(ethdb.KeyValueStore, uint64) error {
+	return nil
 }
 
 // NewDatabase creates a high level database on top of a given key-value data

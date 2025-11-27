@@ -638,7 +638,7 @@ func (b testBackend) HistoryPruningCutoff() uint64 {
 func (b testBackend) GetBlobSidecarByTxHash(ctx context.Context, txHash common.Hash) (*types.BlobTxSidecar, error) {
 	panic("implement me")
 }
-func (b testBackend) GetBlobSidecars(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) ([]*types.BlobTxSidecar, error) {
+func (b testBackend) GetBlobSidecars(ctx context.Context, hash common.Hash) (types.BlobSidecars, error) {
 	panic("implement me")
 }
 

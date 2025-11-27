@@ -78,6 +78,10 @@ func (db *Database) Tail() (uint64, error) {
 	panic("not supported")
 }
 
+func (db *Database) BlobTail() (uint64, error) {
+	panic("not supported")
+}
+
 func (db *Database) AncientSize(kind string) (uint64, error) {
 	panic("not supported")
 }
@@ -110,7 +114,19 @@ func (db *Database) TruncateTail(n uint64) (uint64, error) {
 	panic("not supported")
 }
 
+func (db *Database) TruncateTableTail(kind string, tail uint64) (uint64, error) {
+	panic("not supported")
+}
+
+func (db *Database) ResetTable(kind string, startAt uint64, onlyEmpty bool) error {
+	panic("not supported")
+}
+
 func (db *Database) Sync() error {
+	return nil
+}
+
+func (db *Database) SetupFreezerEnv(env *ethdb.FreezerEnv, blockHistory uint64) error {
 	return nil
 }
 

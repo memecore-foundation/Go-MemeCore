@@ -48,6 +48,9 @@ type ChainHeaderReader interface {
 
 	// GetTd retrieves the total difficulty from the database by hash and number.
 	GetTd(hash common.Hash, number uint64) *big.Int
+
+	// ChasingHead return the best chain head of peers.
+	ChasingHead() *types.Header
 }
 
 // ChainReader defines a small collection of methods needed to access the local

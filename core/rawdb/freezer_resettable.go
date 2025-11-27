@@ -54,7 +54,7 @@ func newResettableFreezer(datadir string, namespace string, readonly bool, maxTa
 		return nil, err
 	}
 	opener := func() (*Freezer, error) {
-		return NewFreezer(datadir, namespace, readonly, maxTableSize, tables)
+		return NewFreezer(datadir, namespace, readonly, maxTableSize, tables, false)
 	}
 	freezer, err := opener()
 	if err != nil {
@@ -151,6 +151,14 @@ func (f *resettableFreezer) Tail() (uint64, error) {
 	return f.freezer.Tail()
 }
 
+// BlobTail returns the number of first stored blob item in the freezer.
+func (f *resettableFreezer) BlobTail() (uint64, error) {
+	f.lock.RLock()
+	defer f.lock.RUnlock()
+
+	return f.freezer.BlobTail()
+}
+
 // AncientSize returns the ancient size of the specified category.
 func (f *resettableFreezer) AncientSize(kind string) (uint64, error) {
 	f.lock.RLock()
@@ -192,6 +200,22 @@ func (f *resettableFreezer) TruncateTail(tail uint64) (uint64, error) {
 	defer f.lock.RUnlock()
 
 	return f.freezer.TruncateTail(tail)
+}
+
+// TruncateTableTail truncates a specific table to the new tail position.
+func (f *resettableFreezer) TruncateTableTail(kind string, tail uint64) (uint64, error) {
+	f.lock.RLock()
+	defer f.lock.RUnlock()
+
+	return f.freezer.TruncateTableTail(kind, tail)
+}
+
+// ResetTable resets a specific table with a new start point.
+func (f *resettableFreezer) ResetTable(kind string, startAt uint64, onlyEmpty bool) error {
+	f.lock.RLock()
+	defer f.lock.RUnlock()
+
+	return f.freezer.ResetTable(kind, startAt, onlyEmpty)
 }
 
 // Sync flushes all data tables to disk.

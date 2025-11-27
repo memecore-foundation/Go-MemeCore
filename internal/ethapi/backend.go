@@ -44,6 +44,8 @@ type Backend interface {
 	SyncProgress(ctx context.Context) ethereum.SyncProgress
 
 	SuggestGasTipCap(ctx context.Context) (*big.Int, error)
+
+	Chain() *core.BlockChain
 	FeeHistory(ctx context.Context, blockCount uint64, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (*big.Int, [][]*big.Int, []*big.Int, []float64, []*big.Int, []float64, error)
 	BlobBaseFee(ctx context.Context) *big.Int
 	ChainDb() ethdb.Database
@@ -101,7 +103,7 @@ type Backend interface {
 
 	// Customized API for EIP-4844 blobs
 	GetBlobSidecarByTxHash(ctx context.Context, txHash common.Hash) (*types.BlobTxSidecar, error)
-	GetBlobSidecars(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) ([]*types.BlobTxSidecar, error)
+	GetBlobSidecars(ctx context.Context, hash common.Hash) (types.BlobSidecars, error)
 }
 
 func GetAPIs(apiBackend Backend) []rpc.API {

@@ -34,6 +34,7 @@ import (
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/consensus/misc/eip1559"
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
@@ -331,24 +332,51 @@ func (api *BlockChainAPI) GetBalance(ctx context.Context, address common.Address
 	return (*hexutil.Big)(b), state.Error()
 }
 
-func (api *BlockChainAPI) GetBlobSidecars(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) ([]map[string]interface{}, error) {
-	sidecars, err := api.b.GetBlobSidecars(ctx, blockNrOrHash)
-	if err != nil {
-		return nil, err
+func (api *BlockChainAPI) GetBlobSidecars(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash, fullBlob *bool) ([]map[string]interface{}, error) {
+	showBlob := true
+	if fullBlob != nil {
+		showBlob = *fullBlob
 	}
-	result := make([]map[string]interface{}, 0)
-	for _, sidecar := range sidecars {
-		result = append(result, marshalBlobSidecar(sidecar))
+	header, err := api.b.HeaderByNumberOrHash(ctx, blockNrOrHash)
+	if header == nil || err != nil {
+		// When the block doesn't exist, the RPC method should return JSON null
+		// as per specification.
+		return nil, nil
+	}
+	blobSidecars, err := api.b.GetBlobSidecars(ctx, header.Hash())
+	if err != nil || blobSidecars == nil {
+		return nil, nil
+	}
+	result := make([]map[string]interface{}, len(blobSidecars))
+	for i, sidecar := range blobSidecars {
+		result[i] = marshalBlobSidecar(sidecar, showBlob)
 	}
 	return result, nil
 }
 
-func (api *BlockChainAPI) GetBlobSidecarByTxHash(ctx context.Context, hash common.Hash) (map[string]interface{}, error) {
-	sidecar, err := api.b.GetBlobSidecarByTxHash(ctx, hash)
-	if err != nil {
-		return nil, err
+func (api *BlockChainAPI) GetBlobSidecarByTxHash(ctx context.Context, hash common.Hash, fullBlob *bool) (map[string]interface{}, error) {
+	showBlob := true
+	if fullBlob != nil {
+		showBlob = *fullBlob
 	}
-	return marshalBlobSidecar(sidecar), nil
+	txTarget, blockHash, _, Index := rawdb.ReadTransaction(api.b.ChainDb(), hash)
+	if txTarget == nil {
+		return nil, nil
+	}
+	block, err := api.b.BlockByHash(ctx, blockHash)
+	if block == nil || err != nil {
+		return nil, nil
+	}
+	blobSidecars, err := api.b.GetBlobSidecars(ctx, blockHash)
+	if err != nil || blobSidecars == nil || len(blobSidecars) == 0 {
+		return nil, nil
+	}
+	for _, sidecar := range blobSidecars {
+		if sidecar.TxIndex == Index {
+			return marshalBlobSidecar(sidecar, showBlob), nil
+		}
+	}
+	return nil, nil
 }
 
 // AccountResult structs for GetProof
@@ -1462,14 +1490,33 @@ func marshalReceipt(receipt *types.Receipt, blockHash common.Hash, blockNumber u
 	return fields
 }
 
-// marshalBlobSidecar marshals a blob sidecar receipt into a JSON object.
-func marshalBlobSidecar(sidecar *types.BlobTxSidecar) map[string]interface{} {
-	field := map[string]interface{}{
-		"blobs":       sidecar.Blobs,
-		"commitments": sidecar.Commitments,
-		"proofs":      sidecar.Proofs,
+func marshalBlobSidecar(sidecar *types.BlobSidecar, fullBlob bool) map[string]interface{} {
+	fields := map[string]interface{}{
+		"blockHash":   sidecar.BlockHash,
+		"blockNumber": hexutil.EncodeUint64(sidecar.BlockNumber.Uint64()),
+		"txHash":      sidecar.TxHash,
+		"txIndex":     hexutil.EncodeUint64(sidecar.TxIndex),
 	}
-	return field
+	fields["blobSidecar"] = marshalBlob(sidecar.BlobTxSidecar, fullBlob)
+	return fields
+}
+
+func marshalBlob(blobTxSidecar types.BlobTxSidecar, fullBlob bool) map[string]interface{} {
+	fields := map[string]interface{}{
+		"blobs":       blobTxSidecar.Blobs,
+		"commitments": blobTxSidecar.Commitments,
+		"proofs":      blobTxSidecar.Proofs,
+	}
+	if !fullBlob {
+		var blobs []common.Hash
+		for _, blob := range blobTxSidecar.Blobs {
+			var value common.Hash
+			copy(value[:], blob[:32])
+			blobs = append(blobs, value)
+		}
+		fields["blobs"] = blobs
+	}
+	return fields
 }
 
 // sign is a helper function that signs a transaction with the private key of the given address.
