@@ -126,12 +126,10 @@ func (h *ethHandler) handleBlockBroadcast(peer *eth.Peer, packet *eth.NewBlockPa
 	block := packet.Block
 	td := packet.TD
 	sidecars := packet.Sidecars
-	// log.Info("TRACE: Received NewBlockPacket", "blockNum", block.Number(), "blockHash", block.Hash().Hex(),
 	//	"packetSidecars", sidecars != nil, "packetSidecarCount", len(sidecars),
 	//	"blockHasSidecars", block.Sidecars() != nil, "blockSidecarCount", len(block.Sidecars()))
 	if sidecars != nil {
 		block = block.WithSidecars(sidecars)
-		// log.Info("TRACE: After attaching sidecars from packet", "blockNum", block.Number(), "blockSidecarCount", len(block.Sidecars()))
 	}
 
 	// Schedule the block for import

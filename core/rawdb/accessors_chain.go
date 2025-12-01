@@ -1060,23 +1060,16 @@ func ReadBlobSidecarsRLP(db ethdb.Reader, hash common.Hash, number uint64) rlp.R
 			var err error
 			data, err = reader.Ancient(ChainFreezerBlobSidecarTable, number)
 			if err != nil {
-				// log.Debug("[BLOB_READ] Ancient read failed (may be pruned)", "number", number, "err", err)
 				// Try leveldb as fallback
 				data, err = db.Get(blockBlobSidecarsKey(number, hash))
 				if err != nil {
-					// log.Debug("[BLOB_READ] LevelDB fallback also failed", "number", number, "err", err)
+					log.Debug("Blob sidecar not found", "number", number, "hash", hash)
 				}
-			} else {
-				// log.Debug("[BLOB_READ] Ancient read success", "number", number, "size", len(data))
 			}
 			return nil
 		}
 		// If not, try reading from leveldb
-		var err error
-		data, err = db.Get(blockBlobSidecarsKey(number, hash))
-		if err != nil {
-			// log.Debug("[BLOB_READ] Not canon, leveldb read failed", "number", number, "err", err)
-		}
+		data, _ = db.Get(blockBlobSidecarsKey(number, hash))
 		return nil
 	})
 	return data

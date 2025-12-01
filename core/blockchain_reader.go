@@ -244,25 +244,15 @@ func (bc *BlockChain) GetRawReceiptsByHash(hash common.Hash) types.Receipts {
 	return rawdb.ReadRawReceipts(bc.db, hash, *number)
 }
 
-// GetSidecarsByHash retrieves the blob sidecars for a given block.
+// GetSidecarsByHash retrieves the sidecars for all transactions in a given block.
 func (bc *BlockChain) GetSidecarsByHash(hash common.Hash) types.BlobSidecars {
+	if sidecars, ok := bc.sidecarsCache.Get(hash); ok {
+		return sidecars
+	}
 	number := rawdb.ReadHeaderNumber(bc.db, hash)
 	if number == nil {
 		return nil
 	}
-
-	// Check if the blob has been pruned
-	if tail, err := bc.db.BlobTail(); err == nil && *number < tail {
-		// log.Debug("[GetSidecarsByHash] Blob pruned", "block", *number, "tail", tail)
-		return nil
-	}
-
-	// Check cache after pruning check
-	if sidecars, ok := bc.sidecarsCache.Get(hash); ok {
-		// log.Debug("[GetSidecarsByHash] Cache hit", "block", *number)
-		return sidecars
-	}
-
 	sidecars := rawdb.ReadBlobSidecars(bc.db, hash, *number)
 	if sidecars == nil {
 		return nil

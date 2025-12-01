@@ -1614,7 +1614,6 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 		if sidecars != nil && len(sidecars) > 0 {
 			rawdb.WriteBlobSidecars(blockBatch, block.Hash(), block.NumberU64(), sidecars)
 		}
-		// log.Info("TRACE: In writeBlockWithState", "blockNum", block.Number(), "blockHash", block.Hash().Hex(), "hasSidecars", sidecars != nil, "sidecarCount", len(sidecars))
 	}
 	rawdb.WritePreimages(blockBatch, statedb.Preimages())
 	if err := blockBatch.Write(); err != nil {

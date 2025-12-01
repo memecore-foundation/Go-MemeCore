@@ -690,11 +690,8 @@ func (w *worker) resultLoop() {
 				logs = append(logs, receipt.Logs...)
 			}
 			// Restore sidecars from original block (lost during sealing)
-			// log.Info("TRACE: Received sealed block", "blockNum", block.Number(), "sealedHasSidecars", block.Sidecars() != nil)
 			if task.block.Sidecars() != nil {
-				// log.Info("TRACE: Checking task.block sidecars", "taskBlockHasSidecars", task.block.Sidecars() != nil, "taskBlockSidecarCount", len(task.block.Sidecars()))
 				block = block.WithSidecars(task.block.Sidecars())
-				// log.Info("TRACE: After sidecar restoration", "blockNum", block.Number(), "hasSidecars", block.Sidecars() != nil, "sidecarCount", len(block.Sidecars()))
 			}
 			// Commit block and state to database.
 			_, err := w.chain.WriteBlockAndSetHead(block, receipts, logs, task.state, true)
@@ -1237,13 +1234,11 @@ func (w *worker) commit(env *environment, interval func(), update bool, start ti
 			env.sidecars = make(types.BlobSidecars, 0)
 		}
 		block = block.WithSidecars(env.sidecars)
-		// log.Info("TRACE: Sidecars attached in commitWork", "blockNum", block.Number(), "sidecarCount", len(env.sidecars), "hasSidecars", block.Sidecars() != nil)
 
 		// If we're post merge, just ignore
 		if !w.isTTDReached(block.Header()) {
 			select {
 			case w.taskCh <- &task{receipts: env.receipts, state: env.state, block: block, createdAt: time.Now()}:
-				// log.Info("TRACE: Sending task to taskCh", "blockNum", block.Number(), "taskBlockHasSidecars", block.Sidecars() != nil, "taskBlockSidecarCount", len(block.Sidecars()))
 				fees := totalFees(block, env.receipts)
 				feesInEther := new(big.Float).Quo(new(big.Float).SetInt(fees), big.NewFloat(params.Ether))
 				log.Info("Commit new sealing work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()),

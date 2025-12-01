@@ -256,9 +256,6 @@ func (f *Freezer) Tail() (uint64, error) {
 			if tableTail > tail {
 				tail = tableTail
 			}
-			// log.Debug("[Tail] Non-prunable table tail", "table", kind, "tail", tableTail)
-		} else {
-			// log.Debug("[Tail] Skipping prunable table", "table", kind, "tail", table.itemHidden.Load())
 		}
 	}
 	return tail, nil
@@ -269,7 +266,6 @@ func (f *Freezer) Tail() (uint64, error) {
 func (f *Freezer) BlobTail() (uint64, error) {
 	if table, ok := f.tables[ChainFreezerBlobSidecarTable]; ok {
 		tail := table.itemHidden.Load()
-		// log.Debug("[BlobTail] Returning blob table tail", "tail", tail)
 		return tail, nil
 	}
 	return 0, errUnknownTable
@@ -424,13 +420,11 @@ func (f *Freezer) TruncateTableTail(kind string, tail uint64) (uint64, error) {
 	}
 
 	old := t.itemHidden.Load()
-	// log.Info("[TRUNCATE] Before truncateTail", "table", kind, "tail", tail, "oldHidden", old, "items", t.items.Load())
 	if err := t.truncateTail(tail); err != nil {
-		log.Error("[TRUNCATE] truncateTail failed", "table", kind, "tail", tail, "err", err)
+		log.Error("truncateTail failed", "table", kind, "tail", tail, "err", err)
 		return 0, err
 	}
 	// newHidden := t.itemHidden.Load()
-	// log.Info("[TRUNCATE] After truncateTail", "table", kind, "tail", tail, "newHidden", newHidden, "items", t.items.Load())
 	return old, nil
 }
 

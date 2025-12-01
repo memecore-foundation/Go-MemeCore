@@ -273,7 +273,6 @@ func (p *Peer) SendNewBlock(block *types.Block, td *big.Int) error {
 	// Mark all the block hash as known, but ensure we don't overflow our limits
 	p.knownBlocks.Add(block.Hash())
 	sidecars := block.Sidecars()
-	// log.Info("TRACE: Sending NewBlockPacket", "blockNum", block.Number(), "blockHash", block.Hash().Hex(),
 	//	"hasSidecars", sidecars != nil, "sidecarCount", len(sidecars))
 	return p2p.Send(p.rw, NewBlockMsg, &NewBlockPacket{
 		Block:    block,
