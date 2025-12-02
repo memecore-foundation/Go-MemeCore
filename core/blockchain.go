@@ -1608,12 +1608,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	rawdb.WriteBlock(blockBatch, block)
 	rawdb.WriteReceipts(blockBatch, block.Hash(), block.NumberU64(), receipts)
 	if bc.chainConfig.IsCancun(block.Number(), block.Time()) {
-		sidecars := block.Sidecars()
-		// Only write sidecars if they exist and are non-empty
-		// Blocks imported from P2P may not have sidecars attached
-		if sidecars != nil && len(sidecars) > 0 {
-			rawdb.WriteBlobSidecars(blockBatch, block.Hash(), block.NumberU64(), sidecars)
-		}
+		rawdb.WriteBlobSidecars(blockBatch, block.Hash(), block.NumberU64(), block.Sidecars())
 	}
 	rawdb.WritePreimages(blockBatch, statedb.Preimages())
 	if err := blockBatch.Write(); err != nil {
@@ -1621,10 +1616,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	}
 	// Cache the blob sidecars for quick access
 	if bc.chainConfig.IsCancun(block.Number(), block.Time()) {
-		sidecars := block.Sidecars()
-		if sidecars != nil && len(sidecars) > 0 {
-			bc.sidecarsCache.Add(block.Hash(), sidecars)
-		}
+		bc.sidecarsCache.Add(block.Hash(), block.Sidecars())
 	}
 	// Commit all cached state changes into underlying memory database.
 	root, err := statedb.Commit(block.NumberU64(), bc.chainConfig.IsEIP158(block.Number()), bc.chainConfig.IsCancun(block.Number(), block.Time()))
