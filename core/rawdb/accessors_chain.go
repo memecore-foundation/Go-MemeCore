@@ -890,6 +890,7 @@ func DeleteBlock(db ethdb.KeyValueWriter, hash common.Hash, number uint64) {
 	DeleteHeader(db, hash, number)
 	DeleteBody(db, hash, number)
 	DeleteTd(db, hash, number)
+	DeleteBlobSidecars(db, hash, number) // Prevent blob sidecar leak (safe for pre-Cancun)
 }
 
 // DeleteBlockWithoutNumber removes all block data associated with a hash, except
@@ -899,6 +900,7 @@ func DeleteBlockWithoutNumber(db ethdb.KeyValueWriter, hash common.Hash, number 
 	deleteHeaderWithoutNumber(db, hash, number)
 	DeleteBody(db, hash, number)
 	DeleteTd(db, hash, number)
+	DeleteBlobSidecars(db, hash, number) // Prevent blob sidecar leak (safe for pre-Cancun)
 }
 
 const badBlockToKeep = 10
