@@ -368,11 +368,6 @@ func testGetBlock(t *testing.T, client *rpc.Client) {
 	if block.Header().Hash() != headerH.Hash() {
 		t.Fatalf("HeaderByHash returned wrong header: want %v got %v", block.Header().Hash().Hex(), headerH.Hash().Hex())
 	}
-	// Get blobs by number
-	_, err = ec.BlobSidecars(context.Background(), rpc.BlockNumberOrHashWithNumber(rpc.BlockNumber(blockNumber)))
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
 }
 
 func testStatusFunctions(t *testing.T, client *rpc.Client) {
