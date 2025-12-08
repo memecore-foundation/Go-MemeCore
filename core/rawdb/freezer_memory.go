@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -43,14 +44,6 @@ type memoryTable struct {
 // newMemoryTable initializes the memory table.
 func newMemoryTable(name string, config freezerTableConfig) *memoryTable {
 	return &memoryTable{name: name, config: config}
-}
-
-// has returns an indicator whether the specified data exists.
-func (t *memoryTable) has(number uint64) bool {
-	t.lock.RLock()
-	defer t.lock.RUnlock()
-
-	return number >= t.offset && number < t.items
 }
 
 // retrieve retrieves multiple items in sequence, starting from the index 'start'.
@@ -192,6 +185,10 @@ func (b *memoryBatch) commit(freezer *MemoryFreezer) (items uint64, writeSize in
 	// Check that count agrees on all batches.
 	items = math.MaxUint64
 	for name, next := range b.next {
+		// skip empty addition tables
+		if slices.Contains(additionTables, name) && next == 0 {
+			continue
+		}
 		if items < math.MaxUint64 && next != items {
 			return 0, 0, fmt.Errorf("table %s is at item %d, want %d", name, next, items)
 		}
@@ -230,17 +227,6 @@ func NewMemoryFreezer(readonly bool, tableName map[string]freezerTableConfig) *M
 		readonly:   readonly,
 		tables:     tables,
 	}
-}
-
-// HasAncient returns an indicator whether the specified data exists.
-func (f *MemoryFreezer) HasAncient(kind string, number uint64) (bool, error) {
-	f.lock.RLock()
-	defer f.lock.RUnlock()
-
-	if table := f.tables[kind]; table != nil {
-		return table.has(number), nil
-	}
-	return false, nil
 }
 
 // Ancient retrieves an ancient binary blob from the in-memory freezer.
@@ -291,12 +277,6 @@ func (f *MemoryFreezer) Tail() (uint64, error) {
 	defer f.lock.RUnlock()
 
 	return f.tail, nil
-}
-
-// BlobTail returns the number of first stored blob item in the freezer.
-// MemoryFreezer doesn't support pruning, so it returns 0.
-func (f *MemoryFreezer) BlobTail() (uint64, error) {
-	return 0, nil
 }
 
 // AncientSize returns the ancient size of the specified category.
@@ -390,7 +370,10 @@ func (f *MemoryFreezer) TruncateTail(tail uint64) (uint64, error) {
 	if old >= tail {
 		return old, nil
 	}
-	for _, table := range f.tables {
+	for kind, table := range f.tables {
+		if slices.Contains(additionTables, kind) && table.items == 0 {
+			continue
+		}
 		if table.config.prunable {
 			if err := table.truncateTail(tail); err != nil {
 				return 0, err
@@ -401,63 +384,18 @@ func (f *MemoryFreezer) TruncateTail(tail uint64) (uint64, error) {
 	return old, nil
 }
 
-// TruncateTableTail truncates a specific table to the new tail position.
 func (f *MemoryFreezer) TruncateTableTail(kind string, tail uint64) (uint64, error) {
-	f.lock.Lock()
-	defer f.lock.Unlock()
-
-	if f.readonly {
-		return 0, errReadOnly
-	}
-
-	table, exist := f.tables[kind]
-	if !exist {
-		return 0, fmt.Errorf("table %s does not exist", kind)
-	}
-
-	table.lock.Lock()
-	old := table.offset
-	if err := table.truncateTail(tail); err != nil {
-		table.lock.Unlock()
-		return 0, err
-	}
-	table.lock.Unlock()
-	return old, nil
+	// TODO implement me
+	panic("implement me")
 }
 
-// ResetTable resets a specific table with a new start point.
 func (f *MemoryFreezer) ResetTable(kind string, startAt uint64, onlyEmpty bool) error {
-	f.lock.Lock()
-	defer f.lock.Unlock()
-
-	if f.readonly {
-		return errReadOnly
-	}
-
-	table, exist := f.tables[kind]
-	if !exist {
-		return fmt.Errorf("table %s does not exist", kind)
-	}
-
-	table.lock.Lock()
-	defer table.lock.Unlock()
-
-	// If onlyEmpty is true and table is not empty, skip reset
-	if onlyEmpty && table.items > table.offset {
-		return nil
-	}
-
-	// Reset the table
-	table.items = startAt
-	table.offset = startAt
-	table.data = make([][]byte, 0)
-	table.size = 0
-
-	return nil
+	// TODO implement me
+	panic("not supported")
 }
 
-// Sync flushes all data tables to disk.
-func (f *MemoryFreezer) Sync() error {
+// SyncAncient flushes all data tables to disk.
+func (f *MemoryFreezer) SyncAncient() error {
 	return nil
 }
 

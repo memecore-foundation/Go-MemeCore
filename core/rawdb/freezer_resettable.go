@@ -54,7 +54,7 @@ func newResettableFreezer(datadir string, namespace string, readonly bool, maxTa
 		return nil, err
 	}
 	opener := func() (*Freezer, error) {
-		return NewFreezer(datadir, namespace, readonly, maxTableSize, tables, false)
+		return NewFreezer(datadir, namespace, readonly, maxTableSize, tables)
 	}
 	freezer, err := opener()
 	if err != nil {
@@ -105,15 +105,6 @@ func (f *resettableFreezer) Close() error {
 	return f.freezer.Close()
 }
 
-// HasAncient returns an indicator whether the specified ancient data exists
-// in the freezer
-func (f *resettableFreezer) HasAncient(kind string, number uint64) (bool, error) {
-	f.lock.RLock()
-	defer f.lock.RUnlock()
-
-	return f.freezer.HasAncient(kind, number)
-}
-
 // Ancient retrieves an ancient binary blob from the append-only immutable files.
 func (f *resettableFreezer) Ancient(kind string, number uint64) ([]byte, error) {
 	f.lock.RLock()
@@ -149,14 +140,6 @@ func (f *resettableFreezer) Tail() (uint64, error) {
 	defer f.lock.RUnlock()
 
 	return f.freezer.Tail()
-}
-
-// BlobTail returns the number of first stored blob item in the freezer.
-func (f *resettableFreezer) BlobTail() (uint64, error) {
-	f.lock.RLock()
-	defer f.lock.RUnlock()
-
-	return f.freezer.BlobTail()
 }
 
 // AncientSize returns the ancient size of the specified category.
@@ -218,12 +201,12 @@ func (f *resettableFreezer) ResetTable(kind string, startAt uint64, onlyEmpty bo
 	return f.freezer.ResetTable(kind, startAt, onlyEmpty)
 }
 
-// Sync flushes all data tables to disk.
-func (f *resettableFreezer) Sync() error {
+// SyncAncient flushes all data tables to disk.
+func (f *resettableFreezer) SyncAncient() error {
 	f.lock.RLock()
 	defer f.lock.RUnlock()
 
-	return f.freezer.Sync()
+	return f.freezer.SyncAncient()
 }
 
 // AncientDatadir returns the path of the ancient store.

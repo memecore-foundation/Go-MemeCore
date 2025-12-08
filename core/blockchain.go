@@ -1430,7 +1430,7 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 		size += writeSize
 
 		// Sync the ancient store explicitly to ensure all data has been flushed to disk.
-		if err := bc.db.Sync(); err != nil {
+		if err := bc.db.SyncAncient(); err != nil {
 			return 0, err
 		}
 		// Write hash to number mappings
@@ -2614,6 +2614,11 @@ func (bc *BlockChain) reorg(oldHead *types.Header, newHead *types.Header) error 
 	for _, tx := range types.HashDifference(deletedTxs, rebirthTxs) {
 		rawdb.DeleteTxLookupEntry(batch, tx)
 	}
+	// Delete blob sidecars from the old (reverted) chain blocks
+	for i := 0; i < len(oldChain); i++ {
+		hash, num := oldChain[i].Hash(), oldChain[i].Number.Uint64()
+		rawdb.DeleteBlobSidecars(batch, hash, num)
+	}
 	// Delete all hash markers that are not part of the new canonical chain.
 	// Because the reorg function does not handle new chain head, all hash
 	// markers greater than or equal to new chain head should be deleted.
@@ -2872,7 +2877,7 @@ func (bc *BlockChain) InsertHeadersBeforeCutoff(headers []*types.Header) (int, e
 	if err != nil {
 		return 0, err
 	}
-	if err := bc.db.Sync(); err != nil {
+	if err := bc.db.SyncAncient(); err != nil {
 		return 0, err
 	}
 	// Write hash to number mappings

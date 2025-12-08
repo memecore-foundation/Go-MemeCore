@@ -19,6 +19,7 @@ package rawdb
 import (
 	"fmt"
 	"math"
+	"slices"
 	"time"
 
 	"github.com/ethereum/go-ethereum/rlp"
@@ -65,6 +66,10 @@ func (batch *freezerBatch) commit() (item uint64, writeSize int64, err error) {
 	// Check that count agrees on all batches.
 	item = uint64(math.MaxUint64)
 	for name, tb := range batch.tables {
+		// Skip empty addition tables (e.g., blob table before Cancun)
+		if slices.Contains(additionTables, name) && EmptyTable(tb.t) {
+			continue
+		}
 		if item < math.MaxUint64 && tb.curItem != item {
 			return 0, 0, fmt.Errorf("table %s is at item %d, want %d", name, tb.curItem, item)
 		}

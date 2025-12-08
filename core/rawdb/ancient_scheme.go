@@ -44,10 +44,8 @@ const (
 )
 
 // chainFreezerTableConfigs configures the settings for tables in the chain freezer.
-// Compression is disabled for hashes as they don't compress well. Additionally,
-// tail truncation is disabled for the header and hash tables, as these are intended
-// to be retained long-term.
-// Blob table uses Snappy compression and is prunable for blob archiving.
+// Compression is disabled for hashes and difficulty as they don't compress well.
+// Header, hash, and difficulty tables are not prunable to retain long-term chain history.
 var chainFreezerTableConfigs = map[string]freezerTableConfig{
 	ChainFreezerHeaderTable:      {noSnappy: false, prunable: false},
 	ChainFreezerHashTable:        {noSnappy: true, prunable: false},
@@ -57,15 +55,15 @@ var chainFreezerTableConfigs = map[string]freezerTableConfig{
 	ChainFreezerBlobSidecarTable: {noSnappy: false, prunable: true},
 }
 
-// additionTables lists tables that can be truncated independently.
-// Only blob table is allowed for independent tail truncation.
-var additionTables = []string{ChainFreezerBlobSidecarTable}
-
 // freezerTableConfig contains the settings for a freezer table.
 type freezerTableConfig struct {
 	noSnappy bool // disables item compression
 	prunable bool // true for tables that can be pruned by TruncateTail
 }
+
+// additionTables lists tables that can be truncated independently.
+// Only blob table is allowed for independent tail truncation.
+var additionTables = []string{ChainFreezerBlobSidecarTable}
 
 const (
 	// stateHistoryTableSize defines the maximum size of freezer data files.

@@ -214,9 +214,14 @@ var (
 )
 
 var (
-	// Blob archiving parameters for MemeCore
-	// Block interval in MemeCore PoSA consensus = 7 seconds (different from BSC's 0.45 seconds)
-	MinTimeDurationForBlobRequests     uint64 = uint64(float64(24*3600) * 18.2)                    // it keeps blob data available for 18.2 days in local
-	MinBlocksForBlobRequests           uint64 = uint64(float64(MinTimeDurationForBlobRequests) / 7) // total blocks in 18.2 days with 7s block time
-	DefaultExtraReserveForBlobRequests uint64 = uint64(24 * 3600 / 7)                               // it adds more time for expired blobs for some request cases, like expiry blob when remote peer is syncing, default 1 day.
+	// Blob retention parameters (MemeCore PoSA Block time 7sec)
+
+	// Keeps blob data available for 18.2 days in local
+	MinTimeDurationForBlobRequests uint64 = uint64(float64(24*3600) * 18.2)
+
+	// Total blocks in 18.2 days with 7s block time
+	MinBlocksForBlobRequests uint64 = uint64(float64(MinTimeDurationForBlobRequests) / 7)
+
+	// Extra reserve for edge cases like remote peer syncing, default 1 day
+	DefaultExtraReserveForBlobRequests uint64 = uint64(24 * 3600 / 7)
 )

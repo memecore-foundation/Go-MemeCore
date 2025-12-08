@@ -1109,12 +1109,6 @@ func (t *freezerTable) retrieveItems(start, count, maxBytes uint64) ([]byte, []i
 	return output, sizes, nil
 }
 
-// has returns an indicator whether the specified number data is still accessible
-// in the freezer table.
-func (t *freezerTable) has(number uint64) bool {
-	return t.items.Load() > number && t.itemHidden.Load() <= number
-}
-
 // size returns the total data size in the freezer table.
 func (t *freezerTable) size() (uint64, error) {
 	t.lock.RLock()
@@ -1289,4 +1283,39 @@ func (t *freezerTable) resetItems(startAt uint64) (*freezerTable, error) {
 	index.Close()
 
 	return newFreezerTable(t.path, t.name, t.config, t.readonly)
+}
+
+// resetTailMeta reset freezer table with new legacyOffset
+// Caution: the table cannot be used anymore, it will sync/close all data files
+func (t *freezerTable) resetTailMeta(legacyOffset uint64) error {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	if t.readonly {
+		return errors.New("resetItems in readonly mode")
+	}
+
+	// if the table enable the tail truncation, add the hidden items
+	legacyOffset += t.itemHidden.Load()
+
+	// overwrite metadata file
+	t.metadata.setVirtualTail(legacyOffset, true)
+	if t.metadata.flushOffset < int64(legacyOffset) {
+		t.metadata.setFlushOffset(int64(legacyOffset), true)
+	}
+
+	// overwrite first index
+	var firstIndex indexEntry
+	buffer := make([]byte, indexEntrySize)
+	t.index.ReadAt(buffer, 0)
+	firstIndex.unmarshalBinary(buffer)
+	firstIndex.offset = uint32(legacyOffset)
+	if _, err := t.index.WriteAt(firstIndex.append(nil), 0); err != nil {
+		return err
+	}
+	if err := t.index.Sync(); err != nil {
+		return err
+	}
+	t.index.Close()
+
+	return nil
 }

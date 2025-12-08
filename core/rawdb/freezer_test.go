@@ -31,7 +31,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var freezerTestTableDef = map[string]freezerTableConfig{"test": {noSnappy: true}}
+var (
+	freezerTestTableDef = map[string]freezerTableConfig{"test": {noSnappy: true}}
+	o1o2TableDef        = map[string]freezerTableConfig{"o1": {noSnappy: true, prunable: true}, "o2": {noSnappy: true, prunable: true}}
+	o1o2a1TableDef      = map[string]freezerTableConfig{"o1": {noSnappy: true, prunable: true}, "o2": {noSnappy: true, prunable: true}, "a1": {noSnappy: true, prunable: true}}
+)
 
 func TestFreezerModify(t *testing.T) {
 	t.Parallel()
@@ -357,9 +361,6 @@ func checkAncientCount(t *testing.T, f *Freezer, kind string, n uint64) {
 	// Check at index n-1.
 	if n > 0 {
 		index := n - 1
-		if ok, _ := f.HasAncient(kind, index); !ok {
-			t.Errorf("HasAncient(%q, %d) returned false unexpectedly", kind, index)
-		}
 		if _, err := f.Ancient(kind, index); err != nil {
 			t.Errorf("Ancient(%q, %d) returned unexpected error %q", kind, index, err)
 		}
@@ -367,9 +368,6 @@ func checkAncientCount(t *testing.T, f *Freezer, kind string, n uint64) {
 
 	// Check at index n.
 	index := n
-	if ok, _ := f.HasAncient(kind, index); ok {
-		t.Errorf("HasAncient(%q, %d) returned true unexpectedly", kind, index)
-	}
 	if _, err := f.Ancient(kind, index); err == nil {
 		t.Errorf("Ancient(%q, %d) didn't return expected error", kind, index)
 	} else if err != errOutOfBounds {
@@ -388,11 +386,11 @@ func TestFreezerCloseSync(t *testing.T) {
 	// 2: thread-2: Close called, waits for write to finish
 	// 3: thread-1: finishes writing, releases lock
 	// 4: thread-2: obtains lock, completes Close()
-	// 5: thread-1: calls f.Sync()
+	// 5: thread-1: calls f.SyncAncient()
 	if err := f.Close(); err != nil {
 		t.Fatal(err)
 	}
-	if err := f.Sync(); err == nil {
+	if err := f.SyncAncient(); err == nil {
 		t.Fatalf("want error, have nil")
 	} else if have, want := err.Error(), "[closed closed]"; have != want {
 		t.Fatalf("want %v, have %v", have, want)
@@ -422,4 +420,243 @@ func TestFreezerSuite(t *testing.T) {
 		f, _ := newResettableFreezer(t.TempDir(), "", false, 2048, tables)
 		return f
 	})
+}
+
+func TestFreezer_AdditionTables(t *testing.T) {
+	dir := t.TempDir()
+	// Open non-readonly freezer and fill individual tables
+	// with different amount of data.
+	f, err := NewFreezer(dir, "", false, 2049, o1o2TableDef)
+	if err != nil {
+		t.Fatal("can't open freezer", err)
+	}
+
+	var item = make([]byte, 1024)
+	_, err = f.ModifyAncients(func(op ethdb.AncientWriteOp) error {
+		if err := op.AppendRaw("o1", 0, item); err != nil {
+			return err
+		}
+		if err := op.AppendRaw("o1", 1, item); err != nil {
+			return err
+		}
+		if err := op.AppendRaw("o2", 0, item); err != nil {
+			return err
+		}
+		if err := op.AppendRaw("o2", 1, item); err != nil {
+			return err
+		}
+		return nil
+	})
+	require.NoError(t, err)
+	require.NoError(t, f.Close())
+
+	// check read only
+	additionTables = []string{"a1"}
+	f, err = NewFreezer(dir, "", true, 2049, o1o2a1TableDef)
+	require.NoError(t, err)
+	require.NoError(t, f.Close())
+
+	f, err = NewFreezer(dir, "", false, 2049, o1o2a1TableDef)
+	require.NoError(t, err)
+	frozen, _ := f.Ancients()
+	require.NoError(t, f.ResetTable("a1", frozen, true))
+	_, err = f.ModifyAncients(func(op ethdb.AncientWriteOp) error {
+		if err := appendSameItem(op, []string{"o1", "o2", "a1"}, 2, item); err != nil {
+			return err
+		}
+		if err := appendSameItem(op, []string{"o1", "o2", "a1"}, 3, item); err != nil {
+			return err
+		}
+		if err := appendSameItem(op, []string{"o1", "o2", "a1"}, 4, item); err != nil {
+			return err
+		}
+		return nil
+	})
+	require.NoError(t, err)
+
+	// check additional table boundary
+	_, err = f.Ancient("a1", 1)
+	require.Error(t, err)
+	actual, err := f.Ancient("a1", 2)
+	require.NoError(t, err)
+	require.Equal(t, item, actual)
+
+	// truncate additional table, and check boundary
+	_, err = f.TruncateTableTail("o1", 3)
+	require.Error(t, err)
+	_, err = f.TruncateTableTail("a1", 3)
+	require.NoError(t, err)
+	_, err = f.Ancient("a1", 2)
+	require.Error(t, err)
+	actual, err = f.Ancient("a1", 3)
+	require.NoError(t, err)
+	require.Equal(t, item, actual)
+
+	// check additional table head
+	ancients, err := f.TableAncients("a1")
+	require.NoError(t, err)
+	require.Equal(t, uint64(5), ancients)
+	require.NoError(t, f.Close())
+
+	// reopen and read
+	f, err = NewFreezer(dir, "", true, 2049, o1o2a1TableDef)
+	require.NoError(t, err)
+
+	// recheck additional table boundary
+	_, err = f.Ancient("a1", 2)
+	require.Error(t, err)
+	actual, err = f.Ancient("a1", 3)
+	require.NoError(t, err)
+	require.Equal(t, item, actual)
+	ancients, err = f.TableAncients("a1")
+	require.NoError(t, err)
+	require.Equal(t, uint64(5), ancients)
+	require.NoError(t, f.Close())
+}
+
+func TestFreezer_ResetTailMeta_WithAdditionTable(t *testing.T) {
+	dir := t.TempDir()
+	f, err := NewFreezer(dir, "", false, 2049, o1o2TableDef)
+	if err != nil {
+		t.Fatal("can't open freezer", err)
+	}
+
+	var item = make([]byte, 1024)
+	_, err = f.ModifyAncients(func(op ethdb.AncientWriteOp) error {
+		if err := op.AppendRaw("o1", 0, item); err != nil {
+			return err
+		}
+		if err := op.AppendRaw("o1", 1, item); err != nil {
+			return err
+		}
+		if err := op.AppendRaw("o2", 0, item); err != nil {
+			return err
+		}
+		if err := op.AppendRaw("o2", 1, item); err != nil {
+			return err
+		}
+		return nil
+	})
+	require.NoError(t, err)
+	require.NoError(t, f.Close())
+
+	additionTables = []string{"a1"}
+	f, err = NewFreezer(dir, "", false, 2049, o1o2a1TableDef)
+	require.NoError(t, err)
+	frozen, _ := f.Ancients()
+	require.NoError(t, f.ResetTable("a1", frozen, true))
+	_, err = f.ModifyAncients(func(op ethdb.AncientWriteOp) error {
+		if err := appendSameItem(op, []string{"o1", "o2", "a1"}, 2, item); err != nil {
+			return err
+		}
+		if err := appendSameItem(op, []string{"o1", "o2", "a1"}, 3, item); err != nil {
+			return err
+		}
+		if err := appendSameItem(op, []string{"o1", "o2", "a1"}, 4, item); err != nil {
+			return err
+		}
+		return nil
+	})
+	require.NoError(t, err)
+	require.NoError(t, f.SyncAncient())
+
+	var offset uint64 = 10000
+	require.NoError(t, f.resetTailMeta(offset))
+	f.Close()
+
+	// check items
+	f, err = NewFreezer(dir, "", false, 2049, o1o2a1TableDef)
+	require.NoError(t, err)
+	_, err = f.Ancient("o1", 0)
+	require.Error(t, err)
+	actual, err := f.Ancient("o1", offset)
+	require.NoError(t, err)
+	require.Equal(t, item, actual)
+	_, err = f.Ancient("a1", offset+1)
+	require.Error(t, err)
+	actual, err = f.Ancient("a1", offset+2)
+	require.NoError(t, err)
+	require.Equal(t, item, actual)
+
+	// truncate tail
+	_, err = f.TruncateTail(offset + 2)
+	require.NoError(t, err)
+	actual, err = f.Ancient("o1", offset+2)
+	require.NoError(t, err)
+	require.Equal(t, item, actual)
+	actual, err = f.Ancient("a1", offset+2)
+	require.NoError(t, err)
+	require.Equal(t, item, actual)
+}
+
+func TestFreezer_ResetTailMeta_EmptyTable(t *testing.T) {
+	dir := t.TempDir()
+	f, err := NewFreezer(dir, "", false, 2049, o1o2TableDef)
+	if err != nil {
+		t.Fatal("can't open freezer", err)
+	}
+	var offset uint64 = 10000
+	require.NoError(t, f.resetTailMeta(offset))
+	f.Close()
+
+	// try to append the ancient
+	additionTables = []string{"a1"}
+	f, err = NewFreezer(dir, "", false, 2049, o1o2a1TableDef)
+	require.NoError(t, err)
+	var item = make([]byte, 1024)
+	_, err = f.ModifyAncients(func(op ethdb.AncientWriteOp) error {
+		if err := op.AppendRaw("o1", offset, item); err != nil {
+			return err
+		}
+		if err := op.AppendRaw("o1", offset+1, item); err != nil {
+			return err
+		}
+		if err := op.AppendRaw("o2", offset, item); err != nil {
+			return err
+		}
+		if err := op.AppendRaw("o2", offset+1, item); err != nil {
+			return err
+		}
+		return nil
+	})
+	require.NoError(t, err)
+	require.NoError(t, f.Close())
+
+	f, err = NewFreezer(dir, "", false, 2049, o1o2a1TableDef)
+	require.NoError(t, err)
+	frozen, _ := f.Ancients()
+	require.NoError(t, f.ResetTable("a1", frozen, true))
+	_, err = f.ModifyAncients(func(op ethdb.AncientWriteOp) error {
+		if err := appendSameItem(op, []string{"o1", "o2", "a1"}, offset+2, item); err != nil {
+			return err
+		}
+		if err := appendSameItem(op, []string{"o1", "o2", "a1"}, offset+3, item); err != nil {
+			return err
+		}
+		if err := appendSameItem(op, []string{"o1", "o2", "a1"}, offset+4, item); err != nil {
+			return err
+		}
+		return nil
+	})
+	require.NoError(t, err)
+	require.NoError(t, f.SyncAncient())
+
+	// truncate tail
+	_, err = f.TruncateTail(offset + 2)
+	require.NoError(t, err)
+	actual, err := f.Ancient("o1", offset+2)
+	require.NoError(t, err)
+	require.Equal(t, item, actual)
+	actual, err = f.Ancient("a1", offset+2)
+	require.NoError(t, err)
+	require.Equal(t, item, actual)
+}
+
+func appendSameItem(op ethdb.AncientWriteOp, tables []string, i uint64, item []byte) error {
+	for _, t := range tables {
+		if err := op.AppendRaw(t, i, item); err != nil {
+			return err
+		}
+	}
+	return nil
 }

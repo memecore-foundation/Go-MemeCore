@@ -21,8 +21,9 @@ import (
 	"fmt"
 	"math/big"
 
+	ssz "github.com/bnb-chain/fastssz"
+
 	"github.com/ethereum/go-ethereum/common"
-	ssz "github.com/ferranbt/fastssz"
 )
 
 // ComputeAccumulator calculates the SSZ hash tree root of the Era1
@@ -49,7 +50,7 @@ func ComputeAccumulator(hashes []common.Hash, tds []*big.Int) (common.Hash, erro
 
 // headerRecord is an individual record for a historical header.
 //
-// See https://github.com/ethereum/portal-network-specs/blob/master/history-network.md#the-header-accumulator
+// See https://github.com/ethereum/portal-network-specs/blob/master/history/history-network.md#the-historical-hashes-accumulator
 // for more information.
 type headerRecord struct {
 	Hash            common.Hash

@@ -191,7 +191,8 @@ This command dumps out the state for a given block (or latest, if none provided)
 `,
 	}
 
-	pruneCommand = &cli.Command{
+	//nolint:unused
+	pruneHistoryCommand = &cli.Command{
 		Action:    pruneHistory,
 		Name:      "prune-history",
 		Usage:     "Prune blockchain history (block bodies and receipts) up to the merge block",
@@ -238,7 +239,7 @@ func initGenesis(ctx *cli.Context) error {
 		overrides.OverrideVerkle = &v
 	}
 
-	chaindb, err := stack.OpenDatabaseWithFreezer("chaindata", 0, 0, ctx.String(utils.AncientFlag.Name), "", false)
+	chaindb, err := stack.OpenDatabaseWithFreezer("chaindata", 0, 0, ctx.String(utils.AncientFlag.Name), "", false, "")
 	if err != nil {
 		utils.Fatalf("Failed to open database: %v", err)
 	}
@@ -623,6 +624,7 @@ func hashish(x string) bool {
 	return err != nil
 }
 
+//nolint:unused
 func pruneHistory(ctx *cli.Context) error {
 	stack, _ := makeConfigNode(ctx)
 	defer stack.Close()

@@ -102,10 +102,15 @@ func (frdb *freezerdb) HasSeparateStateStore() bool {
 // Freeze is a helper method used for external testing to trigger and block until
 // a freeze cycle completes, without having to sleep for a minute to trigger the
 // automatic background run.
-func (frdb *freezerdb) Freeze() error {
+func (frdb *freezerdb) Freeze(threshold uint64) error {
 	if frdb.readOnly {
 		return errReadOnly
 	}
+	// Set the freezer threshold to a temporary value
+	defer func(old uint64) {
+		frdb.chainFreezer.threshold.Store(old)
+	}(frdb.chainFreezer.threshold.Load())
+	frdb.chainFreezer.threshold.Store(threshold)
 	// Trigger a freeze cycle and block until it's done
 	trigger := make(chan struct{}, 1)
 	frdb.chainFreezer.trigger <- trigger
@@ -121,11 +126,6 @@ func (frdb *freezerdb) SetupFreezerEnv(env *ethdb.FreezerEnv, blockHistory uint6
 type nofreezedb struct {
 	ethdb.KeyValueStore
 	stateStore ethdb.Database
-}
-
-// HasAncient returns an error as we don't have a backing chain freezer.
-func (db *nofreezedb) HasAncient(kind string, number uint64) (bool, error) {
-	return false, errNotSupported
 }
 
 // Ancient returns an error as we don't have a backing chain freezer.
@@ -145,11 +145,6 @@ func (db *nofreezedb) Ancients() (uint64, error) {
 
 // Tail returns an error as we don't have a backing chain freezer.
 func (db *nofreezedb) Tail() (uint64, error) {
-	return 0, errNotSupported
-}
-
-// BlobTail returns an error as we don't have a backing chain freezer.
-func (db *nofreezedb) BlobTail() (uint64, error) {
 	return 0, errNotSupported
 }
 
@@ -180,15 +175,6 @@ func (db *nofreezedb) TruncateTableTail(kind string, tail uint64) (uint64, error
 
 // ResetTable will reset certain table with new start point
 func (db *nofreezedb) ResetTable(kind string, startAt uint64, onlyEmpty bool) error {
-	return errNotSupported
-}
-
-func (db *nofreezedb) ResetTableForIncr(kind string, startAt uint64, onlyEmpty bool) error {
-	return errNotSupported
-}
-
-// Sync returns an error as we don't have a backing chain freezer.
-func (db *nofreezedb) Sync() error {
 	return errNotSupported
 }
 
@@ -243,9 +229,6 @@ func (db *nofreezedb) AncientDatadir() (string, error) {
 func (db *nofreezedb) SetupFreezerEnv(env *ethdb.FreezerEnv, blockHistory uint64) error {
 	return nil
 }
-func (db *nofreezedb) CleanBlock(ethdb.KeyValueStore, uint64) error {
-	return nil
-}
 
 // NewDatabase creates a high level database on top of a given key-value data
 // store without a freezer moving immutable chain segments into cold storage.
@@ -276,23 +259,74 @@ func resolveChainFreezerDir(ancient string) string {
 	return freezer
 }
 
-// NewDatabaseWithFreezer creates a high level database on top of a given key-
-// value data store with a freezer moving immutable chain segments into cold
-// storage. The passed ancient indicates the path of root ancient directory
-// where the chain freezer can be opened.
-func NewDatabaseWithFreezer(db ethdb.KeyValueStore, ancient string, namespace string, readonly bool) (ethdb.Database, error) {
+// resolveChainEraDir resolves the absolute path of chain era directory.
+func resolveChainEraDir(chainFreezerDir string, era string) string {
+	switch {
+	case era == "":
+		return filepath.Join(chainFreezerDir, "era")
+	case !filepath.IsAbs(era):
+		return filepath.Join(chainFreezerDir, era)
+	default:
+		return era
+	}
+}
+
+// NewDatabaseWithFreezer creates a high level database on top of a given key-value store.
+// The passed ancient indicates the path of root ancient directory where the chain freezer
+// can be opened.
+//
+// Deprecated: use Open.
+func NewDatabaseWithFreezer(db ethdb.KeyValueStore, ancient string, namespace string, readonly bool, era string) (ethdb.Database, error) {
+	return Open(db, OpenOptions{
+		Ancient:          ancient,
+		Era:              era,
+		MetricsNamespace: namespace,
+		ReadOnly:         readonly,
+	})
+}
+
+// OpenOptions specifies options for opening the database.
+type OpenOptions struct {
+	Ancient          string // ancients directory
+	Era              string // era files directory
+	MetricsNamespace string // prefix added to freezer metric names
+	ReadOnly         bool
+}
+
+// Open creates a high-level database wrapper for the given key-value store.
+func Open(db ethdb.KeyValueStore, opts OpenOptions) (ethdb.Database, error) {
 	// Create the idle freezer instance. If the given ancient directory is empty,
 	// in-memory chain freezer is used (e.g. dev mode); otherwise the regular
 	// file-based freezer is created.
-	chainFreezerDir := ancient
+	chainFreezerDir := opts.Ancient
 	if chainFreezerDir != "" {
 		chainFreezerDir = resolveChainFreezerDir(chainFreezerDir)
 	}
-	frdb, err := newChainFreezer(chainFreezerDir, namespace, readonly)
+
+	// if there has legacy offset, try to clean & reset the freezer metadata
+	if legacyOffset := ReadLegacyOffset(db); legacyOffset > 0 {
+		log.Info("Found legacy offset in freezerDB, will reset freezer meta", "offset", legacyOffset)
+		if err := resetFreezerMeta(chainFreezerDir, opts.MetricsNamespace, legacyOffset); err != nil {
+			return nil, err
+		}
+		CleanLegacyOffset(db)
+	}
+
+	// Create the idle freezer instance
+	frdb, err := newChainFreezer(chainFreezerDir, opts.Era, opts.MetricsNamespace, opts.ReadOnly)
+
+	// We are creating the freezerdb here because the validation logic for db and freezer below requires certain interfaces
+	// that need a database type. Therefore, we are pre-creating it for subsequent use.
+	freezerDb := &freezerdb{
+		ancientRoot:   opts.Ancient,
+		KeyValueStore: db,
+		chainFreezer:  frdb,
+	}
 	if err != nil {
-		printChainMetadata(db)
+		printChainMetadata(freezerDb)
 		return nil, err
 	}
+
 	// Since the freezer can be stored separately from the user's key-value database,
 	// there's a fairly high probability that the user requests invalid combinations
 	// of the freezer and database. Ensure that we don't shoot ourselves in the foot
@@ -315,17 +349,23 @@ func NewDatabaseWithFreezer(db ethdb.KeyValueStore, ancient string, namespace st
 	// If the genesis hash is empty, we have a new key-value store, so nothing to
 	// validate in this method. If, however, the genesis hash is not nil, compare
 	// it to the freezer content.
-	if kvgenesis, _ := db.Get(headerHashKey(0)); len(kvgenesis) > 0 {
+	// Only to check the following when offset/ancientTail equal to 0, otherwise the block number
+	// in ancientdb did not start with 0, no genesis block in ancientdb as well.
+	ancientTail, err := frdb.Tail()
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve Tail from ancient %v", err)
+	}
+	if kvgenesis, _ := db.Get(headerHashKey(0)); ancientTail == 0 && len(kvgenesis) > 0 {
 		if frozen, _ := frdb.Ancients(); frozen > 0 {
 			// If the freezer already contains something, ensure that the genesis blocks
 			// match, otherwise we might mix up freezers across chains and destroy both
 			// the freezer and the key-value store.
 			frgenesis, err := frdb.Ancient(ChainFreezerHashTable, 0)
 			if err != nil {
-				printChainMetadata(db)
+				printChainMetadata(freezerDb)
 				return nil, fmt.Errorf("failed to retrieve genesis from ancient %v", err)
 			} else if !bytes.Equal(kvgenesis, frgenesis) {
-				printChainMetadata(db)
+				printChainMetadata(freezerDb)
 				return nil, fmt.Errorf("genesis mismatch: %#x (leveldb) != %#x (ancients)", kvgenesis, frgenesis)
 			}
 			// Key-value store and freezer belong to the same network. Ensure that they
@@ -333,7 +373,7 @@ func NewDatabaseWithFreezer(db ethdb.KeyValueStore, ancient string, namespace st
 			if kvhash, _ := db.Get(headerHashKey(frozen)); len(kvhash) == 0 {
 				// Subsequent header after the freezer limit is missing from the database.
 				// Reject startup if the database has a more recent head.
-				if head := *ReadHeaderNumber(db, ReadHeadHeaderHash(db)); head > frozen-1 {
+				if head := *ReadHeaderNumber(freezerDb, ReadHeadHeaderHash(freezerDb)); head > frozen-1 {
 					// Find the smallest block stored in the key-value store
 					// in range of [frozen, head]
 					var number uint64
@@ -343,7 +383,7 @@ func NewDatabaseWithFreezer(db ethdb.KeyValueStore, ancient string, namespace st
 						}
 					}
 					// We are about to exit on error. Print database metadata before exiting
-					printChainMetadata(db)
+					printChainMetadata(freezerDb)
 					return nil, fmt.Errorf("gap in the chain between ancients [0 - #%d] and leveldb [#%d - #%d] ",
 						frozen-1, number, head)
 				}
@@ -358,11 +398,11 @@ func NewDatabaseWithFreezer(db ethdb.KeyValueStore, ancient string, namespace st
 			// store, otherwise we'll end up missing data. We check block #1 to decide
 			// if we froze anything previously or not, but do take care of databases with
 			// only the genesis block.
-			if ReadHeadHeaderHash(db) != common.BytesToHash(kvgenesis) {
+			if ReadHeadHeaderHash(freezerDb) != common.BytesToHash(kvgenesis) {
 				// Key-value store contains more data than the genesis block, make sure we
 				// didn't freeze anything yet.
 				if kvblob, _ := db.Get(headerHashKey(1)); len(kvblob) == 0 {
-					printChainMetadata(db)
+					printChainMetadata(freezerDb)
 					return nil, errors.New("ancient chain segments already extracted, please set --datadir.ancient to the correct path")
 				}
 				// Block #1 is still in the database, we're allowed to init a new freezer
@@ -372,18 +412,14 @@ func NewDatabaseWithFreezer(db ethdb.KeyValueStore, ancient string, namespace st
 		}
 	}
 	// Freezer is consistent with the key-value database, permit combining the two
-	if !readonly {
+	if !opts.ReadOnly {
 		frdb.wg.Add(1)
 		go func() {
-			frdb.freeze(db)
+			frdb.freeze(db, false)
 			frdb.wg.Done()
 		}()
 	}
-	return &freezerdb{
-		ancientRoot:   ancient,
-		KeyValueStore: db,
-		chainFreezer:  frdb,
-	}, nil
+	return freezerDb, nil
 }
 
 // NewMemoryDatabase creates an ephemeral in-memory key-value database without a

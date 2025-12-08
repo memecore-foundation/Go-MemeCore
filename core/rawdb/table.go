@@ -50,12 +50,6 @@ func (t *table) Get(key []byte) ([]byte, error) {
 	return t.db.Get(append([]byte(t.prefix), key...))
 }
 
-// HasAncient is a noop passthrough that just forwards the request to the underlying
-// database.
-func (t *table) HasAncient(kind string, number uint64) (bool, error) {
-	return t.db.HasAncient(kind, number)
-}
-
 // Ancient is a noop passthrough that just forwards the request to the underlying
 // database.
 func (t *table) Ancient(kind string, number uint64) ([]byte, error) {
@@ -78,12 +72,6 @@ func (t *table) Ancients() (uint64, error) {
 // database.
 func (t *table) Tail() (uint64, error) {
 	return t.db.Tail()
-}
-
-// BlobTail is a noop passthrough that just forwards the request to the underlying
-// database.
-func (t *table) BlobTail() (uint64, error) {
-	return t.db.BlobTail()
 }
 
 // AncientSize is a noop passthrough that just forwards the request to the underlying
@@ -123,10 +111,10 @@ func (t *table) ResetTable(kind string, startAt uint64, onlyEmpty bool) error {
 	return t.db.ResetTable(kind, startAt, onlyEmpty)
 }
 
-// Sync is a noop passthrough that just forwards the request to the underlying
+// SyncAncient is a noop passthrough that just forwards the request to the underlying
 // database.
-func (t *table) Sync() error {
-	return t.db.Sync()
+func (t *table) SyncAncient() error {
+	return t.db.SyncAncient()
 }
 
 func (t *table) SetupFreezerEnv(env *ethdb.FreezerEnv, blockHistory uint64) error {

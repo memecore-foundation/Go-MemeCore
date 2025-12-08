@@ -25,6 +25,8 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/rawdb/eradb"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
@@ -37,24 +39,45 @@ const (
 	// storage.
 	freezerRecheckInterval = time.Minute
 
+	// Freezing large batches (e.g., 30,000 blocks) at once can seriously affect performance.
+	// With MemeCore's 7-second block time, we limit batches to ~43 blocks (~5 minutes worth)
+	// to balance freezing throughput with chain sync performance.
+	SlowFreezerBatchLimit = 43
+	SlowdownFreezeWindow  = 24 * time.Hour
+)
+
+var (
 	// freezerBatchLimit is the maximum number of blocks to freeze in one batch
 	// before doing an fsync and deleting it from the key-value store.
-	freezerBatchLimit = 30000
+	freezerBatchLimit uint64 = 30000
+)
+
+var (
+	missFreezerEnvErr = errors.New("missing freezer env error")
 )
 
 // chainFreezer is a wrapper of chain ancient store with additional chain freezing
 // feature. The background thread will keep moving ancient chain segments from
 // key-value database to flat files for saving space on live database.
 type chainFreezer struct {
-	ethdb.AncientStore // Ancient store for storing cold chain segment
+	ancients ethdb.AncientStore // Ancient store for storing cold chain segment
+
+	// Optional Era database used as a backup for the pruned chain.
+	eradb *eradb.Store
 
 	quit    chan struct{}
 	wg      sync.WaitGroup
 	trigger chan chan struct{} // Manual blocking freeze trigger, test determinism
 
-	freezeEnv    atomic.Value  // Stores *ethdb.FreezerEnv for chain config and blob settings
-	blockHistory atomic.Uint64 // Number of blocks to retain for state history
-	waitEnvTimes int           // Counter for waiting on FreezerEnv setup
+	threshold atomic.Uint64 // Number of recent blocks not to freeze (params.FullImmutabilityThreshold apart from tests)
+
+	freezeEnv    atomic.Value
+	blockHistory atomic.Uint64
+	waitEnvTimes int
+
+	// used to reset chain freezer in the incremental case
+	datadir string
+	opener  freezerOpenFunc
 }
 
 // newChainFreezer initializes the freezer for ancient chain segment.
@@ -63,24 +86,41 @@ type chainFreezer struct {
 //     state freezer (e.g. dev mode).
 //   - if non-empty directory is given, initializes the regular file-based
 //     state freezer.
-func newChainFreezer(datadir string, namespace string, readonly bool) (*chainFreezer, error) {
+func newChainFreezer(datadir string, eraDir string, namespace string, readonly bool) (*chainFreezer, error) {
 	var (
 		err     error
 		freezer ethdb.AncientStore
+		opener  freezerOpenFunc
 	)
 	if datadir == "" {
 		freezer = NewMemoryFreezer(readonly, chainFreezerTableConfigs)
 	} else {
-		freezer, err = NewFreezer(datadir, namespace, readonly, freezerTableSize, chainFreezerTableConfigs, false)
+		freezer, err = NewFreezer(datadir, namespace, readonly, freezerTableSize, chainFreezerTableConfigs)
+		opener = func() (*Freezer, error) {
+			return NewFreezer(datadir, namespace, readonly, freezerTableSize, chainFreezerTableConfigs)
+		}
 	}
 	if err != nil {
 		return nil, err
 	}
-	return &chainFreezer{
-		AncientStore: freezer,
-		quit:         make(chan struct{}),
-		trigger:      make(chan chan struct{}),
-	}, nil
+	edb, err := eradb.New(resolveChainEraDir(datadir, eraDir))
+	if err != nil {
+		return nil, err
+	}
+	cf := chainFreezer{
+		ancients: freezer,
+		eradb:    edb,
+		quit:     make(chan struct{}),
+		trigger:  make(chan chan struct{}),
+		datadir:  datadir,
+	}
+	if opener != nil {
+		cf.opener = opener
+	}
+	// After enabling pruneAncient, the ancient data is not retained. In some specific scenarios where it is
+	// necessary to roll back to blocks prior to the finalized block, it is mandatory to keep the most recent 90,000 blocks in the database to ensure proper functionality and rollback capability.
+	cf.threshold.Store(params.FullImmutabilityThreshold)
+	return &cf, nil
 }
 
 // Close closes the chain freezer instance and terminates the background thread.
@@ -91,7 +131,25 @@ func (f *chainFreezer) Close() error {
 		close(f.quit)
 	}
 	f.wg.Wait()
-	return f.AncientStore.Close()
+
+	if f.eradb != nil {
+		f.eradb.Close()
+	}
+	return f.ancients.Close()
+}
+
+// resetFreezerMeta resets the tail metadata of the chain freezer.
+func resetFreezerMeta(datadir string, namespace string, legacyOffset uint64) error {
+	if datadir == "" {
+		return nil
+	}
+
+	freezer, err := NewFreezer(datadir, namespace, false, freezerTableSize, chainFreezerTableConfigs)
+	if err != nil {
+		return err
+	}
+	defer freezer.Close()
+	return freezer.resetTailMeta(legacyOffset)
 }
 
 // readHeadNumber returns the number of chain head block. 0 is returned if the
@@ -150,7 +208,7 @@ func (f *chainFreezer) freezeThreshold(db ethdb.KeyValueReader) (uint64, error) 
 //
 // This functionality is deliberately broken off from block importing to avoid
 // incurring additional data shuffling delays on block propagation.
-func (f *chainFreezer) freeze(db ethdb.KeyValueStore) {
+func (f *chainFreezer) freeze(db ethdb.KeyValueStore, continueFreeze bool) {
 	var (
 		backoff   bool
 		triggered chan struct{} // Used in tests
@@ -182,35 +240,49 @@ func (f *chainFreezer) freeze(db ethdb.KeyValueStore) {
 				return
 			}
 		}
-		threshold, err := f.freezeThreshold(nfdb)
-		if err != nil {
-			backoff = true
-			continue
-		}
-		frozen, _ := f.Ancients() // no error will occur, safe to ignore
-
-		// Short circuit if the blocks below threshold are already frozen.
-		if frozen != 0 && frozen-1 >= threshold {
-			backoff = true
-			log.Debug("Ancient blocks frozen already", "threshold", threshold, "frozen", frozen)
-			continue
-		}
-
-		// Read current head block BEFORE freezing (BSC approach)
-		// This is necessary because after freezing, the block moves to ancient storage
-		// and nofreezedb wrapper blocks ancient reads
+		// Read current head block BEFORE freezing
 		headHash := ReadHeadBlockHash(nfdb)
 		if headHash == (common.Hash{}) {
+			log.Debug("Current full block hash unavailable") // new chain, empty database
 			backoff = true
 			continue
 		}
 		headNumber := ReadHeaderNumber(nfdb, headHash)
-		if headNumber == nil {
+		threshold := f.threshold.Load()
+		frozen, _ := f.Ancients() // no error will occur, safe to ignore
+
+		switch {
+		case headNumber == nil:
+			log.Error("Current full block number unavailable", "hash", headHash)
+			backoff = true
+			continue
+
+		case *headNumber < threshold:
+			log.Debug("Current full block not old enough to freeze", "number", *headNumber, "hash", headHash, "delay", threshold)
+			backoff = true
+			continue
+
+		case *headNumber-threshold <= frozen:
+			log.Debug("Ancient blocks frozen already", "number", *headNumber, "hash", headHash, "frozen", frozen)
 			backoff = true
 			continue
 		}
+
 		headBlock := ReadHeader(nfdb, headHash, *headNumber)
 		if headBlock == nil {
+			log.Error("Current full block unavailable", "number", *headNumber, "hash", headHash)
+			backoff = true
+			continue
+		}
+		trySlowdownFreeze(headBlock)
+
+		// check env first before chain freeze, it must wait when the env is necessary
+		if err := f.checkFreezerEnv(); err != nil {
+			f.waitEnvTimes++
+			if f.waitEnvTimes%30 == 0 {
+				log.Warn("Freezer need related env, may wait for a while, and it's not a issue when non-import block", "err", err)
+				return
+			}
 			backoff = true
 			continue
 		}
@@ -218,11 +290,11 @@ func (f *chainFreezer) freeze(db ethdb.KeyValueStore) {
 		// Seems we have data ready to be frozen, process in usable batches
 		var (
 			start = time.Now()
-			first = frozen    // the first block to freeze
-			last  = threshold // the last block to freeze
+			first = frozen
+			last  = *headNumber - threshold
 		)
-		if last-first+1 > freezerBatchLimit {
-			last = freezerBatchLimit + first - 1
+		if last-first > freezerBatchLimit {
+			last = first + freezerBatchLimit
 		}
 		ancients, err := f.freezeRangeWithBlobs(nfdb, first, last)
 		if err != nil {
@@ -231,7 +303,7 @@ func (f *chainFreezer) freeze(db ethdb.KeyValueStore) {
 			continue
 		}
 		// Batch of blocks have been frozen, flush them before wiping from key-value store
-		if err := f.Sync(); err != nil {
+		if err := f.SyncAncient(); err != nil {
 			log.Crit("Failed to flush frozen tables", "err", err)
 		}
 		// Wipe out all data from the active database
@@ -309,11 +381,12 @@ func (f *chainFreezer) freeze(db ethdb.KeyValueStore) {
 		}
 		log.Debug("Deep froze chain segment", context...)
 
-		// Try prune blob data after Cancun fork (use head block read before freezing)
 		env, _ := f.freezeEnv.Load().(*ethdb.FreezerEnv)
+		// try prune blob data after cancun fork
 		if isCancun(env, headBlock.Number, headBlock.Time) {
 			f.tryPruneBlobAncientTable(env, *headNumber)
 		}
+		f.tryPruneHistoryBlock(*headNumber)
 
 		// Avoid database thrashing with tiny writes
 		if frozen-first < freezerBatchLimit {
@@ -359,9 +432,9 @@ func (f *chainFreezer) freezeRange(nfdb *nofreezedb, number, limit uint64) (hash
 			var sidecars rlp.RawValue
 			if isCancun(env, h.Number, h.Time) {
 				sidecars = ReadBlobSidecarsRLP(nfdb, hash, number)
-				// Note: sidecars can be empty if the block has no blob transactions.
-				// This is normal and not an error. Genesis block and regular blocks
-				// without blob transactions will have empty sidecars.
+				if len(sidecars) == 0 {
+					return fmt.Errorf("block blobs missing, can't freeze block %d", number)
+				}
 			}
 
 			// Write to the batch.
@@ -398,6 +471,14 @@ func (f *chainFreezer) SetupFreezerEnv(env *ethdb.FreezerEnv, blockHistory uint6
 	f.freezeEnv.Store(env)
 	f.blockHistory.Store(blockHistory)
 	return nil
+}
+
+func (f *chainFreezer) checkFreezerEnv() error {
+	_, exist := f.freezeEnv.Load().(*ethdb.FreezerEnv)
+	if exist {
+		return nil
+	}
+	return missFreezerEnvErr
 }
 
 // isCancun checks if the Cancun fork is active for the given block.
@@ -460,7 +541,7 @@ func (f *chainFreezer) freezeRangeWithBlobs(nfdb *nofreezedb, number, limit uint
 		}
 	}
 
-	// freeze pre cancun
+	// freeze pre cancun (skip if Cancun starts from genesis)
 	if cancunNumber > number {
 		preHashes, err = f.freezeRange(nfdb, number, cancunNumber-1)
 		if err != nil {
@@ -471,29 +552,22 @@ func (f *chainFreezer) freezeRangeWithBlobs(nfdb *nofreezedb, number, limit uint
 	if err = ResetEmptyBlobAncientTable(f, cancunNumber); err != nil {
 		return preHashes, err
 	}
-
 	// freeze post cancun
 	postHashes, err := f.freezeRange(nfdb, cancunNumber, limit)
 	hashes = append(preHashes, postHashes...)
 	return hashes, err
 }
 
-// tryPruneBlobAncientTable attempts to prune old blob data from the ancient store.
-// It keeps blob data for MinBlocksForBlobRequests + extraReserve blocks.
 func (f *chainFreezer) tryPruneBlobAncientTable(env *ethdb.FreezerEnv, num uint64) {
 	extraReserve := getBlobExtraReserveFromEnv(env)
-
 	// It means that there is no need for pruning
 	if extraReserve == 0 {
 		return
 	}
-
 	reserveThreshold := params.MinBlocksForBlobRequests + extraReserve
-
 	if num <= reserveThreshold {
 		return
 	}
-
 	expectTail := num - reserveThreshold
 
 	// check if the head is larger than expectTail, it occurs when a large number of historical blocks are not frozen in time
@@ -503,13 +577,129 @@ func (f *chainFreezer) tryPruneBlobAncientTable(env *ethdb.FreezerEnv, num uint6
 		log.Error("Cannot get ancients", "err", err)
 		return
 	}
-
 	if ancientHead <= expectTail {
 		return
 	}
 
+	start := time.Now()
 	if _, err := f.TruncateTableTail(ChainFreezerBlobSidecarTable, expectTail); err != nil {
 		log.Error("Cannot prune blob ancient", "block", num, "expectTail", expectTail, "err", err)
 		return
 	}
+	log.Debug("Chain freezer prune useless blobs, now ancient data is", "from", expectTail, "to", num, "cost", common.PrettyDuration(time.Since(start)))
 }
+
+// Ancient retrieves an ancient binary blob from the freezer with Era DB fallback.
+func (f *chainFreezer) Ancient(kind string, number uint64) ([]byte, error) {
+	// Lookup the entry in the underlying ancient store, assuming that
+	// headers and hashes are always available.
+	if chainFreezerTableConfigs[kind].prunable == false {
+		return f.ancients.Ancient(kind, number)
+	}
+	tail, err := f.ancients.Tail()
+	if err != nil {
+		return nil, err
+	}
+	// Lookup the entry in the underlying ancient store if it's not pruned
+	if number >= tail {
+		return f.ancients.Ancient(kind, number)
+	}
+	// Lookup the entry in the optional era backend
+	if f.eradb == nil {
+		return nil, errOutOfBounds
+	}
+	switch kind {
+	case ChainFreezerBodiesTable:
+		return f.eradb.GetRawBody(number)
+	case ChainFreezerReceiptTable:
+		return f.eradb.GetRawReceipts(number)
+	}
+	return nil, errUnknownTable
+}
+
+// ReadAncients executes an operation while preventing mutations to the freezer,
+// i.e. if fn performs multiple reads, they will be consistent with each other.
+func (f *chainFreezer) ReadAncients(fn func(ethdb.AncientReaderOp) error) (err error) {
+	if store, ok := f.ancients.(*Freezer); ok {
+		store.writeLock.Lock()
+		defer store.writeLock.Unlock()
+	}
+	return fn(f)
+}
+
+func (f *chainFreezer) Ancients() (uint64, error) {
+	return f.ancients.Ancients()
+}
+
+func (f *chainFreezer) Tail() (uint64, error) {
+	return f.ancients.Tail()
+}
+
+func (f *chainFreezer) AncientSize(kind string) (uint64, error) {
+	return f.ancients.AncientSize(kind)
+}
+
+func (f *chainFreezer) AncientRange(kind string, start, count, maxBytes uint64) ([][]byte, error) {
+	return f.ancients.AncientRange(kind, start, count, maxBytes)
+}
+
+func (f *chainFreezer) ModifyAncients(fn func(ethdb.AncientWriteOp) error) (int64, error) {
+	return f.ancients.ModifyAncients(fn)
+}
+
+func (f *chainFreezer) TruncateHead(items uint64) (uint64, error) {
+	return f.ancients.TruncateHead(items)
+}
+
+func (f *chainFreezer) TruncateTail(items uint64) (uint64, error) {
+	return f.ancients.TruncateTail(items)
+}
+
+func (f *chainFreezer) TruncateTableTail(kind string, tail uint64) (uint64, error) {
+	return f.ancients.TruncateTableTail(kind, tail)
+}
+
+func (f *chainFreezer) ResetTable(kind string, startAt uint64, onlyEmpty bool) error {
+	return f.ancients.ResetTable(kind, startAt, onlyEmpty)
+}
+
+func (f *chainFreezer) SyncAncient() error {
+	return f.ancients.SyncAncient()
+}
+
+// tryPruneHistoryBlock try prune ancient data keep blockHistory
+func (f *chainFreezer) tryPruneHistoryBlock(best uint64) {
+	blockHistory := f.blockHistory.Load()
+	if blockHistory == 0 || best <= blockHistory {
+		return
+	}
+
+	expectTail := best - blockHistory
+	ancientHead, err := f.Ancients()
+	if err != nil {
+		log.Warn("PruneHistoryBlock query Ancients error", "best", best, "err", err)
+		return
+	}
+	if expectTail > ancientHead {
+		expectTail = ancientHead
+	}
+	old, err := f.TruncateTail(expectTail)
+	if err != nil {
+		log.Warn("PruneHistoryBlock TruncateTail error", "best", best,
+			"expectTail", expectTail, "blockHistory", blockHistory, "err", err)
+		return
+	}
+	log.Debug("Prune block history successful", "oldtail", old, "tail", expectTail, "best", best, "history", blockHistory)
+}
+
+func trySlowdownFreeze(head *types.Header) {
+	if time.Since(time.UnixMilli(int64(head.Time*1000))) > SlowdownFreezeWindow {
+		return
+	}
+	if freezerBatchLimit == SlowFreezerBatchLimit {
+		return
+	}
+	log.Info("Freezer need to slow down", "number", head.Number, "time", head.Time, "new", SlowFreezerBatchLimit)
+	freezerBatchLimit = SlowFreezerBatchLimit
+}
+

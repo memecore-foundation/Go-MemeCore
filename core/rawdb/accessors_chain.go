@@ -1059,15 +1059,7 @@ func ReadBlobSidecarsRLP(db ethdb.Reader, hash common.Hash, number uint64) rlp.R
 	db.ReadAncients(func(reader ethdb.AncientReaderOp) error {
 		// Check if the data is in ancients
 		if isCanon(reader, number, hash) {
-			var err error
-			data, err = reader.Ancient(ChainFreezerBlobSidecarTable, number)
-			if err != nil {
-				// Try leveldb as fallback
-				data, err = db.Get(blockBlobSidecarsKey(number, hash))
-				if err != nil {
-					log.Debug("Blob sidecar not found", "number", number, "hash", hash)
-				}
-			}
+			data, _ = reader.Ancient(ChainFreezerBlobSidecarTable, number)
 			return nil
 		}
 		// If not, try reading from leveldb

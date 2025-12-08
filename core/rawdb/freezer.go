@@ -72,7 +72,6 @@ type Freezer struct {
 	tables       map[string]*freezerTable // Data tables for storing everything
 	instanceLock *flock.Flock             // File-system lock to prevent double opens
 	closeOnce    sync.Once
-	isIncr       bool // Incremental freezer, allows adding new tables
 }
 
 // NewFreezer creates a freezer instance for maintaining immutable ordered
@@ -81,7 +80,7 @@ type Freezer struct {
 // The 'tables' argument defines the data tables. If the value of a map
 // entry is true, snappy compression is disabled for the table.
 // additionTables indicates the new add tables for freezerDB, it has some special rules.
-func NewFreezer(datadir string, namespace string, readonly bool, maxTableSize uint32, tables map[string]freezerTableConfig, isIncr bool) (*Freezer, error) {
+func NewFreezer(datadir string, namespace string, readonly bool, maxTableSize uint32, tables map[string]freezerTableConfig) (*Freezer, error) {
 	// Create the initial freezer object
 	var (
 		readMeter  = metrics.NewRegisteredMeter(namespace+"ancient/read", nil)
@@ -121,7 +120,6 @@ func NewFreezer(datadir string, namespace string, readonly bool, maxTableSize ui
 		readonly:     readonly,
 		tables:       make(map[string]*freezerTable),
 		instanceLock: lock,
-		isIncr:       isIncr,
 	}
 
 	// Create the tables.
@@ -198,24 +196,12 @@ func (f *Freezer) Close() error {
 			errs = append(errs, err)
 		}
 	})
-	if errs != nil {
-		return fmt.Errorf("%v", errs)
-	}
-	return nil
+	return errors.Join(errs...)
 }
 
 // AncientDatadir returns the path of the ancient store.
 func (f *Freezer) AncientDatadir() (string, error) {
 	return f.datadir, nil
-}
-
-// HasAncient returns an indicator whether the specified ancient data exists
-// in the freezer.
-func (f *Freezer) HasAncient(kind string, number uint64) (bool, error) {
-	if table := f.tables[kind]; table != nil {
-		return table.has(number), nil
-	}
-	return false, nil
 }
 
 // Ancient retrieves an ancient binary blob from the append-only immutable files.
@@ -244,31 +230,16 @@ func (f *Freezer) Ancients() (uint64, error) {
 	return f.frozen.Load(), nil
 }
 
-// Tail returns the number of first stored item in the freezer.
-func (f *Freezer) Tail() (uint64, error) {
-	// Return the tail of non-prunable tables only
-	// Prunable tables (like blobs) can have different tails
-	// and should not affect chain history validation
-	var tail uint64
-	for _, table := range f.tables {
-		if !table.config.prunable {
-			tableTail := table.itemHidden.Load()
-			if tableTail > tail {
-				tail = tableTail
-			}
-		}
-	}
-	return tail, nil
+// TableAncients returns the number of items in the specified table.
+func (f *Freezer) TableAncients(kind string) (uint64, error) {
+	f.writeLock.RLock()
+	defer f.writeLock.RUnlock()
+	return f.tables[kind].items.Load(), nil
 }
 
-// BlobTail returns the number of first stored blob item in the freezer.
-// This is used to check if a blob has been pruned.
-func (f *Freezer) BlobTail() (uint64, error) {
-	if table, ok := f.tables[ChainFreezerBlobSidecarTable]; ok {
-		tail := table.itemHidden.Load()
-		return tail, nil
-	}
-	return 0, errUnknownTable
+// Tail returns the number of first stored item in the freezer.
+func (f *Freezer) Tail() (uint64, error) {
+	return f.tail.Load(), nil
 }
 
 // AncientSize returns the ancient size of the specified category.
@@ -402,29 +373,18 @@ func (f *Freezer) TruncateTableTail(kind string, tail uint64) (uint64, error) {
 	f.writeLock.Lock()
 	defer f.writeLock.Unlock()
 
-	// Only tables in additionTables can be truncated independently
-	found := false
-	for _, tableName := range additionTables {
-		if tableName == kind {
-			found = true
-			break
-		}
+	if !slices.Contains(additionTables, kind) {
+		return 0, errors.New("only new added table could be truncated independently")
 	}
-	if !found {
-		return 0, fmt.Errorf("only tables in additionTables can be truncated independently")
-	}
-
 	t, exist := f.tables[kind]
 	if !exist {
-		return 0, fmt.Errorf("table %s does not exist", kind)
+		return 0, errors.New("you reset a non-exist table")
 	}
 
 	old := t.itemHidden.Load()
 	if err := t.truncateTail(tail); err != nil {
-		log.Error("truncateTail failed", "table", kind, "tail", tail, "err", err)
 		return 0, err
 	}
-	// newHidden := t.itemHidden.Load()
 	return old, nil
 }
 
@@ -471,21 +431,8 @@ func (f *Freezer) ResetTable(kind string, startAt uint64, onlyEmpty bool) error 
 	return nil
 }
 
+// SyncAncient flushes all data tables to disk.
 func (f *Freezer) SyncAncient() error {
-	var errs []error
-	for _, table := range f.tables {
-		if err := table.Sync(); err != nil {
-			errs = append(errs, err)
-		}
-	}
-	if errs != nil {
-		return fmt.Errorf("%v", errs)
-	}
-	return nil
-}
-
-// Sync flushes all data tables to disk.
-func (f *Freezer) Sync() error {
 	var errs []error
 	for _, table := range f.tables {
 		if err := table.Sync(); err != nil {
@@ -627,6 +574,31 @@ func (f *Freezer) repair() error {
 
 	f.frozen.Store(head)
 	f.tail.Store(prunedTail)
+	return nil
+}
+
+// resetTailMeta will reset tail meta with legacyOffset
+// Caution: the freezer cannot be used anymore, it will sync/close all data files
+func (f *Freezer) resetTailMeta(legacyOffset uint64) error {
+	if f.readonly {
+		return errReadOnly
+	}
+
+	// if the tail is already reset, just skip
+	if f.tail.Load() == legacyOffset {
+		return nil
+	}
+
+	if f.tail.Load() > 0 {
+		return errors.New("the freezer's tail > 0, cannot reset again")
+	}
+	f.writeLock.Lock()
+	defer f.writeLock.Unlock()
+	for _, t := range f.tables {
+		if err := t.resetTailMeta(legacyOffset); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

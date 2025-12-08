@@ -97,6 +97,7 @@ var (
 		utils.LogNoHistoryFlag,
 		utils.LogExportCheckpointsFlag,
 		utils.StateHistoryFlag,
+		utils.BlockHistoryFlag,
 		utils.LightServeFlag,    // deprecated
 		utils.LightIngressFlag,  // deprecated
 		utils.LightEgressFlag,   // deprecated
@@ -234,7 +235,7 @@ func init() {
 		removedbCommand,
 		dumpCommand,
 		dumpGenesisCommand,
-		pruneCommand,
+		// pruneHistoryCommand, // disabled in memecore (PoSA chain has no merge block)
 		// See accountcmd.go:
 		accountCommand,
 		walletCommand,

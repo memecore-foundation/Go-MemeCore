@@ -86,10 +86,6 @@ type KeyValueStore interface {
 
 // AncientReaderOp contains the methods required to read from immutable ancient data.
 type AncientReaderOp interface {
-	// HasAncient returns an indicator whether the specified data exists in the
-	// ancient store.
-	HasAncient(kind string, number uint64) (bool, error)
-
 	// Ancient retrieves an ancient binary blob from the append-only immutable files.
 	Ancient(kind string, number uint64) ([]byte, error)
 
@@ -107,10 +103,6 @@ type AncientReaderOp interface {
 	// Tail returns the number of first stored item in the ancient store.
 	// This number can also be interpreted as the total deleted items.
 	Tail() (uint64, error)
-
-	// BlobTail returns the number of first stored blob item in the ancient store.
-	// This is used to check if a blob has been pruned.
-	BlobTail() (uint64, error)
 
 	// AncientSize returns the ancient size of the specified category.
 	AncientSize(kind string) (uint64, error)
@@ -153,8 +145,8 @@ type AncientWriter interface {
 	// If onlyEmpty is true, the reset only occurs if the table is empty.
 	ResetTable(kind string, startAt uint64, onlyEmpty bool) error
 
-	// Sync flushes all in-memory ancient store data to disk.
-	Sync() error
+	// SyncAncient flushes all in-memory ancient store data to disk.
+	SyncAncient() error
 }
 
 // AncientWriteOp is given to the function argument of ModifyAncients.

@@ -31,6 +31,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/ethdb/pebble"
 	"github.com/ethereum/go-ethereum/params"
 )
@@ -1769,7 +1770,7 @@ func testRepairWithScheme(t *testing.T, tt *rewindTest, snapshots bool, scheme s
 	if err != nil {
 		t.Fatalf("Failed to create persistent key-value database: %v", err)
 	}
-	db, err := rawdb.NewDatabaseWithFreezer(pdb, ancient, "", false)
+	db, err := rawdb.Open(pdb, rawdb.OpenOptions{Ancient: ancient})
 	if err != nil {
 		t.Fatalf("Failed to create persistent freezer database: %v", err)
 	}
@@ -1794,6 +1795,13 @@ func testRepairWithScheme(t *testing.T, tt *rewindTest, snapshots bool, scheme s
 	if snapshots {
 		config.SnapshotLimit = 256
 		config.SnapshotWait = true
+	}
+	// Setup freezer env for freezing to work (required for checkFreezerEnv)
+	if err = db.SetupFreezerEnv(&ethdb.FreezerEnv{
+		ChainCfg:         gspec.Config,
+		BlobExtraReserve: params.DefaultExtraReserveForBlobRequests,
+	}, 0); err != nil {
+		t.Fatalf("Failed to setup freezer env: %v", err)
 	}
 	chain, err := NewBlockChain(db, config, gspec, nil, engine, vm.Config{}, nil, nil)
 	if err != nil {
@@ -1831,14 +1839,14 @@ func testRepairWithScheme(t *testing.T, tt *rewindTest, snapshots bool, scheme s
 	}
 	// Force run a freeze cycle
 	type freezer interface {
-		Freeze() error
+		Freeze(threshold uint64) error
 		Ancients() (uint64, error)
 	}
 	if tt.freezeThreshold < uint64(tt.canonicalBlocks) {
 		final := uint64(tt.canonicalBlocks) - tt.freezeThreshold
 		chain.SetFinalized(canonblocks[int(final)-1].Header())
 	}
-	db.(freezer).Freeze()
+	db.(freezer).Freeze(tt.freezeThreshold)
 
 	// Set the simulated pivot block
 	if tt.pivotBlock != nil {
@@ -1854,7 +1862,7 @@ func testRepairWithScheme(t *testing.T, tt *rewindTest, snapshots bool, scheme s
 	if err != nil {
 		t.Fatalf("Failed to reopen persistent key-value database: %v", err)
 	}
-	db, err = rawdb.NewDatabaseWithFreezer(pdb, ancient, "", false)
+	db, err = rawdb.Open(pdb, rawdb.OpenOptions{Ancient: ancient})
 	if err != nil {
 		t.Fatalf("Failed to reopen persistent freezer database: %v", err)
 	}
@@ -1919,7 +1927,7 @@ func testIssue23496(t *testing.T, scheme string) {
 	if err != nil {
 		t.Fatalf("Failed to create persistent key-value database: %v", err)
 	}
-	db, err := rawdb.NewDatabaseWithFreezer(pdb, ancient, "", false)
+	db, err := rawdb.Open(pdb, rawdb.OpenOptions{Ancient: ancient})
 	if err != nil {
 		t.Fatalf("Failed to create persistent freezer database: %v", err)
 	}
@@ -1977,7 +1985,7 @@ func testIssue23496(t *testing.T, scheme string) {
 	if err != nil {
 		t.Fatalf("Failed to reopen persistent key-value database: %v", err)
 	}
-	db, err = rawdb.NewDatabaseWithFreezer(pdb, ancient, "", false)
+	db, err = rawdb.Open(pdb, rawdb.OpenOptions{Ancient: ancient})
 	if err != nil {
 		t.Fatalf("Failed to reopen persistent freezer database: %v", err)
 	}
