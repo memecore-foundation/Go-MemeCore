@@ -495,6 +495,7 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 		bodies             stat
 		receipts           stat
 		tds                stat
+		blobSidecars       stat
 		numHashPairings    stat
 		hashNumPairings    stat
 		legacyTries        stat
@@ -546,6 +547,8 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 			receipts.Add(size)
 		case bytes.HasPrefix(key, headerPrefix) && bytes.HasSuffix(key, headerTDSuffix):
 			tds.Add(size)
+		case bytes.HasPrefix(key, BlockBlobSidecarsPrefix):
+			blobSidecars.Add(size)
 		case bytes.HasPrefix(key, headerPrefix) && bytes.HasSuffix(key, headerHashSuffix):
 			numHashPairings.Add(size)
 		case bytes.HasPrefix(key, headerNumberPrefix) && len(key) == (len(headerNumberPrefix)+common.HashLength):
@@ -576,7 +579,7 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 			beaconHeaders.Add(size)
 		case bytes.HasPrefix(key, CliqueSnapshotPrefix) && len(key) == 7+common.HashLength:
 			cliqueSnaps.Add(size)
-		case bytes.HasPrefix(key, PoSASnapshotPrefix) && len(key) == 7+common.HashLength:
+		case bytes.HasPrefix(key, PoSASnapshotPrefix) && len(key) == len(PoSASnapshotPrefix)+common.HashLength:
 			posaSnaps.Add(size)
 
 		// new log index
@@ -636,6 +639,7 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 		{"Key-Value store", "Bodies", bodies.Size(), bodies.Count()},
 		{"Key-Value store", "Receipt lists", receipts.Size(), receipts.Count()},
 		{"Key-Value store", "Difficulties", tds.Size(), tds.Count()},
+		{"Key-Value store", "BlobSidecars", blobSidecars.Size(), blobSidecars.Count()},
 		{"Key-Value store", "Block number->hash", numHashPairings.Size(), numHashPairings.Count()},
 		{"Key-Value store", "Block hash->number", hashNumPairings.Size(), hashNumPairings.Count()},
 		{"Key-Value store", "Transaction index", txLookups.Size(), txLookups.Count()},
