@@ -1584,6 +1584,11 @@ func (bc *BlockChain) writeKnownBlock(block *types.Block) error {
 			return err
 		}
 	}
+	// Store blob sidecars for Cancun+ blocks during reorg
+	if bc.chainConfig.IsCancun(block.Number(), block.Time()) {
+		rawdb.WriteBlobSidecars(bc.db, block.Hash(), block.NumberU64(), block.Sidecars())
+	}
+
 	bc.writeHeadBlock(block)
 	return nil
 }
