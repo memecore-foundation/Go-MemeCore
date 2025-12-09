@@ -208,7 +208,7 @@ func (f *chainFreezer) freezeThreshold(db ethdb.KeyValueReader) (uint64, error) 
 //
 // This functionality is deliberately broken off from block importing to avoid
 // incurring additional data shuffling delays on block propagation.
-func (f *chainFreezer) freeze(db ethdb.KeyValueStore, continueFreeze bool) {
+func (f *chainFreezer) freeze(db ethdb.KeyValueStore) {
 	var (
 		backoff   bool
 		triggered chan struct{} // Used in tests

@@ -31,21 +31,23 @@ func TestEraDatabase(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	r, err := db.GetRawBody(175881)
+	// Test with block 2858913 from insectarium testnet era1 file (blocks 2850816-2859007)
+	// This block contains 1 transaction
+	r, err := db.GetRawBody(2858913)
 	require.NoError(t, err)
 	var body *types.Body
 	err = rlp.DecodeBytes(r, &body)
 	require.NoError(t, err)
 	require.NotNil(t, body, "block body not found")
-	assert.Equal(t, 3, len(body.Transactions))
+	assert.Equal(t, 1, len(body.Transactions))
 
-	r, err = db.GetRawReceipts(175881)
+	r, err = db.GetRawReceipts(2858913)
 	require.NoError(t, err)
 	var receipts []*types.ReceiptForStorage
 	err = rlp.DecodeBytes(r, &receipts)
 	require.NoError(t, err)
 	require.NotNil(t, receipts, "receipts not found")
-	assert.Equal(t, 3, len(receipts), "receipts length mismatch")
+	assert.Equal(t, 1, len(receipts), "receipts length mismatch")
 }
 
 func TestEraDatabaseConcurrentOpen(t *testing.T) {
@@ -59,7 +61,7 @@ func TestEraDatabaseConcurrentOpen(t *testing.T) {
 	for range N {
 		go func() {
 			defer wg.Done()
-			r, err := db.GetRawBody(1024)
+			r, err := db.GetRawBody(2858913)
 			if err != nil {
 				t.Error("err:", err)
 			}
@@ -82,7 +84,7 @@ func TestEraDatabaseConcurrentOpenClose(t *testing.T) {
 	for range N {
 		go func() {
 			defer wg.Done()
-			r, err := db.GetRawBody(1024)
+			r, err := db.GetRawBody(2858913)
 			if err == errClosed {
 				return
 			}

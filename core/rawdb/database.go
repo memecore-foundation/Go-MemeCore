@@ -415,7 +415,7 @@ func Open(db ethdb.KeyValueStore, opts OpenOptions) (ethdb.Database, error) {
 	if !opts.ReadOnly {
 		frdb.wg.Add(1)
 		go func() {
-			frdb.freeze(db, false)
+			frdb.freeze(db)
 			frdb.wg.Done()
 		}()
 	}
