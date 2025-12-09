@@ -42,37 +42,24 @@ import (
 //
 // Fix: Added WriteBlobSidecars call in writeKnownBlock() for Cancun+ blocks
 func TestWriteKnownBlockMissingBlobSidecars(t *testing.T) {
-	// Create chain config with Cancun enabled (based on genesis_pectra.json)
+	// Use TestChainConfig with Cancun enabled
 	shanghaiTime := uint64(0)
 	cancunTime := uint64(0)
-	config := &params.ChainConfig{
-		ChainID:             big.NewInt(12345),
-		HomesteadBlock:      big.NewInt(0),
-		EIP150Block:         big.NewInt(0),
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
-		ByzantiumBlock:      big.NewInt(0),
-		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       big.NewInt(0),
-		MuirGlacierBlock:    big.NewInt(0),
-		BerlinBlock:         big.NewInt(0),
-		LondonBlock:         big.NewInt(0),
-		ShanghaiTime:        &shanghaiTime,
-		CancunTime:          &cancunTime,
-		Ethash:              new(params.EthashConfig),
-		BlobScheduleConfig: &params.BlobScheduleConfig{
-			Cancun: &params.BlobConfig{
-				Target:         3,
-				Max:            6,
-				UpdateFraction: 3338477,
-			},
+	config := *params.TestChainConfig
+	config.ShanghaiTime = &shanghaiTime
+	config.CancunTime = &cancunTime
+	config.Ethash = new(params.EthashConfig)
+	config.BlobScheduleConfig = &params.BlobScheduleConfig{
+		Cancun: &params.BlobConfig{
+			Target:         3,
+			Max:            6,
+			UpdateFraction: 3338477,
 		},
 	}
 
 	// Create genesis
 	gspec := &Genesis{
-		Config:  config,
+		Config:  &config,
 		Alloc:   types.GenesisAlloc{},
 		BaseFee: big.NewInt(params.InitialBaseFee),
 	}
@@ -87,29 +74,33 @@ func TestWriteKnownBlockMissingBlobSidecars(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create blockchain: %v", err)
 	}
-	// Note: Skipping chain.Stop() to avoid nil pointer issues in test environment
 
 	// Generate a block with empty sidecars
-	blocks, _ := GenerateChain(config, genesis, ethash.NewFaker(), db, 1, func(i int, gen *BlockGen) {
+	blocks, _ := GenerateChain(&config, genesis, ethash.NewFaker(), db, 1, func(i int, gen *BlockGen) {
 		// Empty block, no transactions
 	})
 
 	block := blocks[0]
 
-	// Attach empty sidecars to the block (simulating a Cancun block)
+	// WriteBlock stores body and header only (not blob sidecars)
+	rawdb.WriteBlock(db, block)
+
+	// Verify blob sidecars are NOT in DB after WriteBlock
+	beforeSidecars := rawdb.ReadBlobSidecarsRLP(db, block.Hash(), block.NumberU64())
+	if len(beforeSidecars) != 0 {
+		t.Fatalf("WriteBlock should not store blob sidecars, got len=%d", len(beforeSidecars))
+	}
+
+	// Attach empty sidecars to the block (simulating a Cancun block received from peer)
 	emptySidecars := make(types.BlobSidecars, 0)
 	blockWithSidecars := block.WithSidecars(emptySidecars)
 
-	// Verify sidecars are attached
+	// Verify sidecars are attached to block object
 	if blockWithSidecars.Sidecars() == nil {
 		t.Fatal("Block should have sidecars attached")
 	}
 
-	// Test: Call writeKnownBlock directly
-	// First, we need to write the block body to DB (simulating it was received from peer)
-	rawdb.WriteBlock(db, blockWithSidecars)
-
-	// Now call writeKnownBlock to verify it stores blob sidecars
+	// writeKnownBlock should store blob sidecars from block.Sidecars()
 	err = chain.writeKnownBlock(blockWithSidecars)
 	if err != nil {
 		t.Fatalf("writeKnownBlock failed: %v", err)
@@ -210,7 +201,7 @@ func TestFreezerBlobSidecarsCheck(t *testing.T) {
 
 			tc.setup(hash, num)
 
-			// This is the exact check from freezeRange() in chain_freezer.go:435
+			// This is the exact check from freezeRange() in chain_freezer.go
 			sidecars := rawdb.ReadBlobSidecarsRLP(db, hash, num)
 			wouldFail := len(sidecars) == 0
 
