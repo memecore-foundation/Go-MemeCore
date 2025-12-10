@@ -827,9 +827,14 @@ func testHighTDStarvationAttack(t *testing.T, protocol uint, mode SyncMode) {
 	tester := newTester(t)
 	defer tester.terminate()
 
-	chain := testChainBase.shorten(1)
-	tester.newPeer("attack", protocol, chain.blocks[1:])
-	if err := tester.sync("attack", big.NewInt(1000000), mode); err != errStallingPeer {
+	chain := testChainBase.shorten(200)
+	if mode == SnapSync {
+		// In snap sync, we need more blocks to avoid early termination due to a nil pivot.
+		tester.newPeer("attack", protocol, chain.blocks[1:])
+	} else {
+		tester.newPeer("attack", protocol, chain.blocks[200:])
+	}
+	if err := tester.sync("attack", big.NewInt(100000000), mode); err != errStallingPeer {
 		t.Fatalf("synchronisation error mismatch: have %v, want %v", err, errStallingPeer)
 	}
 }
