@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"math/big"
 
-	ssz "github.com/bnb-chain/fastssz"
+	ssz "github.com/ferranbt/fastssz"
 
 	"github.com/ethereum/go-ethereum/common"
 )
