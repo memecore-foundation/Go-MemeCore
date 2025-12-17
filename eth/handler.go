@@ -239,7 +239,16 @@ func newHandler(config *handlerConfig) (*handler, error) {
 		}
 		return h.chain.InsertChain(blocks)
 	}
-	h.blockFetcher = fetcher.NewBlockFetcher(h.chain.GetBlockByHash, validator, h.BroadcastBlock, heighter, finalizeHeighter, inserter, h.removePeer)
+	broadcastBlockWithCheck := func(block *types.Block, propagate bool) {
+		if propagate {
+			if err := core.IsDataAvailable(h.chain, block); err != nil {
+				log.Error("Propagating block with invalid sidecars", "number", block.Number(), "hash", block.Hash(), "err", err)
+				return
+			}
+		}
+		h.BroadcastBlock(block, propagate)
+	}
+	h.blockFetcher = fetcher.NewBlockFetcher(h.chain.GetBlockByHash, validator, broadcastBlockWithCheck, heighter, finalizeHeighter, inserter, h.removePeer)
 
 	fetchTx := func(peer string, hashes []common.Hash) error {
 		p := h.peers.peer(peer)
