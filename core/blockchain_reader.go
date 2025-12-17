@@ -162,7 +162,8 @@ func (bc *BlockChain) HasFastBlock(hash common.Hash, number uint64) bool {
 }
 
 // GetBlock retrieves a block from the database by hash and number,
-// caching it if found.
+// caching it if found. For Cancun+ blocks, blob sidecars are also
+// attached to the returned block.
 func (bc *BlockChain) GetBlock(hash common.Hash, number uint64) *types.Block {
 	// Short circuit if the block's already in the cache, retrieve otherwise
 	if block, ok := bc.blockCache.Get(hash); ok {
@@ -172,6 +173,11 @@ func (bc *BlockChain) GetBlock(hash common.Hash, number uint64) *types.Block {
 	if block == nil {
 		return nil
 	}
+	// Attach blob sidecars to the block (required for Cancun+ blocks)
+	// This ensures DA verification works correctly in insertChain/insertSideChain/recoverAncestors
+	sidecars := rawdb.ReadBlobSidecars(bc.db, hash, number)
+	block = block.WithSidecars(sidecars)
+
 	// Cache the found block for next time and return
 	bc.blockCache.Add(block.Hash(), block)
 	return block
