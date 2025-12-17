@@ -191,12 +191,21 @@ func (s *hookedStateDB) SetNonce(address common.Address, nonce uint64, reason tr
 
 func (s *hookedStateDB) SetCode(address common.Address, code []byte) []byte {
 	prev := s.inner.SetCode(address, code)
+
 	if s.hooks.OnCodeChange != nil {
 		prevHash := types.EmptyCodeHash
 		if len(prev) != 0 {
 			prevHash = crypto.Keccak256Hash(prev)
 		}
-		s.hooks.OnCodeChange(address, prevHash, prev, crypto.Keccak256Hash(code), code)
+		codeHash := types.EmptyCodeHash
+		if len(code) != 0 {
+			codeHash = crypto.Keccak256Hash(code)
+		}
+
+		// Invoke the hooks only if the contract code is changed
+		if prevHash != codeHash {
+			s.hooks.OnCodeChange(address, prevHash, prev, codeHash, code)
+		}
 	}
 	return prev
 }
