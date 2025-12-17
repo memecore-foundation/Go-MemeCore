@@ -1083,14 +1083,6 @@ func ReadBlobSidecars(db ethdb.Reader, hash common.Hash, number uint64) types.Bl
 	return ret
 }
 
-// WriteBlobSidecarsRLP stores all the RLP encoded transaction blobs belonging to a block.
-// It could input nil for empty blobs.
-func WriteBlobSidecarsRLP(db ethdb.KeyValueWriter, hash common.Hash, number uint64, blobs rlp.RawValue) {
-	if err := db.Put(blockBlobSidecarsKey(number, hash), blobs); err != nil {
-		log.Crit("Failed to store block blobs", "err", err)
-	}
-}
-
 // WriteBlobSidecars stores all the transaction blobs belonging to a block.
 // It could input nil for empty blobs.
 func WriteBlobSidecars(db ethdb.KeyValueWriter, hash common.Hash, number uint64, blobs types.BlobSidecars) {
