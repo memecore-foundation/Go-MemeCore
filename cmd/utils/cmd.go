@@ -399,6 +399,200 @@ func ExportAppendChain(blockchain *core.BlockChain, fn string, first uint64, las
 	return nil
 }
 
+// SidecarEntry represents a sidecar entry for export/import
+type SidecarEntry struct {
+	BlockNumber uint64
+	BlockHash   common.Hash
+	Sidecars    types.BlobSidecars
+}
+
+// ExportSidecars exports blob sidecars for a range of blocks into the specified file.
+func ExportSidecars(blockchain *core.BlockChain, db ethdb.Database, fn string, first, last uint64) error {
+	log.Info("Exporting sidecars", "file", fn, "first", first, "last", last)
+
+	// Open the file handle and potentially wrap with a gzip stream
+	fh, err := os.OpenFile(fn, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	defer fh.Close()
+
+	var writer io.Writer = fh
+	if strings.HasSuffix(fn, ".gz") {
+		writer = gzip.NewWriter(writer)
+		defer writer.(*gzip.Writer).Close()
+	}
+
+	var exported int
+	for i := first; i <= last; i++ {
+		block := blockchain.GetBlockByNumber(i)
+		if block == nil {
+			continue
+		}
+		sidecars := rawdb.ReadBlobSidecars(db, block.Hash(), i)
+		if len(sidecars) == 0 {
+			continue
+		}
+		entry := SidecarEntry{
+			BlockNumber: i,
+			BlockHash:   block.Hash(),
+			Sidecars:    sidecars,
+		}
+		if err := rlp.Encode(writer, &entry); err != nil {
+			return fmt.Errorf("failed to export sidecar for block %d: %v", i, err)
+		}
+		exported++
+	}
+	log.Info("Exported sidecars", "file", fn, "count", exported)
+	return nil
+}
+
+// loadSidecarsFromFile loads sidecars from a file into a map keyed by block number
+func loadSidecarsFromFile(fn string) (map[uint64]*SidecarEntry, error) {
+	fh, err := os.Open(fn)
+	if err != nil {
+		return nil, err
+	}
+	defer fh.Close()
+
+	var reader io.Reader = fh
+	if strings.HasSuffix(fn, ".gz") {
+		if reader, err = gzip.NewReader(reader); err != nil {
+			return nil, err
+		}
+	}
+
+	sidecarMap := make(map[uint64]*SidecarEntry)
+	stream := rlp.NewStream(reader, 0)
+
+	for {
+		var entry SidecarEntry
+		if err := stream.Decode(&entry); err == io.EOF {
+			break
+		} else if err != nil {
+			return nil, fmt.Errorf("failed to decode sidecar entry: %v", err)
+		}
+		sidecarMap[entry.BlockNumber] = &entry
+	}
+
+	log.Info("Loaded sidecars from file", "file", fn, "count", len(sidecarMap))
+	return sidecarMap, nil
+}
+
+// ImportChainWithSidecars imports a blockchain from a file with optional sidecar file.
+func ImportChainWithSidecars(chain *core.BlockChain, blockFn, sidecarFn string) error {
+	// Watch for Ctrl-C while the import is running.
+	interrupt := make(chan os.Signal, 1)
+	stop := make(chan struct{})
+	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(interrupt)
+	defer close(interrupt)
+	go func() {
+		if _, ok := <-interrupt; ok {
+			log.Info("Interrupted during import, stopping at next batch")
+		}
+		close(stop)
+	}()
+	checkInterrupt := func() bool {
+		select {
+		case <-stop:
+			return true
+		default:
+			return false
+		}
+	}
+
+	log.Info("Importing blockchain with sidecars", "blocks", blockFn, "sidecars", sidecarFn)
+
+	// Load sidecars from file into a map
+	var sidecarMap map[uint64]*SidecarEntry
+	if sidecarFn != "" {
+		var err error
+		sidecarMap, err = loadSidecarsFromFile(sidecarFn)
+		if err != nil {
+			return fmt.Errorf("failed to load sidecars: %v", err)
+		}
+	}
+
+	// Open the block file handle and potentially unwrap the gzip stream
+	fh, err := os.Open(blockFn)
+	if err != nil {
+		return err
+	}
+	defer fh.Close()
+
+	var reader io.Reader = fh
+	if strings.HasSuffix(blockFn, ".gz") {
+		if reader, err = gzip.NewReader(reader); err != nil {
+			return err
+		}
+	}
+	stream := rlp.NewStream(reader, 0)
+
+	// Run actual the import.
+	blocks := make(types.Blocks, importBatchSize)
+	n := 0
+	sidecarsAttached := 0
+	for batch := 0; ; batch++ {
+		// Load a batch of RLP blocks.
+		if checkInterrupt() {
+			return ErrImportInterrupted
+		}
+		i := 0
+		for ; i < importBatchSize; i++ {
+			var b types.Block
+			if err := stream.Decode(&b); err == io.EOF {
+				break
+			} else if err != nil {
+				return fmt.Errorf("at block %d: %v", n, err)
+			}
+			// don't import first block
+			if b.NumberU64() == 0 {
+				i--
+				continue
+			}
+
+			// Attach sidecar if available
+			if sidecarMap != nil {
+				if entry, ok := sidecarMap[b.NumberU64()]; ok {
+					if entry.BlockHash == b.Hash() {
+						b = *b.WithSidecars(entry.Sidecars)
+						sidecarsAttached++
+					} else {
+						log.Warn("Sidecar block hash mismatch", "block", b.NumberU64(), "expected", b.Hash(), "got", entry.BlockHash)
+					}
+				}
+			}
+
+			blocks[i] = &b
+			n++
+		}
+		if i == 0 {
+			break
+		}
+		// Import the batch.
+		if checkInterrupt() {
+			return errors.New("interrupted")
+		}
+		missing := missingBlocks(chain, blocks[:i])
+		if len(missing) == 0 {
+			log.Info("Skipping batch as all blocks present", "batch", batch, "first", blocks[0].Hash(), "last", blocks[i-1].Hash())
+			continue
+		}
+		if failindex, err := chain.InsertChain(missing); err != nil {
+			var failnumber uint64
+			if failindex > 0 && failindex < len(missing) {
+				failnumber = missing[failindex].NumberU64()
+			} else {
+				failnumber = missing[0].NumberU64()
+			}
+			return fmt.Errorf("invalid block %d: %v", failnumber, err)
+		}
+	}
+	log.Info("Import completed", "blocks", n, "sidecars_attached", sidecarsAttached)
+	return nil
+}
+
 // ExportHistory exports blockchain history into the specified directory,
 // following the Era format.
 func ExportHistory(bc *core.BlockChain, dir string, first, last, step uint64) error {

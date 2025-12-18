@@ -90,6 +90,7 @@ if one is set.  Otherwise it prints the genesis from the datadir.`,
 			utils.CacheNoPrefetchFlag,
 			utils.CachePreimagesFlag,
 			utils.NoCompactionFlag,
+			utils.SidecarsFileFlag,
 			utils.MetricsEnabledFlag,
 			utils.MetricsEnabledExpensiveFlag,
 			utils.MetricsHTTPFlag,
@@ -123,7 +124,9 @@ containing multiple RLP-encoded blocks, or multiple files can be given.
 
 If only one file is used, an import error will result in the entire import process failing. If
 multiple files are processed, the import process will continue even if an individual RLP file fails
-to import successfully.`,
+to import successfully.
+
+Use --sidecars flag to specify a sidecar file for EIP-4844 blob data.`,
 	}
 	exportCommand = &cli.Command{
 		Action:    exportChain,
@@ -137,6 +140,18 @@ Optional second and third arguments control the first and
 last block to write. In this mode, the file will be appended
 if already existing. If the file ends with .gz, the output will
 be gzipped.`,
+	}
+	exportSidecarsCommand = &cli.Command{
+		Action:    exportSidecars,
+		Name:      "export-sidecars",
+		Usage:     "Export blob sidecars into file",
+		ArgsUsage: "<filename> <blockNumFirst> <blockNumLast>",
+		Flags:     slices.Concat([]cli.Flag{utils.CacheFlag}, utils.DatabaseFlags),
+		Description: `
+Exports EIP-4844 blob sidecars for the specified block range.
+Requires first, second and third arguments: filename, first block, last block.
+If the file ends with .gz, the output will be gzipped.
+Use this with 'import --sidecars' to import blocks with blob data.`,
 	}
 	importHistoryCommand = &cli.Command{
 		Action:    importHistory,
@@ -335,8 +350,18 @@ func importChain(ctx *cli.Context) error {
 	start := time.Now()
 
 	var importErr error
+	sidecarFile := ctx.String(utils.SidecarsFileFlag.Name)
 
-	if ctx.Args().Len() == 1 {
+	if sidecarFile != "" {
+		// Import with sidecars
+		if ctx.Args().Len() != 1 {
+			utils.Fatalf("When using --sidecars, only one block file is allowed.")
+		}
+		if err := utils.ImportChainWithSidecars(chain, ctx.Args().First(), sidecarFile); err != nil {
+			importErr = err
+			log.Error("Import error", "err", err)
+		}
+	} else if ctx.Args().Len() == 1 {
 		if err := utils.ImportChain(chain, ctx.Args().First()); err != nil {
 			importErr = err
 			log.Error("Import error", "err", err)
@@ -418,6 +443,38 @@ func exportChain(ctx *cli.Context) error {
 		utils.Fatalf("Export error: %v\n", err)
 	}
 	fmt.Printf("Export done in %v\n", time.Since(start))
+	return nil
+}
+
+func exportSidecars(ctx *cli.Context) error {
+	if ctx.Args().Len() < 3 {
+		utils.Fatalf("This command requires three arguments: <filename> <first> <last>")
+	}
+
+	stack, _ := makeConfigNode(ctx)
+	defer stack.Close()
+
+	chain, db := utils.MakeChain(ctx, stack, true)
+	defer db.Close()
+	start := time.Now()
+
+	fp := ctx.Args().First()
+	first, ferr := strconv.ParseInt(ctx.Args().Get(1), 10, 64)
+	last, lerr := strconv.ParseInt(ctx.Args().Get(2), 10, 64)
+	if ferr != nil || lerr != nil {
+		utils.Fatalf("Export error in parsing parameters: block number not an integer\n")
+	}
+	if first < 0 || last < 0 {
+		utils.Fatalf("Export error: block number must be greater than 0\n")
+	}
+	if head := chain.CurrentSnapBlock(); uint64(last) > head.Number.Uint64() {
+		utils.Fatalf("Export error: block number %d larger than head block %d\n", uint64(last), head.Number.Uint64())
+	}
+
+	if err := utils.ExportSidecars(chain, db, fp, uint64(first), uint64(last)); err != nil {
+		utils.Fatalf("Export sidecars error: %v\n", err)
+	}
+	fmt.Printf("Export sidecars done in %v\n", time.Since(start))
 	return nil
 }
 

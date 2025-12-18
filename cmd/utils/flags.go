@@ -648,6 +648,11 @@ var (
 		Usage:    "Disables db compaction after import",
 		Category: flags.LoggingCategory,
 	}
+	SidecarsFileFlag = &cli.StringFlag{
+		Name:     "sidecars",
+		Usage:    "Path to sidecars file for import (use with import command)",
+		Category: flags.MiscCategory,
+	}
 
 	// MISC settings
 	SyncTargetFlag = &cli.StringFlag{

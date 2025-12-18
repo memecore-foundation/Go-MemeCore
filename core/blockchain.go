@@ -1364,6 +1364,14 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 	if n, err := bc.hc.ValidateHeaderChain(headers); err != nil {
 		return n, err
 	}
+	// check DA after cancun
+	lastBlk := blockChain[len(blockChain)-1]
+	if bc.chainConfig.PoSA != nil && bc.chainConfig.IsCancun(lastBlk.Number(), lastBlk.Time()) {
+		if _, err := CheckDataAvailableInBatch(bc, blockChain); err != nil {
+			log.Debug("CheckDataAvailableInBatch", "err", err)
+			return 0, err
+		}
+	}
 	// Hold the mutation lock
 	if !bc.chainmu.TryLock() {
 		return 0, errChainStopped
