@@ -1347,54 +1347,6 @@ func (p *BlobPool) GetBlobs(vhashes []common.Hash) ([]*kzg4844.Blob, []*kzg4844.
 	return blobs, proofs
 }
 
-// GetMinedBlobSidecarByTxHash returns a number of blobs for the given transaction hash.
-// This is a utility method for the beacon API, enabling EL clients to provide a
-// CL API.
-func (p *BlobPool) GetMinedBlobSidecarByTxHash(tx common.Hash) (*types.BlobTxSidecar, error) {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
-
-	// If the blobs are not tracked by the limbo, there's not much to do. This
-	// can happen for example if a blob transaction is mined without pushing it
-	// into the network first.
-	id, ok := p.limbo.index[tx]
-	if !ok {
-		log.Trace("Limbo cannot get non-tracked blobs", "tx", tx)
-		return nil, errors.New("unseen blob transaction")
-	}
-	data, err := p.limbo.store.Get(id)
-	if err != nil {
-		return nil, err
-	}
-	item := new(limboBlob)
-	if err = rlp.DecodeBytes(data, item); err != nil {
-		return nil, err
-	}
-	return item.Tx.BlobTxSidecar(), nil
-}
-
-// GetMinedBlobSidecars returns a number of blobs for the given block id.
-// This is a utility method for the beacon API, enabling EL clients to provide a
-// CL API.
-func (p *BlobPool) GetMinedBlobSidecars(blockId uint64) ([]*types.BlobTxSidecar, error) {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
-
-	sidecars := make([]*types.BlobTxSidecar, 0)
-	for id := range p.limbo.groups[blockId] {
-		data, err := p.limbo.store.Get(id)
-		if err != nil {
-			return nil, err
-		}
-		item := new(limboBlob)
-		if err = rlp.DecodeBytes(data, item); err != nil {
-			return nil, err
-		}
-		sidecars = append(sidecars, item.Tx.BlobTxSidecar())
-	}
-	return sidecars, nil
-}
-
 // Add inserts a set of blob transactions into the pool if they pass validation (both
 // consensus validity and pool restrictions).
 //

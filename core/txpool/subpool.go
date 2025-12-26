@@ -138,16 +138,6 @@ type SubPool interface {
 	// retrieve blobs from the pools directly instead of the network.
 	GetBlobs(vhashes []common.Hash) ([]*kzg4844.Blob, []*kzg4844.Proof)
 
-	// GetMinedBlobSidecarByTxHash returns a number of blobs for the given transaction hash.
-	// This is a utility method for the beacon API, enabling EL clients to provide a
-	// CL API.
-	GetMinedBlobSidecarByTxHash(tx common.Hash) (*types.BlobTxSidecar, error)
-
-	// GetMinedBlobSidecars returns a number of blobs for the given block id.
-	// This is a utility method for the beacon API, enabling EL clients to provide a
-	// CL API.
-	GetMinedBlobSidecars(blockId uint64) ([]*types.BlobTxSidecar, error)
-
 	// ValidateTxBasics checks whether a transaction is valid according to the consensus
 	// rules, but does not check state-dependent validation such as sufficient balance.
 	// This check is meant as a static check which can be performed without holding the
