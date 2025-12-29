@@ -51,7 +51,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/kzg4844"
 	"github.com/ethereum/go-ethereum/eth"
-	"github.com/ethereum/go-ethereum/eth/catalyst"
+	// "github.com/ethereum/go-ethereum/eth/catalyst" // PoSA does not require catalyst
 	"github.com/ethereum/go-ethereum/eth/downloader"
 	"github.com/ethereum/go-ethereum/eth/ethconfig"
 	"github.com/ethereum/go-ethereum/eth/filters"
@@ -2145,11 +2145,11 @@ func RegisterFilterAPI(stack *node.Node, backend ethapi.Backend, ethcfg *ethconf
 	return filterSystem
 }
 
-// RegisterFullSyncTester adds the full-sync tester service into node.
-func RegisterFullSyncTester(stack *node.Node, eth *eth.Ethereum, target common.Hash) {
-	catalyst.RegisterFullSyncTester(stack, eth, target)
-	log.Info("Registered full-sync tester", "hash", target)
-}
+// PoSA does not require full-sync tester service - disabled like BSC
+// func RegisterFullSyncTester(stack *node.Node, eth *eth.Ethereum, target common.Hash) {
+// 	catalyst.RegisterFullSyncTester(stack, eth, target)
+// 	log.Info("Registered full-sync tester", "hash", target)
+// }
 
 // SetupMetrics configures the metrics system.
 func SetupMetrics(cfg *metrics.Config) {
