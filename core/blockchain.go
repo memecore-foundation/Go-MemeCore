@@ -2627,11 +2627,11 @@ func (bc *BlockChain) reorg(oldHead *types.Header, newHead *types.Header) error 
 	for _, tx := range types.HashDifference(deletedTxs, rebirthTxs) {
 		rawdb.DeleteTxLookupEntry(batch, tx)
 	}
-	// Delete blob sidecars from the old (reverted) chain blocks
-	for i := 0; i < len(oldChain); i++ {
-		hash, num := oldChain[i].Hash(), oldChain[i].Number.Uint64()
-		rawdb.DeleteBlobSidecars(batch, hash, num)
-	}
+	// Note: Blob sidecars are intentionally NOT deleted during reorg.
+	// Blocks reorganized out of the canonical chain may become canonical again
+	// in a subsequent reorg, and their blob sidecars are required for DA validation.
+	// Blob sidecar cleanup is handled by the retention policy-based pruning mechanism.
+
 	// Delete all hash markers that are not part of the new canonical chain.
 	// Because the reorg function does not handle new chain head, all hash
 	// markers greater than or equal to new chain head should be deleted.
