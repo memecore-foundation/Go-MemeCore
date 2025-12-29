@@ -216,7 +216,6 @@ func init() {
 		initCommand,
 		importCommand,
 		exportCommand,
-		exportSidecarsCommand,
 		importHistoryCommand,
 		exportHistoryCommand,
 		importPreimagesCommand,

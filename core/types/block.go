@@ -233,11 +233,12 @@ type Block struct {
 }
 
 // "external" block encoding. used for eth protocol, etc.
-type extblock struct {
+type ExtBlock struct {
 	Header      *Header
 	Txs         []*Transaction
 	Uncles      []*Header
 	Withdrawals []*Withdrawal `rlp:"optional"`
+	Sidecars    BlobSidecars  `rlp:"optional"`
 }
 
 // NewBlock creates a new block. The input data is copied, changes to header and to the
@@ -342,7 +343,7 @@ func CopyHeader(h *Header) *Header {
 
 // DecodeRLP decodes a block from RLP.
 func (b *Block) DecodeRLP(s *rlp.Stream) error {
-	var eb extblock
+	var eb ExtBlock
 	_, size, _ := s.Kind()
 	if err := s.Decode(&eb); err != nil {
 		return err
@@ -354,11 +355,12 @@ func (b *Block) DecodeRLP(s *rlp.Stream) error {
 
 // EncodeRLP serializes a block as RLP.
 func (b *Block) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, &extblock{
+	return rlp.Encode(w, &ExtBlock{
 		Header:      b.header,
 		Txs:         b.transactions,
 		Uncles:      b.uncles,
 		Withdrawals: b.withdrawals,
+		Sidecars:    b.sidecars,
 	})
 }
 
