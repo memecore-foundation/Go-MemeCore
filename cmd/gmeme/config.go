@@ -32,10 +32,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/accounts/scwallet"
 	"github.com/ethereum/go-ethereum/accounts/usbwallet"
-	// "github.com/ethereum/go-ethereum/beacon/blsync" // PoSA does not require blsync
 	"github.com/ethereum/go-ethereum/cmd/utils"
-	// "github.com/ethereum/go-ethereum/common" // PoSA does not require SyncTargetFlag
-	// "github.com/ethereum/go-ethereum/common/hexutil" // PoSA does not require SyncTargetFlag
 	"github.com/ethereum/go-ethereum/eth/catalyst"
 	"github.com/ethereum/go-ethereum/eth/ethconfig"
 	"github.com/ethereum/go-ethereum/health"
@@ -45,7 +42,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/node"
-	// "github.com/ethereum/go-ethereum/rpc" // PoSA does not require blsync
 	"github.com/naoina/toml"
 	"github.com/urfave/cli/v2"
 )
@@ -224,14 +220,6 @@ func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 	if cfg.Ethstats.URL != "" {
 		utils.RegisterEthStatsService(stack, backend, cfg.Ethstats.URL)
 	}
-	// PoSA does not require full-sync tester service - disabled like BSC
-	// if ctx.IsSet(utils.SyncTargetFlag.Name) {
-	// 	hex := hexutil.MustDecode(ctx.String(utils.SyncTargetFlag.Name))
-	// 	if len(hex) != common.HashLength {
-	// 		utils.Fatalf("invalid sync target length: have %d, want %d", len(hex), common.HashLength)
-	// 	}
-	// 	utils.RegisterFullSyncTester(stack, eth, common.BytesToHash(hex))
-	// }
 
 	if ctx.IsSet(utils.DeveloperFlag.Name) {
 		// Start dev mode.
@@ -241,24 +229,11 @@ func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 		}
 		catalyst.RegisterSimulatedBeaconAPIs(stack, simBeacon)
 		stack.RegisterLifecycle(simBeacon)
+	} else {
+		// Engine API not registered for MemeCore
+		// MemeCore handles consensus internally and does not require external Beacon Clients
+		log.Info("Engine API disabled - PoSA consensus does not require external Beacon Clients")
 	}
-	// PoSA does not require blsync mode - disabled like BSC
-	// } else if ctx.IsSet(utils.BeaconApiFlag.Name) {
-	// 	// Start blsync mode.
-	// 	srv := rpc.NewServer()
-	// 	srv.RegisterNameWithFilter("engine", catalyst.NewConsensusAPI(eth), nil)
-	// 	blsyncer := blsync.NewClient(utils.MakeBeaconLightConfig(ctx))
-	// 	blsyncer.SetEngineRPC(rpc.DialInProc(srv))
-	// 	stack.RegisterLifecycle(blsyncer)
-	// }
-	// PoSA does not require Engine API (Catalyst) - disabled like BSC
-	// } else {
-	// 	// Launch the engine API for interacting with external consensus client.
-	// 	err := catalyst.Register(stack, eth)
-	// 	if err != nil {
-	// 		utils.Fatalf("failed to register catalyst service: %v", err)
-	// 	}
-	// }
 
 	if ctx.IsSet(utils.HTTPHealthEnabledFlag.Name) {
 		stack.RegisterHandler("health_sync", cfg.Node.HTTPHealthCheckPath+"/sync", health.NewHandler(eth, cfg.Node.HTTPCors, cfg.Node.HTTPVirtualHosts))

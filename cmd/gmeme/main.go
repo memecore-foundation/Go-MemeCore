@@ -154,15 +154,6 @@ var (
 		configFileFlag,
 		utils.LogDebugFlag,
 		utils.LogBacktraceAtFlag,
-		// utils.BeaconApiFlag,
-		// utils.BeaconApiHeaderFlag,
-		// utils.BeaconThresholdFlag,
-		// utils.BeaconNoFilterFlag,
-		// utils.BeaconConfigFlag,
-		// utils.BeaconGenesisRootFlag,
-		// utils.BeaconGenesisTimeFlag,
-		// utils.BeaconCheckpointFlag,
-		// utils.BeaconCheckpointFileFlag,
 	}, utils.NetworkFlags, utils.DatabaseFlags)
 
 	rpcFlags = []cli.Flag{
@@ -170,10 +161,6 @@ var (
 		utils.HTTPListenAddrFlag,
 		utils.HTTPPortFlag,
 		utils.HTTPCORSDomainFlag,
-		// utils.AuthListenFlag,
-		// utils.AuthPortFlag,
-		// utils.AuthVirtualHostsFlag,
-		// utils.JWTSecretFlag,
 		utils.HTTPVirtualHostsFlag,
 		utils.GraphQLEnabledFlag,
 		utils.GraphQLCORSDomainFlag,
