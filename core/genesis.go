@@ -514,6 +514,11 @@ func (g *Genesis) toBlockWithRoot(root common.Hash) *types.Block {
 		if conf.IsPrague(num, g.Timestamp) {
 			head.RequestsHash = &types.EmptyRequestsHash
 		}
+
+		if conf.IsCancun(num, g.Timestamp) {
+			// EIP-4844 block
+			return types.NewBlock(head, &types.Body{Withdrawals: withdrawals}, nil, trie.NewStackTrie(nil)).WithSidecars(types.BlobSidecars{})
+		}
 	}
 	return types.NewBlock(head, &types.Body{Withdrawals: withdrawals}, nil, trie.NewStackTrie(nil))
 }
@@ -559,6 +564,9 @@ func (g *Genesis) Commit(db ethdb.Database, triedb *triedb.Database) (*types.Blo
 	rawdb.WriteHeadFastBlockHash(batch, block.Hash())
 	rawdb.WriteHeadHeaderHash(batch, block.Hash())
 	rawdb.WriteChainConfig(batch, block.Hash(), config)
+	if block.Sidecars() != nil {
+		rawdb.WriteBlobSidecars(batch, block.Hash(), block.NumberU64(), block.Sidecars())
+	}
 	return block, batch.Write()
 }
 
