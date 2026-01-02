@@ -69,6 +69,17 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	if p.config.DAOForkSupport && p.config.DAOForkBlock != nil && p.config.DAOForkBlock.Cmp(block.Number()) == 0 {
 		misc.ApplyDAOHardFork(statedb)
 	}
+
+	// EIP-2935: deploy HistoryStorageAddress at Prague activation (first Prague block only)
+	// Must be done before EVM creation
+	if p.config.IsPrague(block.Number(), block.Time()) {
+		parent := p.chain.GetHeader(block.ParentHash(), block.NumberU64()-1)
+		if parent != nil && !p.config.IsPrague(parent.Number, parent.Time) {
+			statedb.SetCode(params.HistoryStorageAddress, params.HistoryStorageCode)
+			statedb.SetNonce(params.HistoryStorageAddress, 1, tracing.NonceChangeNewContract)
+		}
+	}
+
 	var (
 		context vm.BlockContext
 		signer  = types.MakeSigner(p.config, header.Number, header.Time)

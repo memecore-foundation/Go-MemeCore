@@ -31,6 +31,7 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/stateless"
+	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/core/txpool"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
@@ -854,6 +855,16 @@ func (w *worker) prepareWork(genParams *generateParams, witness bool) (*environm
 		log.Error("Failed to create sealing context", "err", err)
 		return nil, err
 	}
+
+	// EIP-2935: deploy HistoryStorageAddress at Prague activation (first Prague block only)
+	// Must be done before system calls
+	if w.chainConfig.IsPrague(header.Number, header.Time) {
+		if !w.chainConfig.IsPrague(parent.Number, parent.Time) {
+			env.state.SetCode(params.HistoryStorageAddress, params.HistoryStorageCode)
+			env.state.SetNonce(params.HistoryStorageAddress, 1, tracing.NonceChangeNewContract)
+		}
+	}
+
 	if header.ParentBeaconRoot != nil {
 		core.ProcessBeaconBlockRoot(*header.ParentBeaconRoot, env.evm)
 	}
