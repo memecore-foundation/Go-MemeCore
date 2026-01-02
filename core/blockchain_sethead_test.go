@@ -1982,9 +1982,11 @@ func testSetHeadWithScheme(t *testing.T, tt *rewindTest, snapshots bool, scheme 
 
 	// Initialize a fresh chain
 	var (
-		gspec = &Genesis{
-			BaseFee: big.NewInt(params.InitialBaseFee),
-			Config:  params.AllEthashProtocolChanges,
+		totalBlocks = max(tt.canonicalBlocks, tt.sidechainBlocks)
+		gspec       = &Genesis{
+			Timestamp: uint64(time.Now().Unix()) - uint64(totalBlocks*10),
+			BaseFee:   big.NewInt(params.InitialBaseFee),
+			Config:    params.AllEthashProtocolChanges,
 		}
 		engine = ethash.NewFullFaker()
 		config = &CacheConfig{
