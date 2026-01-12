@@ -391,7 +391,8 @@ func (p *BlobPool) Init(gasTip uint64, head *types.Header, reserver txpool.Reser
 			fails = append(fails, id)
 		}
 	}
-	slotter := newSlotter(eip4844.LatestMaxBlobsPerBlock(p.chain.Config()))
+	// Use per-transaction blob limit for billy handler since blobs are stored per tx
+	slotter := newSlotter(params.BlobTxMaxBlobs)
 	store, err := billy.Open(billy.Options{Path: queuedir, Repair: true}, slotter, index)
 	if err != nil {
 		return err
@@ -424,8 +425,8 @@ func (p *BlobPool) Init(gasTip uint64, head *types.Header, reserver txpool.Reser
 	p.evict = newPriceHeap(basefee, blobfee, p.index)
 
 	// Pool initialized, attach the blob limbo to it to track blobs included
-	// recently but not yet finalized
-	p.limbo, err = newLimbo(limbodir, eip4844.LatestMaxBlobsPerBlock(p.chain.Config()))
+	// recently but not yet finalized (use per-tx limit since blobs are stored per tx)
+	p.limbo, err = newLimbo(limbodir, params.BlobTxMaxBlobs)
 	if err != nil {
 		p.Close()
 		return err
@@ -1095,10 +1096,11 @@ func (p *BlobPool) SetGasTip(tip *big.Int) {
 // and does not require the pool mutex to be held.
 func (p *BlobPool) ValidateTxBasics(tx *types.Transaction) error {
 	opts := &txpool.ValidationOptions{
-		Config:  p.chain.Config(),
-		Accept:  1 << types.BlobTxType,
-		MaxSize: txMaxSize,
-		MinTip:  p.gasTip.ToBig(),
+		Config:       p.chain.Config(),
+		Accept:       1 << types.BlobTxType,
+		MaxSize:      txMaxSize,
+		MaxBlobCount: params.BlobTxMaxBlobs,
+		MinTip:       p.gasTip.ToBig(),
 	}
 	return txpool.ValidateTransaction(tx, p.head, p.signer, opts)
 }
@@ -1684,8 +1686,8 @@ func (p *BlobPool) updateStorageMetrics() {
 		metrics.GetOrRegisterGauge(fmt.Sprintf(shelfSlotusedGaugeName, shelf.SlotSize/blobSize), nil).Update(int64(shelf.FilledSlots))
 		metrics.GetOrRegisterGauge(fmt.Sprintf(shelfSlotgapsGaugeName, shelf.SlotSize/blobSize), nil).Update(int64(shelf.GappedSlots))
 
-		maxBlobs := eip4844.LatestMaxBlobsPerBlock(p.chain.Config())
-		if shelf.SlotSize/blobSize > uint32(maxBlobs) {
+		// Use per-transaction blob limit for oversized metrics
+		if shelf.SlotSize/blobSize > uint32(params.BlobTxMaxBlobs) {
 			oversizedDataused += slotDataused
 			oversizedDatagaps += slotDatagaps
 			oversizedSlotused += shelf.FilledSlots

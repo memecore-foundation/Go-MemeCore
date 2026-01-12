@@ -67,4 +67,8 @@ var (
 	// ErrInflightTxLimitReached is returned when the maximum number of in-flight
 	// transactions is reached for specific accounts.
 	ErrInflightTxLimitReached = errors.New("in-flight transaction limit reached for delegated accounts")
+
+	// ErrTxBlobLimitExceeded is returned if a transaction would exceed the number
+	// of blobs allowed per transaction.
+	ErrTxBlobLimitExceeded = errors.New("transaction blob limit exceeded")
 )
