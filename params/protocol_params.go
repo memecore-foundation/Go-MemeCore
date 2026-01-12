@@ -175,7 +175,7 @@ const (
 	BlobTxPointEvaluationPrecompileGas = 50000   // Gas price for the point evaluation precompile.
 	BlobTxMaxBlobs                     = 6       // Maximum number of blobs per transaction (EIP-4844)
 
-	HistoryServeWindow = 8192 // Number of blocks to serve historical block hashes for, EIP-2935.
+	HistoryServeWindow = 8191 // Number of blocks to serve historical block hashes for, EIP-2935.
 )
 
 // Bls12381G1MultiExpDiscountTable is the gas discount table for BLS12-381 G1 multi exponentiation operation
