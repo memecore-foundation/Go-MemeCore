@@ -18,6 +18,7 @@ package fetcher
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"math/rand"
 	"slices"
@@ -2257,4 +2258,211 @@ func TestTransactionForgotten(t *testing.T) {
 	if size := fetcher.underpriced.Len(); size != 1 {
 		t.Errorf("wrong final underpriced cache size: got %d, want 1", size)
 	}
+}
+
+// TestKZGProtocolViolation verifies that peers sending transactions with invalid
+// KZG proofs are properly disconnected.
+//
+// Security fix: go-ethereum commit 5b99d2bba47702f7435b07561926c71a5f29a117
+//
+// Vulnerability details:
+//   - KZG proof verification is computationally expensive (elliptic curve pairing)
+//   - Before the fix, invalid KZG proofs only caused transaction rejection
+//   - Malicious peers could repeatedly send invalid proofs to cause DoS
+//   - After the fix, peers sending invalid KZG proofs are immediately disconnected
+//
+// The fix adds:
+//   1. ErrKZGVerificationError sentinel error in txpool/errors.go
+//   2. Error wrapping in validation.go for KZG verification failures
+//   3. violation field in txDelivery struct to track protocol violations
+//   4. Peer disconnection in tx_fetcher.go when violation is detected
+func TestKZGProtocolViolation(t *testing.T) {
+	dropped := make(chan string, 1)
+
+	testTransactionFetcherParallel(t, txFetcherTest{
+		init: func() *TxFetcher {
+			return NewTxFetcher(
+				func(common.Hash) bool { return false },
+				func(txs []*types.Transaction) []error {
+					// Simulate KZG verification failure for all transactions
+					errs := make([]error, len(txs))
+					for i := range errs {
+						errs[i] = txpool.ErrKZGVerificationError
+					}
+					return errs
+				},
+				func(string, []common.Hash) error { return nil },
+				func(peer string) {
+					dropped <- peer
+				},
+			)
+		},
+		steps: []interface{}{
+			// Announce a transaction from malicious peer
+			doTxNotify{peer: "A", hashes: []common.Hash{testTxsHashes[0]}, types: []byte{testTxs[0].Type()}, sizes: []uint32{uint32(testTxs[0].Size())}},
+			doWait{time: txArriveTimeout, step: true},
+
+			// The transaction should be scheduled for fetching
+			isScheduled{
+				tracking: map[string][]announce{
+					"A": {{testTxsHashes[0], testTxs[0].Type(), uint32(testTxs[0].Size())}},
+				},
+				fetching: map[string][]common.Hash{
+					"A": {testTxsHashes[0]},
+				},
+			},
+
+			// Deliver the transaction - this should trigger KZG error and peer drop
+			doTxEnqueue{peer: "A", txs: []*types.Transaction{testTxs[0]}, direct: true},
+
+			// Verify peer was dropped via callback
+			doFunc(func() {
+				select {
+				case peer := <-dropped:
+					if peer != "A" {
+						panic("wrong peer dropped")
+					}
+				case <-time.After(time.Second):
+					panic("peer was not dropped after KZG verification failure")
+				}
+			}),
+		},
+	})
+}
+
+// TestKZGProtocolViolationMultipleTxs verifies that when a KZG error occurs
+// in a batch of transactions, the peer is disconnected even if some transactions
+// in the batch are valid.
+//
+// This tests that:
+//   1. KZG error in any transaction triggers peer drop
+//   2. The position of the failing transaction doesn't matter (2nd tx fails here)
+func TestKZGProtocolViolationMultipleTxs(t *testing.T) {
+	dropped := make(chan string, 1)
+
+	testTransactionFetcherParallel(t, txFetcherTest{
+		init: func() *TxFetcher {
+			return NewTxFetcher(
+				func(common.Hash) bool { return false },
+				func(txs []*types.Transaction) []error {
+					// First transaction succeeds, second fails with KZG error
+					errs := make([]error, len(txs))
+					if len(txs) > 1 {
+						errs[1] = txpool.ErrKZGVerificationError
+					}
+					return errs
+				},
+				func(string, []common.Hash) error { return nil },
+				func(peer string) {
+					dropped <- peer
+				},
+			)
+		},
+		steps: []interface{}{
+			// Announce multiple transactions from peer
+			doTxNotify{peer: "A", hashes: testTxsHashes[:3], types: []byte{testTxs[0].Type(), testTxs[1].Type(), testTxs[2].Type()}, sizes: []uint32{uint32(testTxs[0].Size()), uint32(testTxs[1].Size()), uint32(testTxs[2].Size())}},
+			doWait{time: txArriveTimeout, step: true},
+
+			// Deliver multiple transactions - second one triggers KZG error
+			doTxEnqueue{peer: "A", txs: testTxs[:3], direct: true},
+
+			// Verify peer was dropped
+			doFunc(func() {
+				select {
+				case peer := <-dropped:
+					if peer != "A" {
+						panic("wrong peer dropped")
+					}
+				case <-time.After(time.Second):
+					panic("peer was not dropped after KZG verification failure")
+				}
+			}),
+		},
+	})
+}
+
+// TestKZGProtocolViolationWrappedError verifies that wrapped KZG errors
+// (using fmt.Errorf with %w) are correctly detected by errors.Is().
+//
+// This is important because validation.go wraps the KZG error:
+//
+//	return fmt.Errorf("%w: invalid blob %d: %v", ErrKZGVerificationError, i, err)
+func TestKZGProtocolViolationWrappedError(t *testing.T) {
+	dropped := make(chan string, 1)
+
+	testTransactionFetcherParallel(t, txFetcherTest{
+		init: func() *TxFetcher {
+			return NewTxFetcher(
+				func(common.Hash) bool { return false },
+				func(txs []*types.Transaction) []error {
+					errs := make([]error, len(txs))
+					// Return a wrapped error (simulating validation.go behavior)
+					errs[0] = fmt.Errorf("%w: invalid blob 0: proof verification failed", txpool.ErrKZGVerificationError)
+					return errs
+				},
+				func(string, []common.Hash) error { return nil },
+				func(peer string) {
+					dropped <- peer
+				},
+			)
+		},
+		steps: []interface{}{
+			doTxNotify{peer: "A", hashes: []common.Hash{testTxsHashes[0]}, types: []byte{testTxs[0].Type()}, sizes: []uint32{uint32(testTxs[0].Size())}},
+			doWait{time: txArriveTimeout, step: true},
+			doTxEnqueue{peer: "A", txs: []*types.Transaction{testTxs[0]}, direct: true},
+
+			// Verify peer was dropped even with wrapped error
+			doFunc(func() {
+				select {
+				case peer := <-dropped:
+					if peer != "A" {
+						panic("wrong peer dropped")
+					}
+				case <-time.After(time.Second):
+					panic("peer was not dropped for wrapped KZG error")
+				}
+			}),
+		},
+	})
+}
+
+// TestNonKZGErrorNoPeerDrop verifies that non-KZG errors (like ErrUnderpriced)
+// do NOT trigger peer disconnection.
+//
+// This is a negative test to ensure only KZG errors cause peer drops.
+func TestNonKZGErrorNoPeerDrop(t *testing.T) {
+	dropped := make(chan string, 1)
+
+	testTransactionFetcherParallel(t, txFetcherTest{
+		init: func() *TxFetcher {
+			return NewTxFetcher(
+				func(common.Hash) bool { return false },
+				func(txs []*types.Transaction) []error {
+					errs := make([]error, len(txs))
+					// Return underpriced error - should NOT trigger peer drop
+					errs[0] = txpool.ErrUnderpriced
+					return errs
+				},
+				func(string, []common.Hash) error { return nil },
+				func(peer string) {
+					dropped <- peer
+				},
+			)
+		},
+		steps: []interface{}{
+			doTxNotify{peer: "A", hashes: []common.Hash{testTxsHashes[0]}, types: []byte{testTxs[0].Type()}, sizes: []uint32{uint32(testTxs[0].Size())}},
+			doWait{time: txArriveTimeout, step: true},
+			doTxEnqueue{peer: "A", txs: []*types.Transaction{testTxs[0]}, direct: true},
+
+			// Verify peer was NOT dropped for non-KZG error
+			doFunc(func() {
+				select {
+				case peer := <-dropped:
+					panic(fmt.Sprintf("peer %s was incorrectly dropped for non-KZG error", peer))
+				case <-time.After(100 * time.Millisecond):
+					// Expected: no peer drop for underpriced error
+				}
+			}),
+		},
+	})
 }

@@ -71,4 +71,7 @@ var (
 	// ErrTxBlobLimitExceeded is returned if a transaction would exceed the number
 	// of blobs allowed per transaction.
 	ErrTxBlobLimitExceeded = errors.New("transaction blob limit exceeded")
+
+	// ErrKZGVerificationError is returned when a KZG proof was not verified correctly.
+	ErrKZGVerificationError = errors.New("KZG verification error")
 )

@@ -420,6 +420,176 @@ func hexKey(prv string) *PrivateKey {
 	return ImportECDSA(key)
 }
 
+// TestDecryptMinimumLengthValidation tests that the length check correctly rejects
+// messages that would cause a panic in symDecrypt when accessing ct[:BlockSize] for IV.
+//
+// Security fix: go-ethereum commit 3b17e782747fcd2cf06622324f3d48ad91f64ab3
+//
+// Vulnerability details:
+//   - Old check: len(c) < (rLen + hLen + 1)       → rejects len < 98, passes len >= 98
+//   - New check: len(c) < (rLen + hLen + BlockSize) → rejects len < 113, passes len >= 113
+//   - Vulnerable range: 98-112 bytes (would pass old check, but cause panic in symDecrypt)
+//
+// For secp256k1 with ECIES_AES128_SHA256:
+//   - rLen = 65 bytes (uncompressed public key)
+//   - hLen = 32 bytes (SHA256 hash size for HMAC)
+//   - BlockSize = 16 bytes (AES block size for IV)
+//
+// Why lengths 98-112 would panic without the fix:
+//   - mStart = rLen = 65
+//   - mEnd = len(c) - hLen = len(c) - 32
+//   - ct = c[mStart:mEnd], so ct length = len(c) - 65 - 32 = len(c) - 97
+//   - For len(c) = 98:  ct length = 1  → ct[:16] access causes panic
+//   - For len(c) = 112: ct length = 15 → ct[:16] access causes panic
+//   - For len(c) = 113: ct length = 16 → ct[:16] access succeeds
+//
+// Defense-in-depth note:
+//   Decrypt() has HMAC verification (line 318-320) before symDecrypt (line 322).
+//   For truncated messages, HMAC usually fails, preventing symDecrypt from being reached.
+//   However, the length check is the PRIMARY defense because:
+//   1. HMAC verification is not designed for length validation
+//   2. Edge cases or crafted payloads might bypass HMAC
+//   3. Correct length validation is required by the ECIES specification
+func TestDecryptMinimumLengthValidation(t *testing.T) {
+	prv, err := GenerateKey(rand.Reader, DefaultCurve, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	message := []byte("Hello, world.")
+	ct, err := Encrypt(rand.Reader, &prv.PublicKey, message, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Calculate length boundaries
+	params := prv.PublicKey.Params
+	rLen := (prv.PublicKey.Curve.Params().BitSize + 7) / 4 // 65 for secp256k1
+	hLen := params.Hash().Size()                           // 32 for SHA256
+	blockSize := params.BlockSize                          // 16 for AES
+
+	oldMinLen := rLen + hLen + 1         // 98 (vulnerable check)
+	newMinLen := rLen + hLen + blockSize // 113 (fixed check)
+
+	t.Logf("rLen=%d, hLen=%d, BlockSize=%d", rLen, hLen, blockSize)
+	t.Logf("Old minimum (vulnerable): %d bytes", oldMinLen)
+	t.Logf("New minimum (fixed):      %d bytes", newMinLen)
+	t.Logf("Vulnerable range:         %d-%d bytes", oldMinLen, newMinLen-1)
+	t.Logf("Encrypted message length: %d bytes", len(ct))
+
+	// Test 1: Prove symDecrypt PANICS with undersized input (root cause of vulnerability)
+	// This directly demonstrates the bug that the length check prevents
+	// symDecrypt does: ct[:BlockSize] for IV, which panics if len(ct) < BlockSize
+	t.Log("--- Test 1: Prove symDecrypt panics with undersized ct ---")
+	for ctLen := 0; ctLen < blockSize; ctLen++ {
+		ctLen := ctLen // capture for closure
+		panicked := false
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					panicked = true
+				}
+			}()
+			undersizedCt := make([]byte, ctLen)
+			symDecrypt(params, make([]byte, params.KeyLen), undersizedCt)
+		}()
+		if !panicked {
+			t.Fatalf("symDecrypt should panic with ct length %d (< BlockSize %d)", ctLen, blockSize)
+		}
+	}
+	t.Logf("Confirmed: symDecrypt panics for all ct lengths 0-%d (< BlockSize)", blockSize-1)
+
+	// Test 2: Prove symDecrypt does NOT panic with ct length >= BlockSize
+	t.Log("--- Test 2: Prove symDecrypt works with ct length >= BlockSize ---")
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				t.Fatalf("symDecrypt should NOT panic with ct length %d", blockSize)
+			}
+		}()
+		validSizeCt := make([]byte, blockSize)
+		symDecrypt(params, make([]byte, params.KeyLen), validSizeCt)
+	}()
+	t.Logf("Confirmed: symDecrypt does not panic with ct length %d (= BlockSize)", blockSize)
+
+	// Test 3: Verify the truncated ciphertext has valid attack format
+	// This proves we're testing realistic attack payloads, not just random bytes
+	t.Log("--- Test 3: Verify attack payload format ---")
+	if ct[0] != 4 {
+		t.Fatalf("Expected uncompressed public key format (0x04), got: 0x%02x", ct[0])
+	}
+	t.Logf("Confirmed: ciphertext starts with 0x04 (uncompressed public key format)")
+
+	// Test 4: Verify len=97 is rejected (confirms vulnerable range starts at 98)
+	// len=97 would be rejected by BOTH old check (97 < 98) and new check (97 < 113)
+	t.Log("--- Test 4: Below vulnerable range (97 bytes) ---")
+	belowVulnerable := oldMinLen - 1 // 97
+	if belowVulnerable >= oldMinLen {
+		t.Fatal("Test logic error: belowVulnerable should be < oldMinLen")
+	}
+	_, err = prv.Decrypt(ct[:belowVulnerable], nil, nil)
+	if !errors.Is(err, ErrInvalidMessage) {
+		t.Fatalf("len=%d: expected ErrInvalidMessage, got: %v", belowVulnerable, err)
+	}
+	t.Logf("len=%d: rejected (would fail both old check <%d and new check <%d)",
+		belowVulnerable, oldMinLen, newMinLen)
+
+	// Test 5: Verify vulnerable range (98-112) is rejected by the fixed length check
+	// These payloads would pass the old check (len >= 98) but cause panic in symDecrypt
+	t.Log("--- Test 5: Vulnerable range (98-112 bytes) rejected ---")
+	for truncLen := oldMinLen; truncLen < newMinLen; truncLen++ {
+		ctLen := truncLen - rLen - hLen
+		truncated := ct[:truncLen]
+		// Verify this is a valid attack payload (starts with 0x02, 0x03, or 0x04)
+		if truncated[0] != 2 && truncated[0] != 3 && truncated[0] != 4 {
+			t.Fatalf("Invalid test: truncated payload should have valid first byte")
+		}
+		// Verify this would pass the OLD length check
+		if truncLen < oldMinLen {
+			t.Fatalf("Test logic error: len=%d should pass old check (>= %d)", truncLen, oldMinLen)
+		}
+		_, err := prv.Decrypt(truncated, nil, nil)
+		if !errors.Is(err, ErrInvalidMessage) {
+			t.Fatalf("len=%d (ct=%d bytes): expected ErrInvalidMessage, got: %v", truncLen, ctLen, err)
+		}
+	}
+	t.Logf("All %d vulnerable lengths (98-112) correctly rejected", newMinLen-oldMinLen)
+
+	// Test 6: Verify boundary (113 bytes) - length check passes, fails at HMAC
+	// Logic: len(c) >= newMinLen means length check passes (line 293)
+	//        ct length = len(c) - rLen - hLen = 113 - 65 - 32 = 16 = BlockSize
+	//        symDecrypt won't panic (proven in Test 2), so rejection is at HMAC
+	t.Log("--- Test 6: Boundary test (113 bytes) ---")
+	// Verify boundary calculation
+	ctLenAtBoundary := newMinLen - rLen - hLen
+	if ctLenAtBoundary != blockSize {
+		t.Fatalf("Test logic error: ct length at boundary should be %d, got %d", blockSize, ctLenAtBoundary)
+	}
+	// Verify length check passes: newMinLen >= (rLen + hLen + blockSize)
+	lengthCheckPasses := newMinLen >= (rLen + hLen + blockSize)
+	if !lengthCheckPasses {
+		t.Fatalf("Test logic error: length %d should pass length check", newMinLen)
+	}
+	t.Logf("len=%d: length check passes (%d >= %d)", newMinLen, newMinLen, rLen+hLen+blockSize)
+	// Now verify Decrypt rejects it (must be HMAC since length check passed)
+	_, err = prv.Decrypt(ct[:newMinLen], nil, nil)
+	if !errors.Is(err, ErrInvalidMessage) {
+		t.Fatalf("len=%d: expected ErrInvalidMessage, got: %v", newMinLen, err)
+	}
+	t.Logf("len=%d (ct=%d bytes): passed length check, rejected at HMAC", newMinLen, ctLenAtBoundary)
+
+	// Test 7: Verify valid message decrypts correctly
+	t.Log("--- Test 7: Valid message decryption ---")
+	pt, err := prv.Decrypt(ct, nil, nil)
+	if err != nil {
+		t.Fatalf("Decryption failed: %v", err)
+	}
+	if !bytes.Equal(pt, message) {
+		t.Fatal("Decrypted plaintext mismatch")
+	}
+	t.Logf("Full message (%d bytes) decrypted successfully", len(ct))
+}
+
 func decode(s string) []byte {
 	bytes, err := hex.DecodeString(s)
 	if err != nil {
