@@ -497,10 +497,9 @@ func (g *Genesis) toBlockWithRoot(root common.Hash) *types.Block {
 			withdrawals = make([]*types.Withdrawal, 0)
 		}
 		if conf.IsCancun(num, g.Timestamp) {
-			// EIP-4788: The parentBeaconBlockRoot of the genesis block is always
-			// the zero hash. This is because the genesis block does not have a parent
-			// by definition.
-			head.ParentBeaconRoot = new(common.Hash)
+			// EIP-4788: For PoSA chains, the parentBeaconBlockRoot is always set to
+			// EmptyRootHash as the beacon chain is not used.
+			head.ParentBeaconRoot = &types.EmptyRootHash
 			// EIP-4844 fields
 			head.ExcessBlobGas = g.ExcessBlobGas
 			head.BlobGasUsed = g.BlobGasUsed

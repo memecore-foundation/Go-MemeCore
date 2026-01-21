@@ -487,7 +487,7 @@ func (sim *simulator) makeHeaders(blocks []simBlock) ([]*types.Header, error) {
 		}
 		var parentBeaconRoot *common.Hash
 		if sim.chainConfig.IsCancun(overrides.Number.ToInt(), (uint64)(*overrides.Time)) {
-			parentBeaconRoot = &common.Hash{}
+			parentBeaconRoot = &types.EmptyRootHash
 			if overrides.BeaconRoot != nil {
 				parentBeaconRoot = overrides.BeaconRoot
 			}
