@@ -27,8 +27,9 @@ import (
 
 func TestCalcExcessBlobGas(t *testing.T) {
 	var (
-		config        = params.MainnetChainConfig
-		targetBlobs   = targetBlobsPerBlock(config, *config.CancunTime)
+		config        = params.AllDevChainProtocolChanges
+		cancunTime    = uint64(0)
+		targetBlobs   = targetBlobsPerBlock(config, cancunTime)
 		targetBlobGas = uint64(targetBlobs) * params.BlobTxBlobGasPerBlob
 	)
 	var tests = []struct {
@@ -61,7 +62,7 @@ func TestCalcExcessBlobGas(t *testing.T) {
 			ExcessBlobGas: &tt.excess,
 			BlobGasUsed:   &blobGasUsed,
 		}
-		result := CalcExcessBlobGas(config, header, *config.CancunTime)
+		result := CalcExcessBlobGas(config, header, cancunTime)
 		if result != tt.want {
 			t.Errorf("test %d: excess blob gas mismatch: have %v, want %v", i, result, tt.want)
 		}
