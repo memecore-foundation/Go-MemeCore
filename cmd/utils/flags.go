@@ -611,30 +611,6 @@ var (
 		Value:    ethconfig.Defaults.RPCTxFeeCap,
 		Category: flags.APICategory,
 	}
-	// Authenticated RPC HTTP settings
-	AuthListenFlag = &cli.StringFlag{
-		Name:     "authrpc.addr",
-		Usage:    "Listening address for authenticated APIs",
-		Value:    node.DefaultConfig.AuthAddr,
-		Category: flags.APICategory,
-	}
-	AuthPortFlag = &cli.IntFlag{
-		Name:     "authrpc.port",
-		Usage:    "Listening port for authenticated APIs",
-		Value:    node.DefaultConfig.AuthPort,
-		Category: flags.APICategory,
-	}
-	AuthVirtualHostsFlag = &cli.StringFlag{
-		Name:     "authrpc.vhosts",
-		Usage:    "Comma separated list of virtual hostnames from which to accept requests (server enforced). Accepts '*' wildcard.",
-		Value:    strings.Join(node.DefaultConfig.AuthVirtualHosts, ","),
-		Category: flags.APICategory,
-	}
-	JWTSecretFlag = &flags.DirectoryFlag{
-		Name:     "authrpc.jwtsecret",
-		Usage:    "Path to a JWT secret to use for authenticated RPC endpoints",
-		Category: flags.APICategory,
-	}
 
 	// Logging and debug settings
 	EthStatsURLFlag = &cli.StringFlag{
@@ -1197,18 +1173,6 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 		cfg.HTTPPort = ctx.Int(HTTPPortFlag.Name)
 	}
 
-	if ctx.IsSet(AuthListenFlag.Name) {
-		cfg.AuthAddr = ctx.String(AuthListenFlag.Name)
-	}
-
-	if ctx.IsSet(AuthPortFlag.Name) {
-		cfg.AuthPort = ctx.Int(AuthPortFlag.Name)
-	}
-
-	if ctx.IsSet(AuthVirtualHostsFlag.Name) {
-		cfg.AuthVirtualHosts = SplitAndTrim(ctx.String(AuthVirtualHostsFlag.Name))
-	}
-
 	if ctx.IsSet(HTTPCORSDomainFlag.Name) {
 		cfg.HTTPCors = SplitAndTrim(ctx.String(HTTPCORSDomainFlag.Name))
 	}
@@ -1471,9 +1435,6 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	SetDataDir(ctx, cfg)
 	setSmartCard(ctx, cfg)
 
-	if ctx.IsSet(JWTSecretFlag.Name) {
-		cfg.JWTSecret = ctx.String(JWTSecretFlag.Name)
-	}
 	if ctx.IsSet(EnablePersonal.Name) {
 		log.Warn(fmt.Sprintf("Option --%s is deprecated. The 'personal' RPC namespace has been removed.", EnablePersonal.Name))
 	}

@@ -30,6 +30,8 @@ var customGenesisTests = []struct {
 	result  string
 }{
 	// Genesis file with a mostly-empty chain configuration (ensure missing fields work)
+	// Note: London must be enabled for BlobPool initialization (CalcBaseFee requires BaseFee)
+	// Note: Genesis block preserves its nonce; EIP-3675 nonce=0 rule applies only to post-genesis blocks
 	{
 		genesis: `{
 			"alloc"      : {},
@@ -41,7 +43,19 @@ var customGenesisTests = []struct {
 			"mixhash"    : "0x0000000000000000000000000000000000000000000000000000000000000000",
 			"parentHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
 			"timestamp"  : "0x00",
+			"baseFeePerGas" : "0x3b9aca00",
 			"config": {
+				"chainId": 1337,
+				"homesteadBlock": 0,
+				"eip150Block": 0,
+				"eip155Block": 0,
+				"eip158Block": 0,
+				"byzantiumBlock": 0,
+				"constantinopleBlock": 0,
+				"petersburgBlock": 0,
+				"istanbulBlock": 0,
+				"berlinBlock": 0,
+				"londonBlock": 0,
 				"terminalTotalDifficulty": 0
 			}
 		}`,
@@ -60,10 +74,21 @@ var customGenesisTests = []struct {
 			"mixhash"    : "0x0000000000000000000000000000000000000000000000000000000000000000",
 			"parentHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
 			"timestamp"  : "0x00",
+			"baseFeePerGas" : "0x3b9aca00",
 			"config"     : {
-				"homesteadBlock"                : 42,
-				"daoForkBlock"                  : 141,
+				"chainId"                       : 1337,
+				"homesteadBlock"                : 0,
+				"daoForkBlock"                  : 0,
 				"daoForkSupport"                : true,
+				"eip150Block"                   : 0,
+				"eip155Block"                   : 0,
+				"eip158Block"                   : 0,
+				"byzantiumBlock"                : 0,
+				"constantinopleBlock"           : 0,
+				"petersburgBlock"               : 0,
+				"istanbulBlock"                 : 0,
+				"berlinBlock"                   : 0,
+				"londonBlock"                   : 0,
 				"terminalTotalDifficulty": 0
 			}
 		}`,
@@ -89,7 +114,7 @@ func TestCustomGenesis(t *testing.T) {
 
 		// Query the custom genesis block
 		gmeme := runGmeme(t, "--networkid", "1337", "--syncmode=full", "--cache", "16",
-			"--datadir", datadir, "--maxpeers", "0", "--port", "0", "--authrpc.port", "0",
+			"--datadir", datadir, "--maxpeers", "0", "--port", "0",
 			"--nodiscover", "--nat", "none", "--ipcdisable",
 			"--exec", tt.query, "console")
 		gmeme.ExpectRegexp(tt.result)
@@ -114,7 +139,19 @@ func TestCustomBackend(t *testing.T) {
 			"mixhash"    : "0x0000000000000000000000000000000000000000000000000000000000000000",
 			"parentHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
 			"timestamp"  : "0x00",
+			"baseFeePerGas" : "0x3b9aca00",
 			"config": {
+				"chainId": 1337,
+				"homesteadBlock": 0,
+				"eip150Block": 0,
+				"eip155Block": 0,
+				"eip158Block": 0,
+				"byzantiumBlock": 0,
+				"constantinopleBlock": 0,
+				"petersburgBlock": 0,
+				"istanbulBlock": 0,
+				"berlinBlock": 0,
+				"londonBlock": 0,
 				"terminalTotalDifficulty": 0
 			}
 		}`
@@ -141,7 +178,7 @@ func TestCustomBackend(t *testing.T) {
 		}
 		{ // Exec + query
 			args := append(tt.execArgs, "--networkid", "1337", "--syncmode=full", "--cache", "16",
-				"--datadir", datadir, "--maxpeers", "0", "--port", "0", "--authrpc.port", "0",
+				"--datadir", datadir, "--maxpeers", "0", "--port", "0",
 				"--nodiscover", "--nat", "none", "--ipcdisable",
 				"--exec", "eth.getBlock(0).nonce", "console")
 			gmeme := runGmeme(t, args...)
