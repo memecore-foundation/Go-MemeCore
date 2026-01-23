@@ -66,17 +66,15 @@ node="node"
 
 port=30301
 httpport=8551
-rpcport=8561
 wsport=8571
 extip=127.0.0.1
 
-echo "$node and miner is $miner, rpc port $rpcport, p2p port $port"
+echo "$node and miner is $miner, p2p port $port"
 
 nohup ./gmeme \
 --formicarium \
 --nat extip:$extip \
 --port $port \
---authrpc.port $rpcport \
 --identity=$node \
 --maxpeers=50 \
 --syncmode full \
@@ -107,11 +105,10 @@ When the inputing node index is set to 1, this script requires the node address 
 node="node"
 
 port=30301
-rpcport=8561
 extip=127.0.0.1
 
 miner=$(<$node/node_address.txt)
-echo "$node and miner is $miner, rpc port $rpcport, p2p port $port"
+echo "$node and miner is $miner, p2p port $port"
 
 nohup ./gmeme \
 --formicarium \
@@ -120,7 +117,6 @@ nohup ./gmeme \
 --mine --miner.etherbase=$miner \
 --unlock $miner \
 --password $node/password.txt \
---authrpc.port $rpcport \
 --identity=$node \
 --maxpeers=50 \
 --syncmode full \

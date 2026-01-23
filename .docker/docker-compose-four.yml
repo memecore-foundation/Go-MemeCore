@@ -38,7 +38,6 @@ services:
         --bootnodes "enode://$$(cat ${FOUR_DIR}/bootnode/bootnode_address.txt)@172.200.0.1:0?discport=30304" \
         --networkid "$$(cat ${FOUR_DIR}/networkid.txt)" \
         --unlock 0x"$$(cat ${FOUR_NODE1_DIR}/node_address.txt)" \
-        --authrpc.port 8552 \
         --http \
         --http.port 8562 \
         --http.addr 0.0.0.0 \
@@ -57,7 +56,6 @@ services:
       - ../privnet:/privnet
     ports:
       - 30306:30306
-      - 8552:8552
       - 8562:8562
       - 8572:8572
     depends_on:
@@ -77,7 +75,6 @@ services:
         --bootnodes "enode://$$(cat ${FOUR_DIR}/bootnode/bootnode_address.txt)@172.200.0.1:0?discport=30304" \
         --networkid "$$(cat ${FOUR_DIR}/networkid.txt)" \
         --unlock 0x"$$(cat ${FOUR_NODE2_DIR}/node_address.txt)" \
-        --authrpc.port 8553 \
         --http \
         --http.port 8563 \
         --http.addr 0.0.0.0 \
@@ -96,7 +93,6 @@ services:
       - ../privnet:/privnet
     ports:
       - 30307:30307
-      - 8553:8553
       - 8563:8563
       - 8573:8573
     depends_on:
@@ -116,7 +112,6 @@ services:
         --bootnodes "enode://$$(cat ${FOUR_DIR}/bootnode/bootnode_address.txt)@172.200.0.1:0?discport=30304" \
         --networkid "$$(cat ${FOUR_DIR}/networkid.txt)" \
         --unlock 0x"$$(cat ${FOUR_NODE3_DIR}/node_address.txt)" \
-        --authrpc.port 8554 \
         --http \
         --http.port 8564 \
         --http.addr 0.0.0.0 \
@@ -135,7 +130,6 @@ services:
       - ../privnet:/privnet
     ports:
       - 30308:30308
-      - 8554:8554
       - 8564:8564
       - 8574:8574
     depends_on:
@@ -155,7 +149,6 @@ services:
         --bootnodes "enode://$$(cat ${FOUR_DIR}/bootnode/bootnode_address.txt)@172.200.0.1:0?discport=30304" \
         --networkid "$$(cat ${FOUR_DIR}/networkid.txt)" \
         --unlock 0x"$$(cat ${FOUR_NODE4_DIR}/node_address.txt)" \
-        --authrpc.port 8555 \
         --http \
         --http.port 8565 \
         --http.addr 0.0.0.0 \
@@ -174,7 +167,6 @@ services:
       - ../privnet:/privnet
     ports:
       - 30309:30309
-      - 8555:8555
       - 8565:8565
       - 8575:8575
     depends_on:
@@ -194,7 +186,6 @@ services:
         --bootnodes "enode://$$(cat ${FOUR_DIR}/bootnode/bootnode_address.txt)@172.200.0.1:0?discport=30304" \
         --networkid "$$(cat ${FOUR_DIR}/networkid.txt)" \
         --unlock 0x"$$(cat ${FOUR_NODE5_DIR}/node_address.txt)" \
-        --authrpc.port 8556 \
         --http \
         --http.port 8566 \
         --http.addr 0.0.0.0 \
@@ -211,7 +202,6 @@ services:
       - ../privnet:/privnet
     ports:
       - 30310:30310
-      - 8556:8556
       - 8566:8566
       - 8576:8576
     depends_on:
