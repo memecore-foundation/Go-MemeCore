@@ -130,6 +130,11 @@
       "storage": {
         "0xf0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a00": "0xffffffffffffffff"
       }
+    },
+    "0x0000F90827F1C53a10cb7A02335B175320002935": {
+      "nonce": "0x1",
+      "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604657602036036042575f35600143038111604257611fff81430311604257611fff9006545f5260205ff35b5f5ffd5b5f35611fff60014303065500",
+      "balance": "0x0"
     }
   }
 }
