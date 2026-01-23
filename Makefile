@@ -15,49 +15,41 @@ SEVEN_DIR = $(MAIN_DIR)/seven
 
 NODE1 = node1
 NODE1_PORT = 30306
-NODE1_AUTH_PORT = 8552
 NODE1_HTTP_PORT = 8562
 NODE1_WS_PORT = 8572
 
 NODE2 = node2
 NODE2_PORT = 30307
-NODE2_AUTH_PORT = 8553
 NODE2_HTTP_PORT = 8563
 NODE2_WS_PORT = 8573
 
 NODE3 = node3
 NODE3_PORT = 30308
-NODE3_AUTH_PORT = 8554
 NODE3_HTTP_PORT = 8564
 NODE3_WS_PORT = 8574
 
 NODE4 = node4
 NODE4_PORT = 30309
-NODE4_AUTH_PORT = 8555
 NODE4_HTTP_PORT = 8565
 NODE4_WS_PORT = 8575
 
 NODE5 = node5
 NODE5_PORT = 30310
-NODE5_AUTH_PORT = 8556
 NODE5_HTTP_PORT = 8566
 NODE5_WS_PORT = 8576
 
 NODE6 = node6
 NODE6_PORT = 30311
-NODE6_AUTH_PORT = 8557
 NODE6_HTTP_PORT = 8567
 NODE6_WS_PORT = 8577
 
 NODE7 = node7
 NODE7_PORT = 30312
-NODE7_AUTH_PORT = 8558
 NODE7_HTTP_PORT = 8568
 NODE7_WS_PORT = 8578
 
 NODE8 = node8
 NODE8_PORT = 30313
-NODE8_AUTH_PORT = 8559
 NODE8_HTTP_PORT = 8569
 NODE8_WS_PORT = 8579
 
@@ -78,7 +70,7 @@ define run_bootnode
 endef
 
 define run_miner_node
-	$(call run_node,$(1),$(2),$(3),$(4),$(5),$(6),--mine --miner.etherbase="0x$$(cat $(1)/$(7)/node_address.txt)")
+	$(call run_node,$(1),$(2),$(3),$(4),$(5),--mine --miner.etherbase="0x$$(cat $(1)/$(6)/node_address.txt)" --allow-insecure-unlock --password $(1)/$(2)/password.txt --unlock 0x"$$(cat $(1)/$(2)/node_address.txt)")
 endef
 
 define run_node
@@ -86,21 +78,17 @@ define run_node
 		--port $(3) \
 		--bootnodes "enode://$$(cat $(1)/$(BOOTNODE)/bootnode_address.txt)@127.0.0.1:0?discport=$(BOOTNODE_PORT)" \
 		--networkid "$$(cat $(1)/networkid.txt)" \
-		--unlock 0x"$$(cat $(1)/$(2)/node_address.txt)" \
-		--authrpc.port $(4) \
 		--http \
-		--http.port $(5) \
+		--http.port $(4) \
 		--http.addr 0.0.0.0 \
 		--http.vhosts "*" \
 		--ws \
 		--ws.addr 0.0.0.0 \
-		--ws.port $(6) \
-		--allow-insecure-unlock \
-		--password $(1)/$(2)/password.txt \
+		--ws.port $(5) \
 		--metrics \
 		--nat $(NAT_POLICY) \
 		--netrestrict $(RESTRICTED_NETWORK) \
-		$(7) >  $(1)/$(2)/gmeme_node.log 2>&1 &
+		$(6) >  $(1)/$(2)/gmeme_node.log 2>&1 &
 endef
 
 define init_node
@@ -234,31 +222,31 @@ $(SEVEN_DIR)/$(NODE8)/gmeme:
 privnet_start: $(SINGLE_DIR)/$(NODE1)/gmeme $(SINGLE_DIR)/$(NODE2)/gmeme
 	@echo "Starting nodes..."
 	$(call run_bootnode,$(SINGLE_DIR))
-	$(call run_miner_node,$(SINGLE_DIR),$(NODE1),$(NODE1_PORT),$(NODE1_AUTH_PORT),$(NODE1_HTTP_PORT),$(NODE1_WS_PORT),$(NODE1))
-	$(call run_node,$(SINGLE_DIR),$(NODE2),$(NODE2_PORT),$(NODE2_AUTH_PORT),$(NODE2_HTTP_PORT),$(NODE2_WS_PORT))
+	$(call run_miner_node,$(SINGLE_DIR),$(NODE1),$(NODE1_PORT),$(NODE1_HTTP_PORT),$(NODE1_WS_PORT),$(NODE1))
+	$(call run_node,$(SINGLE_DIR),$(NODE2),$(NODE2_PORT),$(NODE2_HTTP_PORT),$(NODE2_WS_PORT))
 	@echo "OK! Check logs in $(SINGLE_DIR)/<node_dir>/gmeme_node.log"
 
 privnet_start_four: $(FOUR_DIR)/$(NODE1)/gmeme $(FOUR_DIR)/$(NODE2)/gmeme $(FOUR_DIR)/$(NODE3)/gmeme $(FOUR_DIR)/$(NODE4)/gmeme $(FOUR_DIR)/$(NODE5)/gmeme
 	@echo "Starting nodes..."
 	$(call run_bootnode,$(FOUR_DIR))
-	$(call run_miner_node,$(FOUR_DIR),$(NODE1),$(NODE1_PORT),$(NODE1_AUTH_PORT),$(NODE1_HTTP_PORT),$(NODE1_WS_PORT),$(NODE1))
-	$(call run_miner_node,$(FOUR_DIR),$(NODE2),$(NODE2_PORT),$(NODE2_AUTH_PORT),$(NODE2_HTTP_PORT),$(NODE2_WS_PORT),$(NODE2))
-	$(call run_miner_node,$(FOUR_DIR),$(NODE3),$(NODE3_PORT),$(NODE3_AUTH_PORT),$(NODE3_HTTP_PORT),$(NODE3_WS_PORT),$(NODE3))
-	$(call run_miner_node,$(FOUR_DIR),$(NODE4),$(NODE4_PORT),$(NODE4_AUTH_PORT),$(NODE4_HTTP_PORT),$(NODE4_WS_PORT),$(NODE4))
-	$(call run_node,$(FOUR_DIR),$(NODE5),$(NODE5_PORT),$(NODE5_AUTH_PORT),$(NODE5_HTTP_PORT),$(NODE5_WS_PORT))
+	$(call run_miner_node,$(FOUR_DIR),$(NODE1),$(NODE1_PORT),$(NODE1_HTTP_PORT),$(NODE1_WS_PORT),$(NODE1))
+	$(call run_miner_node,$(FOUR_DIR),$(NODE2),$(NODE2_PORT),$(NODE2_HTTP_PORT),$(NODE2_WS_PORT),$(NODE2))
+	$(call run_miner_node,$(FOUR_DIR),$(NODE3),$(NODE3_PORT),$(NODE3_HTTP_PORT),$(NODE3_WS_PORT),$(NODE3))
+	$(call run_miner_node,$(FOUR_DIR),$(NODE4),$(NODE4_PORT),$(NODE4_HTTP_PORT),$(NODE4_WS_PORT),$(NODE4))
+	$(call run_node,$(FOUR_DIR),$(NODE5),$(NODE5_PORT),$(NODE5_HTTP_PORT),$(NODE5_WS_PORT))
 	@echo "OK! Check logs in $(FOUR_DIR)/<node_dir>/gmeme_node.log"
 
 privnet_start_seven: $(SEVEN_DIR)/$(NODE1)/gmeme $(SEVEN_DIR)/$(NODE2)/gmeme $(SEVEN_DIR)/$(NODE3)/gmeme $(SEVEN_DIR)/$(NODE4)/gmeme $(SEVEN_DIR)/$(NODE5)/gmeme $(SEVEN_DIR)/$(NODE6)/gmeme $(SEVEN_DIR)/$(NODE7)/gmeme $(SEVEN_DIR)/$(NODE8)/gmeme
 	@echo "Starting nodes..."
 	$(call run_bootnode,$(SEVEN_DIR))
-	$(call run_miner_node,$(SEVEN_DIR),$(NODE1),$(NODE1_PORT),$(NODE1_AUTH_PORT),$(NODE1_HTTP_PORT),$(NODE1_WS_PORT),$(NODE1))
-	$(call run_miner_node,$(SEVEN_DIR),$(NODE2),$(NODE2_PORT),$(NODE2_AUTH_PORT),$(NODE2_HTTP_PORT),$(NODE2_WS_PORT),$(NODE2))
-	$(call run_miner_node,$(SEVEN_DIR),$(NODE3),$(NODE3_PORT),$(NODE3_AUTH_PORT),$(NODE3_HTTP_PORT),$(NODE3_WS_PORT),$(NODE3))
-	$(call run_miner_node,$(SEVEN_DIR),$(NODE4),$(NODE4_PORT),$(NODE4_AUTH_PORT),$(NODE4_HTTP_PORT),$(NODE4_WS_PORT),$(NODE4))
-	$(call run_miner_node,$(SEVEN_DIR),$(NODE5),$(NODE5_PORT),$(NODE5_AUTH_PORT),$(NODE5_HTTP_PORT),$(NODE5_WS_PORT),$(NODE5))
-	$(call run_miner_node,$(SEVEN_DIR),$(NODE6),$(NODE6_PORT),$(NODE6_AUTH_PORT),$(NODE6_HTTP_PORT),$(NODE6_WS_PORT),$(NODE6))
-	$(call run_miner_node,$(SEVEN_DIR),$(NODE7),$(NODE7_PORT),$(NODE7_AUTH_PORT),$(NODE7_HTTP_PORT),$(NODE7_WS_PORT),$(NODE7))
-	$(call run_node,$(SEVEN_DIR),$(NODE8),$(NODE8_PORT),$(NODE8_AUTH_PORT),$(NODE8_HTTP_PORT),$(NODE8_WS_PORT))
+	$(call run_miner_node,$(SEVEN_DIR),$(NODE1),$(NODE1_PORT),$(NODE1_HTTP_PORT),$(NODE1_WS_PORT),$(NODE1))
+	$(call run_miner_node,$(SEVEN_DIR),$(NODE2),$(NODE2_PORT),$(NODE2_HTTP_PORT),$(NODE2_WS_PORT),$(NODE2))
+	$(call run_miner_node,$(SEVEN_DIR),$(NODE3),$(NODE3_PORT),$(NODE3_HTTP_PORT),$(NODE3_WS_PORT),$(NODE3))
+	$(call run_miner_node,$(SEVEN_DIR),$(NODE4),$(NODE4_PORT),$(NODE4_HTTP_PORT),$(NODE4_WS_PORT),$(NODE4))
+	$(call run_miner_node,$(SEVEN_DIR),$(NODE5),$(NODE5_PORT),$(NODE5_HTTP_PORT),$(NODE5_WS_PORT),$(NODE5))
+	$(call run_miner_node,$(SEVEN_DIR),$(NODE6),$(NODE6_PORT),$(NODE6_HTTP_PORT),$(NODE6_WS_PORT),$(NODE6))
+	$(call run_miner_node,$(SEVEN_DIR),$(NODE7),$(NODE7_PORT),$(NODE7_HTTP_PORT),$(NODE7_WS_PORT),$(NODE7))
+	$(call run_node,$(SEVEN_DIR),$(NODE8),$(NODE8_PORT),$(NODE8_HTTP_PORT),$(NODE8_WS_PORT))
 	@echo "OK! Check logs in $(SEVEN_DIR)/<node_dir>/gmeme_node.log"
 
 docker_privnet_start:
