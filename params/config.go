@@ -58,14 +58,18 @@ var (
 		MergeNetsplitBlock:      nil,
 		ShanghaiTime:            newUint64(0),
 		RewardTreeForkBlock:     big.NewInt(2_300_000),
-		GasTreeForkBlock:        big.NewInt(math.MaxInt64), // TODO: Set actual block number when determined
-		CancunTime:              nil,
-		PragueTime:              nil,
+		GasTreeForkBlock:        big.NewInt(5_332_985),
+		CancunTime:              newUint64(1774404000), // 2026-03-25 02:00:00 UTC
+		PragueTime:              newUint64(1774404000), // 2026-03-25 02:00:00 UTC
 		OsakaTime:               nil,
 		VerkleTime:              nil,
 		PoSA: &PoSAConfig{
 			Period: 7,
 			Epoch:  12345,
+		},
+		BlobScheduleConfig: &BlobScheduleConfig{
+			Cancun: DefaultCancunBlobConfig,
+			Prague: DefaultPragueBlobConfig,
 		},
 	}
 
@@ -124,14 +128,18 @@ var (
 		MergeNetsplitBlock:      nil,
 		ShanghaiTime:            newUint64(0),
 		RewardTreeForkBlock:     big.NewInt(270_000),
-		GasTreeForkBlock:        big.NewInt(math.MaxInt64), // TODO: Set actual block number when determined
-		CancunTime:              nil,
-		PragueTime:              nil,
+		GasTreeForkBlock:        big.NewInt(3_499_488),
+		CancunTime:              newUint64(1771466400), // 2026-02-19 02:00:00 UTC
+		PragueTime:              newUint64(1771466400), // 2026-02-19 02:00:00 UTC
 		OsakaTime:               nil,
 		VerkleTime:              nil,
 		PoSA: &PoSAConfig{
 			Period: 7,
 			Epoch:  12345,
+		},
+		BlobScheduleConfig: &BlobScheduleConfig{
+			Cancun: DefaultCancunBlobConfig,
+			Prague: DefaultPragueBlobConfig,
 		},
 	}
 
