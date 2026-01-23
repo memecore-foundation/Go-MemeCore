@@ -2,12 +2,13 @@
 
 Golang execution layer implementation of the MemeCore protocol (Ethereum-compatible).
 
-[![API Reference](https://pkg.go.dev/badge/github.com/ethereum/go-ethereum)](https://pkg.go.dev/github.com/ethereum/go-ethereum?tab=doc)
-[![Go Report Card](https://goreportcard.com/badge/github.com/ethereum/go-ethereum)](https://goreportcard.com/report/github.com/ethereum/go-ethereum)
-[![Travis](https://app.travis-ci.com/ethereum/go-ethereum.svg?branch=master)](https://app.travis-ci.com/github/ethereum/go-ethereum)
-[![Discord](https://img.shields.io/badge/discord-join%20chat-blue.svg)](https://discord.gg/nthXNEv)
+**Current Version: v1.15.1-stable**
 
-Automated builds are available for stable releases and the unstable master branch.
+### Key Features
+- EIP-4844 Blob Transaction Support (Cancun hardfork)
+- PoSA (Proof of Staked Authority) Consensus Engine
+- GasTree, RewardTree, CanPraTree Hardfork Support
+- Full Ethereum JSON-RPC API Compatibility
 
 ## Building the source
 
@@ -30,13 +31,14 @@ make all
 
 ## Executables
 
-The go-ethereum project comes with several wrappers/executables found in the `cmd`
+The go-memecore project comes with several wrappers/executables found in the `cmd`
 directory.
 
 |  Command   | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | :--------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`gmeme`** | Our main Ethereum CLI client. It is the entry point into the Ethereum network (main-, test- or private net), capable of running as a full node (default), archive node (retaining all historical state) or a light node (retrieving data live). It can be used by other processes as a gateway into the Ethereum network via JSON RPC endpoints exposed on top of HTTP, WebSocket and/or IPC transports. `gmeme --help` and the [CLI page](https://geth.ethereum.org/docs/fundamentals/command-line-options) for command line options. |
-|   `clef`   | Stand-alone signing tool, which can be used as a backend signer for `gmeme`.                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| **`gmeme`** | Our main MemeCore CLI client. It is the entry point into the MemeCore network (main-, test- or private net), capable of running as a full node (default) or archive node (retaining all historical state). It can be used by other processes as a gateway into the MemeCore network via JSON RPC endpoints exposed on top of HTTP, WebSocket and/or IPC transports. `gmeme --help` and the [CLI page](https://geth.ethereum.org/docs/fundamentals/command-line-options) for command line options. |
+|   `clef`   | Stand-alone signing tool, which can be used as a backend signer for `gmeme`. Can be integrated with external signers including HSM (Hardware Security Module).                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `bootnode` | Stripped down version of the MemeCore client that only participates in the network node discovery protocol, but does not run any of the higher level application protocols. It can be used as a lightweight bootstrap node to aid in finding peers in private networks.                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 |  `devp2p`  | Utilities to interact with nodes on the networking layer, without running a full blockchain.                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 |  `abigen`  | Source code generator to convert Ethereum contract definitions into easy-to-use, compile-time type-safe Go packages. It operates on plain [Ethereum contract ABIs](https://docs.soliditylang.org/en/develop/abi-spec.html) with expanded functionality if the contract bytecode is also available. However, it also accepts Solidity source files, making development much more streamlined. Please see our [Native DApps](https://geth.ethereum.org/docs/developers/dapp-developer/native-bindings) page for details.                                  |
 |   `evm`    | Developer utility version of the EVM (Ethereum Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode. Its purpose is to allow isolated, fine-grained debugging of EVM opcodes (e.g. `evm --code 60ff60ff --debug run`).                                                                                                                                                                                                                                               |
@@ -79,40 +81,40 @@ $ gmeme console
 This command will:
  * Start `gmeme` in snap sync mode (default, can be changed with the `--syncmode` flag),
    causing it to download more data in exchange for avoiding processing the entire history
-   of the Ethereum network, which is very CPU intensive.
+   of the MemeCore network, which is very CPU intensive.
  * Start the built-in interactive [JavaScript console](https://geth.ethereum.org/docs/interacting-with-geth/javascript-console),
-   (via the trailing `console` subcommand) through which you can interact using [`web3` methods](https://github.com/ChainSafe/web3.js/blob/0.20.7/DOCUMENTATION.md) 
+   (via the trailing `console` subcommand) through which you can interact using [`web3` methods](https://github.com/ChainSafe/web3.js/blob/0.20.7/DOCUMENTATION.md)
    (note: the `web3` version bundled within `gmeme` is very old, and not up to date with official docs),
    as well as `gmeme`'s own [management APIs](https://geth.ethereum.org/docs/interacting-with-geth/rpc).
    This tool is optional and if you leave it out you can always attach it to an already running
-   `gegmemeth` instance with `gmeme attach`.
+   `gmeme` instance with `gmeme attach`.
 
-### A Full node on the Formicarium test network
+### A Full node on the Insectarium test network
 
 Transitioning towards developers, if you'd like to play around with creating MemeCore
 contracts, you almost certainly would like to do that without any real money involved until
 you get the hang of the entire system. In other words, instead of attaching to the main
 network, you want to join the **test** network with your node, which is fully equivalent to
-the main network, but with play-Meme(tM) only.
+the main network, but with play-Meme only.
 
 ```shell
-$ gmeme --formicarium console
+$ gmeme --insectarium console
 ```
 
 The `console` subcommand has the same meaning as above and is equally
 useful on the testnet too.
 
-Specifying the `--formicarium` flag, however, will reconfigure your `gmeme` instance a bit:
+Specifying the `--insectarium` flag, however, will reconfigure your `gmeme` instance a bit:
 
-- Instead of connecting to the main MemeCore network, the client will connect to the Formicarium
+- Instead of connecting to the main MemeCore network, the client will connect to the Insectarium
   test network, which uses different P2P bootnodes, different network IDs and genesis
   states.
-- Instead of using the default data directory (`~/.ethereum` on Linux for example), `gmeme`
-  will nest itself one level deeper into a `formicarium` subfolder (`~/.ethereum/formicarium` on
+- Instead of using the default data directory (`~/.memecore` on Linux for example), `gmeme`
+  will nest itself one level deeper into a `insectarium` subfolder (`~/.memecore/insectarium` on
   Linux). Note, on OSX and Linux this also means that attaching to a running testnet node
   requires the use of a custom endpoint since `gmeme attach` will try to attach to a
   production node endpoint by default, e.g.,
-  `gmeme attach <datadir>/formicarium/gmeme.ipc`. Windows users are not affected by
+  `gmeme attach <datadir>/insectarium/gmeme.ipc`. Windows users are not affected by
   this.
 
 _Note: Although some internal protective measures prevent transactions from
@@ -121,7 +123,50 @@ use separate accounts for play and real money. Unless you manually move
 accounts, `gmeme` will by default correctly separate the two networks and will not make any
 accounts available between them._
 
-### Configuration
+## MemeCore Hardforks
+
+MemeCore implements several custom hardforks to optimize network performance and economics:
+
+### CanPraTree (Cancun + Prague)
+
+Combines Ethereum's Cancun and Prague hardfork features (timestamp-based activation):
+- **EIP-4844**: Blob transactions for Layer 2 data availability
+- **EIP-1153**: Transient storage opcodes (TSTORE, TLOAD)
+- **EIP-5656**: MCOPY opcode for efficient memory copy
+- **EIP-6780**: SELFDESTRUCT restriction
+- **EIP-2935**: Historical block hash storage in state
+- **EIP-7702**: EOA code delegation support
+
+_Note: EIP-4788 (parent beacon block root) is disabled for PoSA consensus._
+
+### GasTree Hardfork
+
+Reduces the initial base fee to improve transaction cost efficiency:
+- Base fee reduced from 1500 gwei to 15 gwei (100x reduction)
+- Configurable via `GasTreeForkBlock` in chain config
+
+### RewardTree Hardfork
+
+Adjusts block rewards for sustainable tokenomics:
+- Block rewards reduced from 1125×10¹⁷ to 300×10¹⁷ wei
+- Configurable via `RewardTreeForkBlock` in chain config
+
+## PoSA Consensus
+
+MemeCore uses Proof of Staked Authority (PoSA) consensus, combining elements of
+Proof of Authority and Delegated Proof of Stake:
+
+- Validators are selected based on staking amount
+- Block production is scheduled in turns
+- System contracts manage validator registration and rewards
+
+### PoSA-specific Options
+
+- `--posa.enable-event-logging`: Enable detailed event logging for PoSA consensus
+- `--posa.signer-retry-interval`: Interval between retries for external signer (default: 500ms)
+- `--posa.signer-retry-count`: Number of retries for external signer, -1 for infinite (default: -1)
+
+## Configuration
 
 As an alternative to passing the numerous flags to the `gmeme` binary, you can also pass a
 configuration file via:
@@ -137,23 +182,20 @@ export your existing configuration:
 $ gmeme --your-favourite-flags dumpconfig
 ```
 
-_Note: This works only with `gmeme` v1.6.0 and above._
-
-#### Docker quick start
+### Docker quick start
 
 One of the quickest ways to get MemeCore up and running on your machine is by using
 Docker:
 
 ```shell
-docker run -d --name ethereum-node -v /Users/alice/ethereum:/root \
+docker run -d --name memecore-node -v /Users/alice/memecore:/root \
            -p 8545:8545 -p 30303:30303 \
-           ethereum/client-go
+           memecore/gmeme
 ```
 
 This will start `gmeme` in snap-sync mode with a DB memory allowance of 1GB, as the
 above command does. It will also create a persistent volume in your home directory for
-saving your blockchain as well as map the default ports. There is also an `alpine` tag
-available for a slim version of the image.
+saving your blockchain as well as map the default ports.
 
 Do not forget `--http.addr 0.0.0.0`, if you want to access RPC from other containers
 and/or hosts. By default, `gmeme` binds to the local interface and RPC endpoints are not
@@ -204,28 +246,17 @@ APIs!**
 Maintaining your own private network is more involved as a lot of configurations taken for
 granted in the official networks need to be manually set up.
 
-Unfortunately since [the Merge](https://ethereum.org/en/roadmap/merge/) it is no longer possible
-to easily set up a network of geth nodes without also setting up a corresponding beacon chain.
-
-There are three different solutions depending on your use case:
-
-  * If you are looking for a simple way to test smart contracts from go in your CI, you can use the [Simulated Backend](https://geth.ethereum.org/docs/developers/dapp-developer/native-bindings#blockchain-simulator).
-  * If you want a convenient single node environment for testing, you can use our [Dev Mode](https://geth.ethereum.org/docs/developers/dapp-developer/dev-mode).
-  * If you are looking for a multiple node test network, you can set one up quite easily with [Kurtosis](https://geth.ethereum.org/docs/fundamentals/kurtosis).
-
-However, for gmeme nodes, you can still setup private networks as before.
+For gmeme nodes, you can set up private networks using PoSA consensus. Please refer to
+the MemeCore documentation for detailed instructions on setting up validators and
+system contracts.
 
 ## Contribution
 
 Thank you for considering helping out with the source code! We welcome contributions
 from anyone on the internet, and are grateful for even the smallest of fixes!
 
-If you'd like to contribute to go-ethereum, please fork, fix, commit and send a pull request
-for the maintainers to review and merge into the main code base. If you wish to submit
-more complex changes though, please check up with the core devs first on [our Discord Server](https://discord.gg/invite/nthXNEv)
-to ensure those changes are in line with the general philosophy of the project and/or get
-some early feedback which can make both your efforts much lighter as well as our review
-and merge procedures quick and simple.
+If you'd like to contribute to go-memecore, please fork, fix, commit and send a pull request
+for the maintainers to review and merge into the main code base.
 
 Please make sure your contributions adhere to our coding guidelines:
 
@@ -237,16 +268,14 @@ Please make sure your contributions adhere to our coding guidelines:
 - Commit messages should be prefixed with the package(s) they modify.
   - E.g. "eth, rpc: make trace configs optional"
 
-Please see the [Developers' Guide](https://geth.ethereum.org/docs/developers/geth-developer/dev-guide)
-for more details on configuring your environment, managing project dependencies, and
-testing procedures.
-
 ## License
 
-The go-ethereum library (i.e. all code outside of the `cmd` directory) is licensed under the
+Go MemeCore is based on [go-ethereum](https://github.com/ethereum/go-ethereum) and inherits its licensing terms.
+
+The go-memecore/go-ethereum library (i.e. all code outside of the `cmd` directory) is licensed under the
 [GNU Lesser General Public License v3.0](https://www.gnu.org/licenses/lgpl-3.0.en.html),
 also included in our repository in the `COPYING.LESSER` file.
 
-The go-ethereum binaries (i.e. all code inside of the `cmd` directory) are licensed under the
+The go-memecore binaries (i.e. all code inside of the `cmd` directory) are licensed under the
 [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html), also
 included in our repository in the `COPYING` file.
