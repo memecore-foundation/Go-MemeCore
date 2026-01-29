@@ -434,7 +434,7 @@ type ChainConfig struct {
 	// RewardTreeForkBlock specifies the block number for the reward reduction hard fork
 	RewardTreeForkBlock *big.Int `json:"rewardTreeForkBlock,omitempty"` // RewardTree switch time (nil = no fork, 0 = already on RewardTree)
 
-	// GasTreeForkBlock specifies the block number for the base fee reduction hard fork (from 1500 to 150 gwei)
+	// GasTreeForkBlock specifies the block number for the base fee reduction hard fork (from 1500 to 15 gwei)
 	GasTreeForkBlock *big.Int `json:"gasTreeForkBlock,omitempty"` // GasTree switch block (nil = no fork, 0 = already on GasTree)
 
 	// TerminalTotalDifficulty is the amount of total difficulty reached by
@@ -555,7 +555,7 @@ func (c *ChainConfig) Description() string {
 		banner += fmt.Sprintf(" - RewardTree:                  #%-8v (block reward reduction to 300 * 10^17 wei)\n", c.RewardTreeForkBlock)
 	}
 	if c.GasTreeForkBlock != nil {
-		banner += fmt.Sprintf(" - GasTree:                     #%-8v (base fee reduction from 1500 to 150 gwei)\n", c.GasTreeForkBlock)
+		banner += fmt.Sprintf(" - GasTree:                     #%-8v (base fee reduction from 1500 to 15 gwei)\n", c.GasTreeForkBlock)
 	}
 	banner += "\n"
 
