@@ -158,6 +158,15 @@ func (p *testTxPool) SubscribeTransactions(ch chan<- core.NewTxsEvent, reorgs bo
 	return p.txFeed.Subscribe(ch)
 }
 
+// FilterType returns whether the pool supports the given transaction type.
+func (p *testTxPool) FilterType(kind byte) bool {
+	return kind == types.LegacyTxType ||
+		kind == types.AccessListTxType ||
+		kind == types.DynamicFeeTxType ||
+		kind == types.BlobTxType ||
+		kind == types.SetCodeTxType
+}
+
 // testHandler is a live implementation of the Ethereum protocol handler, just
 // preinitialized with some sane testing defaults and the transaction pool mocked
 // out.
