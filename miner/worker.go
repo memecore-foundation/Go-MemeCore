@@ -118,8 +118,12 @@ func (env *environment) copy() *environment {
 	cpy.txs = make([]*types.Transaction, len(env.txs))
 	copy(cpy.txs, env.txs)
 
-	cpy.sidecars = make(types.BlobSidecars, len(env.sidecars))
-	copy(cpy.sidecars, env.sidecars)
+	// Preserve nil to avoid RLP encoding issues with older nodes (v1.14)
+	// nil slice is omitted in RLP optional fields, but empty slice is not
+	if env.sidecars != nil {
+		cpy.sidecars = make(types.BlobSidecars, len(env.sidecars))
+		copy(cpy.sidecars, env.sidecars)
+	}
 
 	return cpy
 }
