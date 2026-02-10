@@ -783,27 +783,27 @@ func (p *PoSA) Seal(chain consensus.ChainHeaderReader, block *types.Block, resul
 		sighash    []byte
 		retryCount int = 0
 	)
-	for loop := true; loop && (retryCount < p.poSASignerRetryCount || p.poSASignerRetryCount == -1); {
+	for loop := true; loop && (retryCount < p.poSASignerRetryCount+1 || p.poSASignerRetryCount == -1); retryCount++ {
 		curBlockNumber := chain.CurrentHeader().Number
 		if curBlockNumber.Cmp(header.Number) >= 0 {
 			return fmt.Errorf("current block number is greater than or equal to signing block number. current block number: %d, signing block number: %d", curBlockNumber, header.Number)
 		}
-		select {
-		case <-stop:
-			log.Warn("PoSA signing aborted", "number", header.Number.Uint64())
-			return nil
-		case <-time.After(p.poSASignerRetryInterval):
-			sighash, err = signFn(accounts.Account{Address: signer}, accounts.MimetypePoSA, PoSARLP(header))
-			if err == nil {
-				loop = false
-			} else {
-				log.Warn("PoSA signer failed to sign block.", "number", header.Number.Uint64(), "retry", retryCount, "err", err)
-				retryCount++
+		sighash, err = signFn(accounts.Account{Address: signer}, accounts.MimetypePoSA, PoSARLP(header))
+		if err == nil {
+			loop = false
+		} else {
+			log.Warn("PoSA signer failed to sign block.", "number", header.Number.Uint64(), "retry", retryCount, "err", err)
+			select {
+			case <-stop:
+				log.Warn("PoSA signing aborted", "number", header.Number.Uint64())
+				return nil
+			case <-time.After(p.poSASignerRetryInterval):
+				continue
 			}
 		}
 	}
 	if sighash == nil {
-		return fmt.Errorf("failed to sign block. number: %d, retry count: %d", header.Number.Uint64(), retryCount)
+		return fmt.Errorf("failed to sign block. number: %d, retry count: %d", header.Number.Uint64(), retryCount-1)
 	}
 	copy(header.Extra[len(header.Extra)-extraSeal:], sighash)
 	// Wait until sealing is terminated or delay timeout.
