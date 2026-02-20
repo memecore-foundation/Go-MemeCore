@@ -596,12 +596,15 @@ func (w *worker) mainLoop() {
 func (w *worker) taskLoop() {
 	defer w.wg.Done()
 	var (
-		stopCh chan struct{}
-		prev   common.Hash
+		stopCh   chan struct{}
+		stopChMu sync.Mutex
+		prev     common.Hash
 	)
 
 	// interrupt aborts the in-flight sealing task.
 	interrupt := func() {
+		stopChMu.Lock()
+		defer stopChMu.Unlock()
 		if stopCh != nil {
 			close(stopCh)
 			stopCh = nil
@@ -624,7 +627,10 @@ func (w *worker) taskLoop() {
 			}
 			// Interrupt previous sealing operation
 			interrupt()
-			stopCh, prev = make(chan struct{}), sealHash
+			currentStopCh := make(chan struct{})
+			stopChMu.Lock()
+			stopCh, prev = currentStopCh, sealHash
+			stopChMu.Unlock()
 
 			if w.skipSealHook != nil && w.skipSealHook(task) {
 				continue
@@ -633,7 +639,7 @@ func (w *worker) taskLoop() {
 			w.pendingTasks[sealHash] = task
 			w.pendingMu.Unlock()
 
-			if err := w.engine.Seal(w.chain, task.block, w.resultCh, stopCh); err != nil {
+			if err := w.engine.Seal(w.chain, task.block, w.resultCh, currentStopCh); err != nil {
 				log.Warn("Block sealing failed", "err", err)
 				w.pendingMu.Lock()
 				delete(w.pendingTasks, sealHash)
