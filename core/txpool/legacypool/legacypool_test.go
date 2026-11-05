@@ -1856,7 +1856,7 @@ func TestDualHeapEviction(t *testing.T) {
 
 	var (
 		highTip, highCap *types.Transaction
-		baseFee          int
+		baseFee          int64
 	)
 
 	check := func(tx *types.Transaction, name string) {
@@ -1873,10 +1873,10 @@ func TestDualHeapEviction(t *testing.T) {
 			key, _ := crypto.GenerateKey()
 			testAddBalance(pool, crypto.PubkeyToAddress(key.PublicKey), big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(1000000000000000000)))
 			if urgent {
-				tx = dynamicFeeTx(0, 100000, big.NewInt(int64(baseFee+1+i)), big.NewInt(int64(1+i)), key)
+				tx = dynamicFeeTx(0, 100000, big.NewInt(baseFee+1+int64(i)), big.NewInt(int64(1+i)), key)
 				highTip = tx
 			} else {
-				tx = dynamicFeeTx(0, 100000, big.NewInt(int64(baseFee+200+i)), big.NewInt(1), key)
+				tx = dynamicFeeTx(0, 100000, big.NewInt(baseFee+200+int64(i)), big.NewInt(1), key)
 				highCap = tx
 			}
 			pool.addRemotesSync([]*types.Transaction{tx})
@@ -1889,7 +1889,7 @@ func TestDualHeapEviction(t *testing.T) {
 
 	add(false)
 	for baseFee = 0; baseFee <= 1000; baseFee += 100 {
-		pool.priced.SetBaseFee(big.NewInt(int64(baseFee)))
+		pool.priced.SetBaseFee(big.NewInt(baseFee))
 		add(true)
 		check(highCap, "fee cap")
 		add(false)

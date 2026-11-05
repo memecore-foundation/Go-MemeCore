@@ -1901,7 +1901,7 @@ func testSideImport(t *testing.T, numCanonBlocksInSidechain, blocksBetweenCommon
 		chain.Config().TerminalTotalDifficulty = gspec.Config.TerminalTotalDifficulty
 	}
 	genDb, blocks, _ := GenerateChainWithGenesis(gspec, engine, 2*state.TriesInMemory, func(i int, gen *BlockGen) {
-		tx, err := types.SignTx(types.NewTransaction(nonce, common.HexToAddress("deadbeef"), big.NewInt(100), 21000, big.NewInt(int64(i+1500000000000)), nil), signer, key)
+		tx, err := types.SignTx(types.NewTransaction(nonce, common.HexToAddress("deadbeef"), big.NewInt(100), 21000, big.NewInt(int64(i)+1500000000000), nil), signer, key)
 		if err != nil {
 			t.Fatalf("failed to create tx: %v", err)
 		}
