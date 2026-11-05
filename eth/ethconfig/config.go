@@ -78,7 +78,7 @@ var Defaults = Config{
 	PoSASignerRetryInterval: 500 * time.Millisecond,
 	PoSASignerRetryCount:    -1,
 
-	BlobExtraReserve:       params.DefaultExtraReserveForBlobRequests,
+	BlobExtraReserve: params.DefaultExtraReserveForBlobRequests,
 }
 
 //go:generate go run github.com/fjl/gencodec -type Config -formats toml -out gen_config.go

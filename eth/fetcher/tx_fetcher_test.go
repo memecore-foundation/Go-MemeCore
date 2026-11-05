@@ -2272,10 +2272,10 @@ func TestTransactionForgotten(t *testing.T) {
 //   - After the fix, peers sending invalid KZG proofs are immediately disconnected
 //
 // The fix adds:
-//   1. ErrKZGVerificationError sentinel error in txpool/errors.go
-//   2. Error wrapping in validation.go for KZG verification failures
-//   3. violation field in txDelivery struct to track protocol violations
-//   4. Peer disconnection in tx_fetcher.go when violation is detected
+//  1. ErrKZGVerificationError sentinel error in txpool/errors.go
+//  2. Error wrapping in validation.go for KZG verification failures
+//  3. violation field in txDelivery struct to track protocol violations
+//  4. Peer disconnection in tx_fetcher.go when violation is detected
 func TestKZGProtocolViolation(t *testing.T) {
 	dropped := make(chan string, 1)
 
@@ -2335,8 +2335,8 @@ func TestKZGProtocolViolation(t *testing.T) {
 // in the batch are valid.
 //
 // This tests that:
-//   1. KZG error in any transaction triggers peer drop
-//   2. The position of the failing transaction doesn't matter (2nd tx fails here)
+//  1. KZG error in any transaction triggers peer drop
+//  2. The position of the failing transaction doesn't matter (2nd tx fails here)
 func TestKZGProtocolViolationMultipleTxs(t *testing.T) {
 	dropped := make(chan string, 1)
 

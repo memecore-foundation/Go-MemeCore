@@ -444,12 +444,13 @@ func hexKey(prv string) *PrivateKey {
 //   - For len(c) = 113: ct length = 16 → ct[:16] access succeeds
 //
 // Defense-in-depth note:
-//   Decrypt() has HMAC verification (line 318-320) before symDecrypt (line 322).
-//   For truncated messages, HMAC usually fails, preventing symDecrypt from being reached.
-//   However, the length check is the PRIMARY defense because:
-//   1. HMAC verification is not designed for length validation
-//   2. Edge cases or crafted payloads might bypass HMAC
-//   3. Correct length validation is required by the ECIES specification
+//
+//	Decrypt() has HMAC verification (line 318-320) before symDecrypt (line 322).
+//	For truncated messages, HMAC usually fails, preventing symDecrypt from being reached.
+//	However, the length check is the PRIMARY defense because:
+//	1. HMAC verification is not designed for length validation
+//	2. Edge cases or crafted payloads might bypass HMAC
+//	3. Correct length validation is required by the ECIES specification
 func TestDecryptMinimumLengthValidation(t *testing.T) {
 	prv, err := GenerateKey(rand.Reader, DefaultCurve, nil)
 	if err != nil {
@@ -482,7 +483,6 @@ func TestDecryptMinimumLengthValidation(t *testing.T) {
 	// symDecrypt does: ct[:BlockSize] for IV, which panics if len(ct) < BlockSize
 	t.Log("--- Test 1: Prove symDecrypt panics with undersized ct ---")
 	for ctLen := 0; ctLen < blockSize; ctLen++ {
-		ctLen := ctLen // capture for closure
 		panicked := false
 		func() {
 			defer func() {

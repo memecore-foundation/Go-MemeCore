@@ -132,8 +132,8 @@ func TestBlobSidecarsMultipleBlocks(t *testing.T) {
 
 	// Create sidecars for multiple blocks
 	blocks := []struct {
-		hash common.Hash
-		num  uint64
+		hash  common.Hash
+		num   uint64
 		blobs int
 	}{
 		{common.BytesToHash([]byte{0x01}), 1, 1},
@@ -427,10 +427,10 @@ func TestDeleteBlockWithMultipleBlobTxs(t *testing.T) {
 	genBlobs3 := makeBlkSidecars(1, 1)
 
 	tx1 := types.NewTx(&types.BlobTx{
-		ChainID:    uint256.NewInt(1),
-		GasTipCap:  uint256.NewInt(1),
-		GasFeeCap:  uint256.NewInt(1),
-		Gas:        21000,
+		ChainID:   uint256.NewInt(1),
+		GasTipCap: uint256.NewInt(1),
+		GasFeeCap: uint256.NewInt(1),
+		Gas:       21000,
 		BlobHashes: []common.Hash{
 			common.HexToHash("0x1000000000000000000000000000000000000000000000000000000000000001"),
 			common.HexToHash("0x1000000000000000000000000000000000000000000000000000000000000002"),
@@ -439,10 +439,10 @@ func TestDeleteBlockWithMultipleBlobTxs(t *testing.T) {
 	})
 
 	tx2 := types.NewTx(&types.BlobTx{
-		ChainID:    uint256.NewInt(1),
-		GasTipCap:  uint256.NewInt(1),
-		GasFeeCap:  uint256.NewInt(1),
-		Gas:        21000,
+		ChainID:   uint256.NewInt(1),
+		GasTipCap: uint256.NewInt(1),
+		GasFeeCap: uint256.NewInt(1),
+		Gas:       21000,
 		BlobHashes: []common.Hash{
 			common.HexToHash("0x2000000000000000000000000000000000000000000000000000000000000001"),
 			common.HexToHash("0x2000000000000000000000000000000000000000000000000000000000000002"),
@@ -452,10 +452,10 @@ func TestDeleteBlockWithMultipleBlobTxs(t *testing.T) {
 	})
 
 	tx3 := types.NewTx(&types.BlobTx{
-		ChainID:    uint256.NewInt(1),
-		GasTipCap:  uint256.NewInt(1),
-		GasFeeCap:  uint256.NewInt(1),
-		Gas:        21000,
+		ChainID:   uint256.NewInt(1),
+		GasTipCap: uint256.NewInt(1),
+		GasFeeCap: uint256.NewInt(1),
+		Gas:       21000,
 		BlobHashes: []common.Hash{
 			common.HexToHash("0x3000000000000000000000000000000000000000000000000000000000000001"),
 		},
@@ -522,10 +522,10 @@ func TestBatchDeleteBlocksWithBlobs(t *testing.T) {
 		// Create 2 blobs per block
 		genBlobs := makeBlkSidecars(1, 2)
 		tx := types.NewTx(&types.BlobTx{
-			ChainID:    uint256.NewInt(1),
-			GasTipCap:  uint256.NewInt(1),
-			GasFeeCap:  uint256.NewInt(1),
-			Gas:        21000,
+			ChainID:   uint256.NewInt(1),
+			GasTipCap: uint256.NewInt(1),
+			GasFeeCap: uint256.NewInt(1),
+			Gas:       21000,
 			BlobHashes: []common.Hash{
 				common.BytesToHash([]byte{byte(i), 0x01}),
 				common.BytesToHash([]byte{byte(i), 0x02}),
