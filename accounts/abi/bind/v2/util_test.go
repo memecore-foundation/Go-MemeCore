@@ -55,7 +55,7 @@ func TestWaitDeployed(t *testing.T) {
 	for name, test := range waitDeployedTests {
 		backend := simulated.NewBackend(
 			types.GenesisAlloc{
-				crypto.PubkeyToAddress(testKey.PublicKey): {Balance: big.NewInt(10000000000000000)},
+				crypto.PubkeyToAddress(testKey.PublicKey): {Balance: new(big.Int).Mul(big.NewInt(1000), big.NewInt(1e18))},
 			},
 		)
 		defer backend.Close()
@@ -102,13 +102,15 @@ func TestWaitDeployed(t *testing.T) {
 func TestWaitDeployedCornerCases(t *testing.T) {
 	backend := simulated.NewBackend(
 		types.GenesisAlloc{
-			crypto.PubkeyToAddress(testKey.PublicKey): {Balance: big.NewInt(10000000000000000)},
+			crypto.PubkeyToAddress(testKey.PublicKey): {Balance: new(big.Int).Mul(big.NewInt(1000), big.NewInt(1e18))},
 		},
 	)
 	defer backend.Close()
 
 	head, _ := backend.Client().HeaderByNumber(context.Background(), nil) // Should be child's, good enough
-	gasPrice := new(big.Int).Add(head.BaseFee, big.NewInt(1))
+	// gmeme keeps the base fee at its floor and its miner requires a 1 gwei tip,
+	// so a 1 wei tip would never be mined.
+	gasPrice := new(big.Int).Add(head.BaseFee, big.NewInt(params.GWei))
 
 	// Create a transaction to an account.
 	code := "6060604052600a8060106000396000f360606040526008565b00"

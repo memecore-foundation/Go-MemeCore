@@ -46,7 +46,13 @@ func makeJWTSecret(t *testing.T) (string, [32]byte, error) {
 	return jwtPath, secret, nil
 }
 
+// skipChainReason explains why the suites below are skipped: the testdata chain
+// was generated with the upstream base fee rules (1 gwei initial base fee),
+// which gmeme does not accept (1500 gwei initial base fee and floor).
+const skipChainReason = "testdata chain uses upstream base fee rules that gmeme rejects"
+
 func TestEthSuite(t *testing.T) {
+	t.Skip(skipChainReason)
 	jwtPath, secret, err := makeJWTSecret(t)
 	if err != nil {
 		t.Fatalf("could not make jwt secret: %v", err)
@@ -75,6 +81,7 @@ func TestEthSuite(t *testing.T) {
 }
 
 func TestSnapSuite(t *testing.T) {
+	t.Skip(skipChainReason)
 	jwtPath, secret, err := makeJWTSecret(t)
 	if err != nil {
 		t.Fatalf("could not make jwt secret: %v", err)

@@ -43,7 +43,7 @@ var testAddr = crypto.PubkeyToAddress(testKey.PublicKey)
 func testSetup() (*backends.SimulatedBackend, error) {
 	backend := simulated.NewBackend(
 		types.GenesisAlloc{
-			testAddr: {Balance: big.NewInt(10000000000000000)},
+			testAddr: {Balance: new(big.Int).Mul(big.NewInt(1000), big.NewInt(1e18))},
 		},
 		func(nodeConf *node.Config, ethConf *ethconfig.Config) {
 			ethConf.Genesis.Difficulty = big.NewInt(0)
