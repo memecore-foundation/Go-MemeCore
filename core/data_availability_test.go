@@ -41,6 +41,10 @@ func cancunOnlyTestConfig() *params.ChainConfig {
 }
 
 func TestIsDataAvailable(t *testing.T) {
+	// IsDataAvailable compares block times with the wall clock in seconds, and
+	// one case sits exactly on the retention boundary. Start just after a
+	// second boundary so that all cases are checked within the same second.
+	time.Sleep(time.Until(time.Now().Truncate(time.Second).Add(time.Second + 10*time.Millisecond)))
 	now := uint64(time.Now().Unix())
 	hr := NewMockDAHeaderReader(cancunOnlyTestConfig())
 	tests := []struct {
