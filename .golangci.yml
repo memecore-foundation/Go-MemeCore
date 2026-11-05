@@ -76,6 +76,36 @@ linters:
         text: 'SA1019: strings.Title has been deprecated since Go 1.18 and an alternative has been available since Go 1.0: The rule Title uses for word boundaries does not handle Unicode punctuation properly. Use golang.org/x/text/cases instead.'
       - path: (.+)\.go$
         text: 'SA1029: should not use built-in type string as key for value'
+      # Upstream code left unused by gmeme changes. Kept as is to stay close to
+      # go-ethereum and bsc, so only these symbols are excluded.
+      - path: beacon/params/networks.go
+        linters:
+          - unused
+        text: 'var checkpointMainnet is unused'
+      - path: core/blockchain_test.go
+        linters:
+          - unused
+        text: 'func testInsertChainWithCutoff is unused'
+      - path: core/error.go
+        linters:
+          - unused
+        text: 'var errSideChainReceipts is unused'
+      - path: core/rawdb/chain_freezer.go
+        linters:
+          - unused
+        text: 'func \(\*chainFreezer\)\.(readHeadNumber|readFinalizedNumber|freezeThreshold) is unused'
+      - path: eth/peerset.go
+        linters:
+          - unused
+        text: 'func \(\*peerSet\)\.headPeers is unused'
+      - path: internal/ethapi/api_test.go
+        linters:
+          - unused
+        text: 'func (\(\*testBackend\)\.setPendingBlock|setupReceiptBackend|testRPCResponseWithFile) is unused'
+      - path: miner/pending.go
+        linters:
+          - unused
+        text: '(const pendingTTL|type pending|func \(\*pending\)\.(resolve|update)) is unused'
     paths:
       - core/genesis_alloc.go
       - third_party$
