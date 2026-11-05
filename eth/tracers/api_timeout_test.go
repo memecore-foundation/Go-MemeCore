@@ -19,6 +19,7 @@ package tracers_test
 import (
 	"context"
 	"math/big"
+	"strings"
 	"testing"
 	"time"
 
@@ -60,10 +61,14 @@ func TestTraceBlockByNumberKeccakTimeout(t *testing.T) {
 	api := tracers.NewAPI(backend)
 	name, timeout := "keccak256PreimageTracer", "1ns"
 	res, err := api.TraceBlockByNumber(context.Background(), rpc.BlockNumber(1), &tracers.TraceConfig{Tracer: &name, Timeout: &timeout})
-	if err != nil {
-		t.Fatalf("TraceBlockByNumber failed: %v", err)
-	}
-	if len(res) != 1 {
+	switch {
+	case err != nil:
+		// The watchdog may stop the tracer before the transaction finishes. The
+		// timeout is then reported as an error, which is also a correct outcome.
+		if !strings.Contains(err.Error(), "execution timeout") {
+			t.Fatalf("TraceBlockByNumber failed: %v", err)
+		}
+	case len(res) != 1:
 		t.Fatalf("got %d transaction results, want 1", len(res))
 	}
 	// The watchdog fires asynchronously, possibly after the result is returned.
